@@ -1,0 +1,8 @@
+plugins {
+    // Apply the java conventions plugin from build-logic.
+    id("buildlogic.java-library-conventions")
+}
+
+dependencies {
+    api("org.jspecify:jspecify:1.0.0")
+}
