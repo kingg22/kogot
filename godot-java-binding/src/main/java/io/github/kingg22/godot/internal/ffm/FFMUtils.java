@@ -14,27 +14,58 @@ import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 
+import static java.util.Objects.requireNonNull;
+
 final class FFMUtils {
     private FFMUtils() {
         throw new UnsupportedOperationException();
     }
 
-    static final ValueLayout.OfBoolean C_BOOL = (ValueLayout.OfBoolean) Linker.nativeLinker().canonicalLayouts().get("bool");
-    static final ValueLayout.OfByte C_CHAR = (ValueLayout.OfByte) Linker.nativeLinker().canonicalLayouts().get("char");
-    static final ValueLayout.OfShort C_SHORT = (ValueLayout.OfShort) Linker.nativeLinker().canonicalLayouts().get("short");
-    static final ValueLayout.OfInt C_INT = (ValueLayout.OfInt) Linker.nativeLinker().canonicalLayouts().get("int");
-    static final ValueLayout.OfLong C_LONG_LONG = (ValueLayout.OfLong) Linker.nativeLinker().canonicalLayouts().get("long long");
-    static final ValueLayout.OfFloat C_FLOAT = (ValueLayout.OfFloat) Linker.nativeLinker().canonicalLayouts().get("float");
-    static final ValueLayout.OfDouble C_DOUBLE = (ValueLayout.OfDouble) Linker.nativeLinker().canonicalLayouts().get("double");
-    static final AddressLayout C_POINTER = ((AddressLayout) Linker.nativeLinker().canonicalLayouts().get("void*"))
-        .withTargetLayout(MemoryLayout.sequenceLayout(java.lang.Long.MAX_VALUE, C_CHAR));
-    static final ValueLayout.OfLong C_LONG = (ValueLayout.OfLong) Linker.nativeLinker().canonicalLayouts().get("long");
+    static final ValueLayout.OfBoolean C_BOOL;
+    static final ValueLayout.OfByte C_CHAR;
+    static final ValueLayout.OfShort C_SHORT;
+    static final ValueLayout.OfInt C_INT;
+    static final ValueLayout.OfLong C_LONG_LONG;
+    static final ValueLayout.OfFloat C_FLOAT;
+    static final ValueLayout.OfDouble C_DOUBLE;
+    static final AddressLayout C_POINTER;
+    static final ValueLayout.OfLong C_LONG;
+
+    static {
+        var layouts = Linker.nativeLinker().canonicalLayouts();
+
+        C_BOOL = (ValueLayout.OfBoolean)
+                requireNonNull(layouts.get("bool"), "Missing canonical layout for C type: bool");
+
+        C_CHAR = (ValueLayout.OfByte) requireNonNull(layouts.get("char"), "Missing canonical layout for C type: char");
+
+        C_SHORT = (ValueLayout.OfShort)
+                requireNonNull(layouts.get("short"), "Missing canonical layout for C type: short");
+
+        C_INT = (ValueLayout.OfInt) requireNonNull(layouts.get("int"), "Missing canonical layout for C type: int");
+
+        C_LONG_LONG = (ValueLayout.OfLong)
+                requireNonNull(layouts.get("long long"), "Missing canonical layout for C type: long long");
+
+        C_FLOAT = (ValueLayout.OfFloat)
+                requireNonNull(layouts.get("float"), "Missing canonical layout for C type: float");
+
+        C_DOUBLE = (ValueLayout.OfDouble)
+                requireNonNull(layouts.get("double"), "Missing canonical layout for C type: double");
+
+        AddressLayout basePointer =
+                (AddressLayout) requireNonNull(layouts.get("void*"), "Missing canonical layout for C type: void*");
+
+        C_POINTER = basePointer.withTargetLayout(MemoryLayout.sequenceLayout(Long.MAX_VALUE, C_CHAR));
+
+        C_LONG = (ValueLayout.OfLong) requireNonNull(layouts.get("long"), "Missing canonical layout for C type: long");
+    }
 
     static MethodHandle upcallHandle(final Class<?> clazz, final FunctionDescriptor functionDescriptor) {
         try {
             return MethodHandles.lookup().findVirtual(clazz, "apply", functionDescriptor.toMethodType());
         } catch (ReflectiveOperationException ex) {
-            throw new AssertionError(ex);
+            throw new LinkageError(ex.getMessage(), ex);
         }
     }
 
@@ -43,10 +74,11 @@ final class FFMUtils {
             case PaddingLayout p -> p;
             case ValueLayout v -> v.withByteAlignment(align);
             case GroupLayout g -> {
-                MemoryLayout[] alignedMembers = g.memberLayouts().stream()
-                    .map(m -> align(m, align)).toArray(MemoryLayout[]::new);
-                yield g instanceof StructLayout ?
-                    MemoryLayout.structLayout(alignedMembers) : MemoryLayout.unionLayout(alignedMembers);
+                MemoryLayout[] alignedMembers =
+                        g.memberLayouts().stream().map(m -> align(m, align)).toArray(MemoryLayout[]::new);
+                yield g instanceof StructLayout
+                        ? MemoryLayout.structLayout(alignedMembers)
+                        : MemoryLayout.unionLayout(alignedMembers);
             }
             case SequenceLayout s -> MemoryLayout.sequenceLayout(s.elementCount(), align(s.elementLayout(), align));
         };
