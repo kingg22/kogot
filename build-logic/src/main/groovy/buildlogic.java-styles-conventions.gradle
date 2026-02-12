@@ -1,0 +1,12 @@
+plugins {
+    id("buildlogic.jvm-styles-conventions")
+}
+
+spotless {
+    java {
+        removeUnusedImports()
+        palantirJavaFormat(libs.versions.palantir.get()).formatJavadoc(true)
+        importOrder("", "java", "javax", "\\#")
+        formatAnnotations()
+    }
+}

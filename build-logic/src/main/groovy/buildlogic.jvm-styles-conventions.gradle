@@ -1,0 +1,13 @@
+import java.nio.charset.Charset
+
+plugins {
+    id("com.diffplug.spotless")
+}
+
+spotless {
+    encoding = Charset.forName("UTF-8")
+    // lineEndings = LineEnding.PRESERVE
+    groovyGradle {
+        greclipse()
+    }
+}

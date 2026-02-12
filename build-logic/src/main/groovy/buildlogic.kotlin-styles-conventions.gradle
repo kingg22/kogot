@@ -1,0 +1,12 @@
+plugins {
+    id("buildlogic.jvm-styles-conventions")
+}
+
+spotless {
+    kotlin {
+        ktlint(libs.versions.ktlint.pinterest.get())
+    }
+    kotlinGradle {
+        ktlint(libs.versions.ktlint.pinterest.get())
+    }
+}
