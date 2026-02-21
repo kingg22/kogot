@@ -1,5 +1,8 @@
+import net.ltgt.gradle.errorprone.errorprone
+import net.ltgt.gradle.nullaway.nullaway
+
 plugins {
-    // we assume you are already using the Java plugin
+    `java-library`
 
     // can't use alias libs.plugins... here
     id("net.ltgt.errorprone")
@@ -7,14 +10,14 @@ plugins {
 }
 
 dependencies {
-    errorprone(libs.nullaway)
+    errorprone("com.uber.nullaway:nullaway:0.13.1")
 
     // Some source of nullability annotations; JSpecify recommended,
     // but others supported as well.
-    api(libs.jspecify)
+    api("org.jspecify:jspecify:1.0.0")
 
     // Required, but disable checks for this plugin
-    errorprone(libs.errorprone.core)
+    errorprone("com.google.errorprone:error_prone_core:2.47.0")
 }
 
 nullaway {
@@ -26,7 +29,7 @@ nullaway {
     jspecifyMode.set(true)
 }
 
-tasks.withType(JavaCompile).configureEach {
+tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.add("-XDaddTypeAnnotationsToSymbol=true")
     options.errorprone {
         allSuggestionsAsWarnings.set(true)

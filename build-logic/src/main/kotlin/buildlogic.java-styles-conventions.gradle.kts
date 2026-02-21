@@ -5,7 +5,7 @@ plugins {
 spotless {
     java {
         removeUnusedImports()
-        palantirJavaFormat(libs.versions.palantir.get()).formatJavadoc(true)
+        palantirJavaFormat("2.86.0").formatJavadoc(true)
         importOrder("", "java", "javax", "\\#")
         formatAnnotations()
     }

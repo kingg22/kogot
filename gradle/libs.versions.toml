@@ -17,12 +17,14 @@ spotless = "8.2.1"
 
 [libraries]
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+# https://gitlab.ow2.org/asm/asm/-/tags
+asm = { group = "org.ow2.asm", name="asm", version = "9.9.1" }
 
 jspecify = "org.jspecify:jspecify:1.0.0"
 # https://github.com/google/error-prone/releases
 errorprone-core = "com.google.errorprone:error_prone_core:2.47.0"
 # https://github.com/uber/NullAway/releases
-nullaway = { group = "com.uber.nullaway", name = "nullaway", version = "0.13.1" }
+nullaway = "com.uber.nullaway:nullaway:0.13.1"
 
 [plugins]
 # https://github.com/tbroyer/gradle-errorprone-plugin/releases
