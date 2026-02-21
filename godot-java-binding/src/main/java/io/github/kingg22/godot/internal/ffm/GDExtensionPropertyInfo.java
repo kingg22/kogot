@@ -10,9 +10,12 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.function.Consumer;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_INT;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 import static java.lang.foreign.ValueLayout.OfInt;
 
+// TODO add static helper
 /// ```C
 /// struct {
 ///     GDExtensionVariantType type;
@@ -26,18 +29,18 @@ import static java.lang.foreign.ValueLayout.OfInt;
 public final class GDExtensionPropertyInfo {
 
     private GDExtensionPropertyInfo() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-                    FFMUtils.C_INT.withName("type"),
+                    C_INT.withName("type"),
                     MemoryLayout.paddingLayout(4),
-                    FFMUtils.C_POINTER.withName("name"),
-                    FFMUtils.C_POINTER.withName("class_name"),
-                    FFMUtils.C_INT.withName("hint"),
+                    C_POINTER.withName("name"),
+                    C_POINTER.withName("class_name"),
+                    C_INT.withName("hint"),
                     MemoryLayout.paddingLayout(4),
-                    FFMUtils.C_POINTER.withName("hint_string"),
-                    FFMUtils.C_INT.withName("usage"),
+                    C_POINTER.withName("hint_string"),
+                    C_INT.withName("usage"),
                     MemoryLayout.paddingLayout(4))
             .withName("$anon$235:9");
 

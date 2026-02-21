@@ -8,6 +8,10 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_INT;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
+
 /**
  * {@snippet lang = c: typedef void (*GDExtensionScriptInstanceFreeMethodList2)(GDExtensionScriptInstanceDataPtr, const
  * GDExtensionMethodInfo *, uint32_t) }
@@ -15,7 +19,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionScriptInstanceFreeMethodList2 {
 
     private GDExtensionScriptInstanceFreeMethodList2() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -23,8 +27,7 @@ public final class GDExtensionScriptInstanceFreeMethodList2 {
         void apply(MemorySegment p_instance, MemorySegment p_list, int p_count);
     }
 
-    private static final FunctionDescriptor $DESC =
-            FunctionDescriptor.ofVoid(FFMUtils.C_POINTER, FFMUtils.C_POINTER, FFMUtils.C_INT);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.ofVoid(C_POINTER, C_POINTER, C_INT);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
@@ -32,7 +35,7 @@ public final class GDExtensionScriptInstanceFreeMethodList2 {
     }
 
     private static final MethodHandle UP$MH =
-            FFMUtils.upcallHandle(GDExtensionScriptInstanceFreeMethodList2.Function.class, $DESC);
+            upcallHandle(GDExtensionScriptInstanceFreeMethodList2.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment

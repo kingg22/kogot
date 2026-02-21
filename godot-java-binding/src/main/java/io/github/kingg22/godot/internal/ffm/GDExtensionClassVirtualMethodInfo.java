@@ -10,9 +10,12 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.function.Consumer;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_INT;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 import static java.lang.foreign.ValueLayout.OfInt;
 
+// TODO add static helper
 /// ```C
 /// struct {
 ///     GDExtensionStringNamePtr name;
@@ -27,18 +30,18 @@ import static java.lang.foreign.ValueLayout.OfInt;
 public final class GDExtensionClassVirtualMethodInfo {
 
     private GDExtensionClassVirtualMethodInfo() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-                    FFMUtils.C_POINTER.withName("name"),
-                    FFMUtils.C_INT.withName("method_flags"),
+                    C_POINTER.withName("name"),
+                    C_INT.withName("method_flags"),
                     MemoryLayout.paddingLayout(4),
                     GDExtensionPropertyInfo.layout().withName("return_value"),
-                    FFMUtils.C_INT.withName("return_value_metadata"),
-                    FFMUtils.C_INT.withName("argument_count"),
-                    FFMUtils.C_POINTER.withName("arguments"),
-                    FFMUtils.C_POINTER.withName("arguments_metadata"))
+                    C_INT.withName("return_value_metadata"),
+                    C_INT.withName("argument_count"),
+                    C_POINTER.withName("arguments"),
+                    C_POINTER.withName("arguments_metadata"))
             .withName("$anon$470:9");
 
     /** The layout of this struct */

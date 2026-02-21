@@ -8,6 +8,10 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_CHAR;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
+
 /**
  * {@snippet lang = c: typedef GDExtensionBool (*GDExtensionScriptInstanceHasMethod)(GDExtensionScriptInstanceDataPtr,
  * GDExtensionConstStringNamePtr) }
@@ -15,7 +19,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionScriptInstanceHasMethod {
 
     private GDExtensionScriptInstanceHasMethod() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -23,16 +27,14 @@ public final class GDExtensionScriptInstanceHasMethod {
         byte apply(MemorySegment p_instance, MemorySegment p_name);
     }
 
-    private static final FunctionDescriptor $DESC =
-            FunctionDescriptor.of(FFMUtils.C_CHAR, FFMUtils.C_POINTER, FFMUtils.C_POINTER);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(C_CHAR, C_POINTER, C_POINTER);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
         return $DESC;
     }
 
-    private static final MethodHandle UP$MH =
-            FFMUtils.upcallHandle(GDExtensionScriptInstanceHasMethod.Function.class, $DESC);
+    private static final MethodHandle UP$MH = upcallHandle(GDExtensionScriptInstanceHasMethod.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment

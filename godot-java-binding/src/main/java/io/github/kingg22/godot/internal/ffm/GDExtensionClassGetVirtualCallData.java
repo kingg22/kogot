@@ -17,7 +17,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionClassGetVirtualCallData {
 
     private GDExtensionClassGetVirtualCallData() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */

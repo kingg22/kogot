@@ -10,8 +10,10 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.function.Consumer;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 
+// TODO add static helper
 /// ```
 /// struct {
 ///     GDExtensionInstanceBindingCreateCallback create_callback;
@@ -22,13 +24,13 @@ import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 public final class GDExtensionInstanceBindingCallbacks {
 
     private GDExtensionInstanceBindingCallbacks() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-                    FFMUtils.C_POINTER.withName("create_callback"),
-                    FFMUtils.C_POINTER.withName("free_callback"),
-                    FFMUtils.C_POINTER.withName("reference_callback"))
+                    C_POINTER.withName("create_callback"),
+                    C_POINTER.withName("free_callback"),
+                    C_POINTER.withName("reference_callback"))
             .withName("$anon$221:9");
 
     /** The layout of this struct */

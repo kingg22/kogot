@@ -12,7 +12,7 @@ import java.lang.foreign.MemorySegment;
 /// ```
 public final class GDExtensionClassCreationInfo5 extends GDExtensionClassCreationInfo4 {
     private GDExtensionClassCreationInfo5() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     ///  *     GDExtensionBool is_virtual;
@@ -61,7 +61,7 @@ public final class GDExtensionClassCreationInfo5 extends GDExtensionClassCreatio
             final @Nullable MemorySegment get_virtual_call_data_func,
             final @Nullable MemorySegment call_virtual_with_data_func,
             final @Nullable MemorySegment classUserdata) {
-        var arena = Arena.global();
+        var arena = Arena.ofAuto();
         var struct = arena.allocate(layout());
         is_virtual(struct, isVirtual ? (byte) 1 : (byte) 0);
         is_abstract(struct, isAbstract ? (byte) 1 : (byte) 0);

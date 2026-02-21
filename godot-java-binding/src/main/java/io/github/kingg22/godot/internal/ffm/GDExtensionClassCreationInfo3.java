@@ -32,7 +32,7 @@ import static java.lang.foreign.ValueLayout.OfByte;
 public final class GDExtensionClassCreationInfo3 {
 
     private GDExtensionClassCreationInfo3() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(

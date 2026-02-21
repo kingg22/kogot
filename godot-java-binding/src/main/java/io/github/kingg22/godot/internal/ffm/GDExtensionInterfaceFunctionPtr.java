@@ -8,11 +8,13 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
+
 /** {@snippet lang = c: typedef void (*GDExtensionInterfaceFunctionPtr)() } */
 public final class GDExtensionInterfaceFunctionPtr {
 
     private GDExtensionInterfaceFunctionPtr() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -27,8 +29,7 @@ public final class GDExtensionInterfaceFunctionPtr {
         return $DESC;
     }
 
-    private static final MethodHandle UP$MH =
-            FFMUtils.upcallHandle(GDExtensionInterfaceFunctionPtr.Function.class, $DESC);
+    private static final MethodHandle UP$MH = upcallHandle(GDExtensionInterfaceFunctionPtr.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment

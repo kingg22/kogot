@@ -8,6 +8,10 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_INT;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
+
 /**
  * {@snippet lang = c: typedef GDExtensionPtrKeyedGetter
  * (*GDExtensionInterfaceVariantGetPtrKeyedGetter)(GDExtensionVariantType) }
@@ -15,7 +19,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionInterfaceVariantGetPtrKeyedGetter {
 
     private GDExtensionInterfaceVariantGetPtrKeyedGetter() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -23,7 +27,7 @@ public final class GDExtensionInterfaceVariantGetPtrKeyedGetter {
         MemorySegment apply(int p_type);
     }
 
-    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(FFMUtils.C_POINTER, FFMUtils.C_INT);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(C_POINTER, C_INT);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
@@ -31,7 +35,7 @@ public final class GDExtensionInterfaceVariantGetPtrKeyedGetter {
     }
 
     private static final MethodHandle UP$MH =
-            FFMUtils.upcallHandle(GDExtensionInterfaceVariantGetPtrKeyedGetter.Function.class, $DESC);
+            upcallHandle(GDExtensionInterfaceVariantGetPtrKeyedGetter.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment

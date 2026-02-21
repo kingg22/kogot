@@ -8,6 +8,10 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_CHAR;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_INT;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
+
 /**
  * {@snippet lang = c: typedef GDExtensionBool (*GDExtensionInterfaceVariantCanConvertStrict)(GDExtensionVariantType,
  * GDExtensionVariantType) }
@@ -15,7 +19,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionInterfaceVariantCanConvertStrict {
 
     private GDExtensionInterfaceVariantCanConvertStrict() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -23,8 +27,7 @@ public final class GDExtensionInterfaceVariantCanConvertStrict {
         byte apply(int p_from, int p_to);
     }
 
-    private static final FunctionDescriptor $DESC =
-            FunctionDescriptor.of(FFMUtils.C_CHAR, FFMUtils.C_INT, FFMUtils.C_INT);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(C_CHAR, C_INT, C_INT);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
@@ -32,7 +35,7 @@ public final class GDExtensionInterfaceVariantCanConvertStrict {
     }
 
     private static final MethodHandle UP$MH =
-            FFMUtils.upcallHandle(GDExtensionInterfaceVariantCanConvertStrict.Function.class, $DESC);
+            upcallHandle(GDExtensionInterfaceVariantCanConvertStrict.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment

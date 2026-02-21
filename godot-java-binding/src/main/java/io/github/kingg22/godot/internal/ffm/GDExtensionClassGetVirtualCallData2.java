@@ -8,6 +8,10 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_INT;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
+
 /**
  * {@snippet lang = c: typedef void *(*GDExtensionClassGetVirtualCallData2)(void *, GDExtensionConstStringNamePtr,
  * uint32_t) }
@@ -15,7 +19,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionClassGetVirtualCallData2 {
 
     private GDExtensionClassGetVirtualCallData2() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -23,16 +27,14 @@ public final class GDExtensionClassGetVirtualCallData2 {
         MemorySegment apply(MemorySegment p_class_userdata, MemorySegment p_name, int p_hash);
     }
 
-    private static final FunctionDescriptor $DESC =
-            FunctionDescriptor.of(FFMUtils.C_POINTER, FFMUtils.C_POINTER, FFMUtils.C_POINTER, FFMUtils.C_INT);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(C_POINTER, C_POINTER, C_POINTER, C_INT);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
         return $DESC;
     }
 
-    private static final MethodHandle UP$MH =
-            FFMUtils.upcallHandle(GDExtensionClassGetVirtualCallData2.Function.class, $DESC);
+    private static final MethodHandle UP$MH = upcallHandle(GDExtensionClassGetVirtualCallData2.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment

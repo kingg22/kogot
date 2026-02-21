@@ -18,7 +18,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionInterfaceScriptInstanceCreate2 {
 
     private GDExtensionInterfaceScriptInstanceCreate2() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */

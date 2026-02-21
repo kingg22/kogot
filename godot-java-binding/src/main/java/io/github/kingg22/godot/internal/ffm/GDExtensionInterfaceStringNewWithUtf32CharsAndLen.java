@@ -8,6 +8,10 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_LONG;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
+
 /**
  * {@snippet lang = c: typedef void
  * (*GDExtensionInterfaceStringNewWithUtf32CharsAndLen)(GDExtensionUninitializedStringPtr, const char32_t *,
@@ -16,7 +20,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionInterfaceStringNewWithUtf32CharsAndLen {
 
     private GDExtensionInterfaceStringNewWithUtf32CharsAndLen() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -24,8 +28,7 @@ public final class GDExtensionInterfaceStringNewWithUtf32CharsAndLen {
         void apply(MemorySegment r_dest, MemorySegment p_contents, long p_char_count);
     }
 
-    private static final FunctionDescriptor $DESC =
-            FunctionDescriptor.ofVoid(FFMUtils.C_POINTER, FFMUtils.C_POINTER, FFMUtils.C_LONG);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.ofVoid(C_POINTER, C_POINTER, C_LONG);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
@@ -33,7 +36,7 @@ public final class GDExtensionInterfaceStringNewWithUtf32CharsAndLen {
     }
 
     private static final MethodHandle UP$MH =
-            FFMUtils.upcallHandle(GDExtensionInterfaceStringNewWithUtf32CharsAndLen.Function.class, $DESC);
+            upcallHandle(GDExtensionInterfaceStringNewWithUtf32CharsAndLen.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment

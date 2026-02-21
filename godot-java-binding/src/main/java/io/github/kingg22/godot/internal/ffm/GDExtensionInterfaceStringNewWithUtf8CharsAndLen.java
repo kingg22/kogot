@@ -19,7 +19,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionInterfaceStringNewWithUtf8CharsAndLen {
 
     private GDExtensionInterfaceStringNewWithUtf8CharsAndLen() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */

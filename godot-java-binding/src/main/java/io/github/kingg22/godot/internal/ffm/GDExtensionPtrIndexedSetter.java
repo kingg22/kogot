@@ -8,6 +8,10 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_LONG;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
+
 /**
  * {@snippet lang = c: typedef void (*GDExtensionPtrIndexedSetter)(GDExtensionTypePtr, GDExtensionInt,
  * GDExtensionConstTypePtr) }
@@ -15,7 +19,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionPtrIndexedSetter {
 
     private GDExtensionPtrIndexedSetter() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -23,15 +27,14 @@ public final class GDExtensionPtrIndexedSetter {
         void apply(MemorySegment p_base, long p_index, MemorySegment p_value);
     }
 
-    private static final FunctionDescriptor $DESC =
-            FunctionDescriptor.ofVoid(FFMUtils.C_POINTER, FFMUtils.C_LONG, FFMUtils.C_POINTER);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.ofVoid(C_POINTER, C_LONG, C_POINTER);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
         return $DESC;
     }
 
-    private static final MethodHandle UP$MH = FFMUtils.upcallHandle(GDExtensionPtrIndexedSetter.Function.class, $DESC);
+    private static final MethodHandle UP$MH = upcallHandle(GDExtensionPtrIndexedSetter.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment

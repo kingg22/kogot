@@ -17,7 +17,7 @@ import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 /// For example:
 /// ```c
 ///  GDExtensionInterfaceGetGodotVersion get_godot_version =
-// (GDExtensionInterfaceGetGodotVersion)p_get_proc_address("get_godot_version");
+/// (GDExtensionInterfaceGetGodotVersion)p_get_proc_address("get_godot_version");
 /// ```
 /// You can then call it like a normal function:
 /// ```c

@@ -16,7 +16,7 @@ import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 public final class GDExtensionCallableCustomEqual {
 
     private GDExtensionCallableCustomEqual() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */

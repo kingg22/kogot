@@ -8,6 +8,11 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_CHAR;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_LONG;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
+
 /**
  * {@snippet lang = c: typedef GDExtensionInt
  * (*GDExtensionInterfaceStringNewWithUtf16CharsAndLen2)(GDExtensionUninitializedStringPtr, const char16_t *,
@@ -16,7 +21,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionInterfaceStringNewWithUtf16CharsAndLen2 {
 
     private GDExtensionInterfaceStringNewWithUtf16CharsAndLen2() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -24,8 +29,7 @@ public final class GDExtensionInterfaceStringNewWithUtf16CharsAndLen2 {
         long apply(MemorySegment r_dest, MemorySegment p_contents, long p_char_count, byte p_default_little_endian);
     }
 
-    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(
-            FFMUtils.C_LONG, FFMUtils.C_POINTER, FFMUtils.C_POINTER, FFMUtils.C_LONG, FFMUtils.C_CHAR);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(C_LONG, C_POINTER, C_POINTER, C_LONG, C_CHAR);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
@@ -33,7 +37,7 @@ public final class GDExtensionInterfaceStringNewWithUtf16CharsAndLen2 {
     }
 
     private static final MethodHandle UP$MH =
-            FFMUtils.upcallHandle(GDExtensionInterfaceStringNewWithUtf16CharsAndLen2.Function.class, $DESC);
+            upcallHandle(GDExtensionInterfaceStringNewWithUtf16CharsAndLen2.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment

@@ -9,6 +9,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.function.Consumer;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_INT;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 import static java.lang.foreign.ValueLayout.OfInt;
 
@@ -22,14 +23,28 @@ import static java.lang.foreign.ValueLayout.OfInt;
 public final class GDExtensionCallError {
 
     private GDExtensionCallError() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-                    FFMUtils.C_INT.withName("error"),
-                    FFMUtils.C_INT.withName("argument"),
-                    FFMUtils.C_INT.withName("expected"))
+                    C_INT.withName("error"), C_INT.withName("argument"), C_INT.withName("expected"))
             .withName("$anon$193:9");
+
+    public static void create(final MemorySegment struct, final int code, final int argument, final int expected) {
+        if (struct == MemorySegment.NULL) {
+            return;
+        }
+        error(struct, code);
+        argument(struct, argument);
+        expected(struct, expected);
+    }
+
+    public static MemorySegment create(final int code, final int argument, final int expected) {
+        final var arena = Arena.ofAuto();
+        final var struct = arena.allocate(layout());
+        create(struct, code, argument, expected);
+        return struct;
+    }
 
     /** The layout of this struct */
     public static GroupLayout layout() {

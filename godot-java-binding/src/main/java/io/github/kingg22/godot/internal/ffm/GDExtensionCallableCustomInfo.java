@@ -33,7 +33,7 @@ import static java.lang.foreign.ValueLayout.OfLong;
 public final class GDExtensionCallableCustomInfo {
 
     private GDExtensionCallableCustomInfo() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(

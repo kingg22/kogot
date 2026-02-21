@@ -19,7 +19,7 @@ import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 public final class GDExtensionClassFreePropertyList2 {
 
     private GDExtensionClassFreePropertyList2() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */

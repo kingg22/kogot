@@ -10,10 +10,14 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.function.Consumer;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_CHAR;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_INT;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 import static java.lang.foreign.ValueLayout.OfByte;
 import static java.lang.foreign.ValueLayout.OfInt;
 
+// TODO add static helper
 /// ```C
 /// struct {
 ///     GDExtensionStringNamePtr name;
@@ -34,25 +38,25 @@ import static java.lang.foreign.ValueLayout.OfInt;
 public final class GDExtensionClassMethodInfo {
 
     private GDExtensionClassMethodInfo() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-                    FFMUtils.C_POINTER.withName("name"),
-                    FFMUtils.C_POINTER.withName("method_userdata"),
-                    FFMUtils.C_POINTER.withName("call_func"),
-                    FFMUtils.C_POINTER.withName("ptrcall_func"),
-                    FFMUtils.C_INT.withName("method_flags"),
-                    FFMUtils.C_CHAR.withName("has_return_value"),
+                    C_POINTER.withName("name"),
+                    C_POINTER.withName("method_userdata"),
+                    C_POINTER.withName("call_func"),
+                    C_POINTER.withName("ptrcall_func"),
+                    C_INT.withName("method_flags"),
+                    C_CHAR.withName("has_return_value"),
                     MemoryLayout.paddingLayout(3),
-                    FFMUtils.C_POINTER.withName("return_value_info"),
-                    FFMUtils.C_INT.withName("return_value_metadata"),
-                    FFMUtils.C_INT.withName("argument_count"),
-                    FFMUtils.C_POINTER.withName("arguments_info"),
-                    FFMUtils.C_POINTER.withName("arguments_metadata"),
-                    FFMUtils.C_INT.withName("default_argument_count"),
+                    C_POINTER.withName("return_value_info"),
+                    C_INT.withName("return_value_metadata"),
+                    C_INT.withName("argument_count"),
+                    C_POINTER.withName("arguments_info"),
+                    C_POINTER.withName("arguments_metadata"),
+                    C_INT.withName("default_argument_count"),
                     MemoryLayout.paddingLayout(4),
-                    FFMUtils.C_POINTER.withName("default_arguments"))
+                    C_POINTER.withName("default_arguments"))
             .withName("$anon$441:9");
 
     /** The layout of this struct */

@@ -15,6 +15,7 @@ import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 import static java.lang.foreign.ValueLayout.OfLong;
 
+// TODO add create helper
 /// ```C
 /// struct {
 ///     void *callable_userdata;
@@ -33,7 +34,7 @@ import static java.lang.foreign.ValueLayout.OfLong;
 public final class GDExtensionCallableCustomInfo2 {
 
     private GDExtensionCallableCustomInfo2() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(

@@ -10,8 +10,10 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.function.Consumer;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 
+// TODO add static helper
 /// ```C
 /// struct {
 ///     GDExtensionScriptInstanceSet set_func;
@@ -45,36 +47,36 @@ import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 public final class GDExtensionScriptInstanceInfo3 {
 
     private GDExtensionScriptInstanceInfo3() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-                    FFMUtils.C_POINTER.withName("set_func"),
-                    FFMUtils.C_POINTER.withName("get_func"),
-                    FFMUtils.C_POINTER.withName("get_property_list_func"),
-                    FFMUtils.C_POINTER.withName("free_property_list_func"),
-                    FFMUtils.C_POINTER.withName("get_class_category_func"),
-                    FFMUtils.C_POINTER.withName("property_can_revert_func"),
-                    FFMUtils.C_POINTER.withName("property_get_revert_func"),
-                    FFMUtils.C_POINTER.withName("get_owner_func"),
-                    FFMUtils.C_POINTER.withName("get_property_state_func"),
-                    FFMUtils.C_POINTER.withName("get_method_list_func"),
-                    FFMUtils.C_POINTER.withName("free_method_list_func"),
-                    FFMUtils.C_POINTER.withName("get_property_type_func"),
-                    FFMUtils.C_POINTER.withName("validate_property_func"),
-                    FFMUtils.C_POINTER.withName("has_method_func"),
-                    FFMUtils.C_POINTER.withName("get_method_argument_count_func"),
-                    FFMUtils.C_POINTER.withName("call_func"),
-                    FFMUtils.C_POINTER.withName("notification_func"),
-                    FFMUtils.C_POINTER.withName("to_string_func"),
-                    FFMUtils.C_POINTER.withName("refcount_incremented_func"),
-                    FFMUtils.C_POINTER.withName("refcount_decremented_func"),
-                    FFMUtils.C_POINTER.withName("get_script_func"),
-                    FFMUtils.C_POINTER.withName("is_placeholder_func"),
-                    FFMUtils.C_POINTER.withName("set_fallback_func"),
-                    FFMUtils.C_POINTER.withName("get_fallback_func"),
-                    FFMUtils.C_POINTER.withName("get_language_func"),
-                    FFMUtils.C_POINTER.withName("free_func"))
+                    C_POINTER.withName("set_func"),
+                    C_POINTER.withName("get_func"),
+                    C_POINTER.withName("get_property_list_func"),
+                    C_POINTER.withName("free_property_list_func"),
+                    C_POINTER.withName("get_class_category_func"),
+                    C_POINTER.withName("property_can_revert_func"),
+                    C_POINTER.withName("property_get_revert_func"),
+                    C_POINTER.withName("get_owner_func"),
+                    C_POINTER.withName("get_property_state_func"),
+                    C_POINTER.withName("get_method_list_func"),
+                    C_POINTER.withName("free_method_list_func"),
+                    C_POINTER.withName("get_property_type_func"),
+                    C_POINTER.withName("validate_property_func"),
+                    C_POINTER.withName("has_method_func"),
+                    C_POINTER.withName("get_method_argument_count_func"),
+                    C_POINTER.withName("call_func"),
+                    C_POINTER.withName("notification_func"),
+                    C_POINTER.withName("to_string_func"),
+                    C_POINTER.withName("refcount_incremented_func"),
+                    C_POINTER.withName("refcount_decremented_func"),
+                    C_POINTER.withName("get_script_func"),
+                    C_POINTER.withName("is_placeholder_func"),
+                    C_POINTER.withName("set_fallback_func"),
+                    C_POINTER.withName("get_fallback_func"),
+                    C_POINTER.withName("get_language_func"),
+                    C_POINTER.withName("free_func"))
             .withName("$anon$686:9");
 
     /** The layout of this struct */

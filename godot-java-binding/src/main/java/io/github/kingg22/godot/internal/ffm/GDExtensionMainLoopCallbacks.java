@@ -10,22 +10,27 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.function.Consumer;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 
-/**
- * {@snippet lang = c: struct { GDExtensionMainLoopStartupCallback startup_func; GDExtensionMainLoopShutdownCallback
- * shutdown_func; GDExtensionMainLoopFrameCallback frame_func; } }
- */
+// TODO add static helper
+/// ```C
+/// struct {
+///   GDExtensionMainLoopStartupCallback startup_func;
+///   GDExtensionMainLoopShutdownCallback shutdown_func;
+///   GDExtensionMainLoopFrameCallback frame_func;
+/// }
+/// ```
 public final class GDExtensionMainLoopCallbacks {
 
     private GDExtensionMainLoopCallbacks() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-                    FFMUtils.C_POINTER.withName("startup_func"),
-                    FFMUtils.C_POINTER.withName("shutdown_func"),
-                    FFMUtils.C_POINTER.withName("frame_func"))
+                    C_POINTER.withName("startup_func"),
+                    C_POINTER.withName("shutdown_func"),
+                    C_POINTER.withName("frame_func"))
             .withName("$anon$825:9");
 
     /** The layout of this struct */

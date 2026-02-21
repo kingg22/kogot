@@ -144,21 +144,12 @@ public final class ClassDBBridge {
 
         final var handle = instances.get(instancePtr.address());
         if (handler == null || handle == null) {
-            setError(error, CALL_OK, 0, 0);
+            GDExtensionCallError.create(error, CALL_OK, 0, 0);
             ffi.variantNewNil(returnValue);
             return;
         }
 
         handler.invoke(handle.instance, args, argCount, returnValue, error, ffi);
-    }
-
-    private static void setError(final MemorySegment error, final int code, final int argument, final int expected) {
-        if (error == MemorySegment.NULL) {
-            return;
-        }
-        GDExtensionCallError.error(error, code);
-        GDExtensionCallError.argument(error, argument);
-        GDExtensionCallError.expected(error, expected);
     }
 
     /** Dispatches a ClassDB method call into Java. */

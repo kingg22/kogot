@@ -18,7 +18,7 @@ import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 public final class GDExtensionInterfaceClassdbRegisterExtensionClass5 {
 
     private GDExtensionInterfaceClassdbRegisterExtensionClass5() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -50,21 +50,6 @@ public final class GDExtensionInterfaceClassdbRegisterExtensionClass5 {
     }
 
     private static final MethodHandle DOWN$MH = Linker.nativeLinker().downcallHandle($DESC);
-
-    public static void invoke(
-            MemorySegment funcPtr,
-            MemorySegment p_library,
-            String p_class_name,
-            String p_parent_class_name,
-            MemorySegment p_extension_funcs) {
-        var arena = Arena.ofAuto();
-        invoke(
-                funcPtr,
-                p_library,
-                arena.allocateFrom(p_class_name),
-                arena.allocateFrom(p_parent_class_name),
-                p_extension_funcs);
-    }
 
     /** Invoke the upcall stub {@code funcPtr}, with given parameters */
     public static void invoke(

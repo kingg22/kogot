@@ -8,6 +8,10 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_INT;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
+
 /**
  * {@snippet lang = c: typedef void (*GDExtensionPtrUtilityFunction)(GDExtensionTypePtr, const GDExtensionConstTypePtr
  * *, int) }
@@ -15,7 +19,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionPtrUtilityFunction {
 
     private GDExtensionPtrUtilityFunction() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -23,16 +27,14 @@ public final class GDExtensionPtrUtilityFunction {
         void apply(MemorySegment r_return, MemorySegment p_args, int p_argument_count);
     }
 
-    private static final FunctionDescriptor $DESC =
-            FunctionDescriptor.ofVoid(FFMUtils.C_POINTER, FFMUtils.C_POINTER, FFMUtils.C_INT);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.ofVoid(C_POINTER, C_POINTER, C_INT);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
         return $DESC;
     }
 
-    private static final MethodHandle UP$MH =
-            FFMUtils.upcallHandle(GDExtensionPtrUtilityFunction.Function.class, $DESC);
+    private static final MethodHandle UP$MH = upcallHandle(GDExtensionPtrUtilityFunction.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment

@@ -15,7 +15,7 @@ import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 public final class GDExtensionClassFreeInstance {
 
     private GDExtensionClassFreeInstance() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */

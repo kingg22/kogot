@@ -10,10 +10,14 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.function.Consumer;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_INT;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_LONG;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 import static java.lang.foreign.ValueLayout.OfInt;
 import static java.lang.foreign.ValueLayout.OfLong;
 
+// TODO add static helper
 /// ```C
 /// struct {
 ///     uint32_t major;
@@ -30,19 +34,19 @@ import static java.lang.foreign.ValueLayout.OfLong;
 public final class GDExtensionGodotVersion2 {
 
     private GDExtensionGodotVersion2() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-                    FFMUtils.C_INT.withName("major"),
-                    FFMUtils.C_INT.withName("minor"),
-                    FFMUtils.C_INT.withName("patch"),
-                    FFMUtils.C_INT.withName("hex"),
-                    FFMUtils.C_POINTER.withName("status"),
-                    FFMUtils.C_POINTER.withName("build"),
-                    FFMUtils.C_POINTER.withName("hash"),
-                    FFMUtils.C_LONG.withName("timestamp"),
-                    FFMUtils.C_POINTER.withName("string"))
+                    C_INT.withName("major"),
+                    C_INT.withName("minor"),
+                    C_INT.withName("patch"),
+                    C_INT.withName("hex"),
+                    C_POINTER.withName("status"),
+                    C_POINTER.withName("build"),
+                    C_POINTER.withName("hash"),
+                    C_LONG.withName("timestamp"),
+                    C_POINTER.withName("string"))
             .withName("$anon$804:9");
 
     /** The layout of this struct */

@@ -18,7 +18,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionScriptInstanceFreeMethodList {
 
     private GDExtensionScriptInstanceFreeMethodList() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */

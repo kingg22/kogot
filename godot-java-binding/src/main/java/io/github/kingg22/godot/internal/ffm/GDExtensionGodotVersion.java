@@ -22,7 +22,7 @@ import static java.lang.foreign.ValueLayout.OfInt;
 public final class GDExtensionGodotVersion {
 
     private GDExtensionGodotVersion() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(

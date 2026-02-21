@@ -8,6 +8,10 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_LONG;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
+
 /**
  * {@snippet lang = c: typedef GDExtensionInt (*GDExtensionInterfaceStringToWideChars)(GDExtensionConstStringPtr,
  * wchar_t *, GDExtensionInt) }
@@ -15,7 +19,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionInterfaceStringToWideChars {
 
     private GDExtensionInterfaceStringToWideChars() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -23,16 +27,14 @@ public final class GDExtensionInterfaceStringToWideChars {
         long apply(MemorySegment p_self, MemorySegment r_text, long p_max_write_length);
     }
 
-    private static final FunctionDescriptor $DESC =
-            FunctionDescriptor.of(FFMUtils.C_LONG, FFMUtils.C_POINTER, FFMUtils.C_POINTER, FFMUtils.C_LONG);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(C_LONG, C_POINTER, C_POINTER, C_LONG);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
         return $DESC;
     }
 
-    private static final MethodHandle UP$MH =
-            FFMUtils.upcallHandle(GDExtensionInterfaceStringToWideChars.Function.class, $DESC);
+    private static final MethodHandle UP$MH = upcallHandle(GDExtensionInterfaceStringToWideChars.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment

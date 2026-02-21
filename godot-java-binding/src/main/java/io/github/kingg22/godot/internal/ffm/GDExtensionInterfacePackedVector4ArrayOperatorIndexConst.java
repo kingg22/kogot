@@ -8,6 +8,10 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_LONG;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
+
 /**
  * {@snippet lang = c: typedef GDExtensionTypePtr
  * (*GDExtensionInterfacePackedVector4ArrayOperatorIndexConst)(GDExtensionConstTypePtr, GDExtensionInt) }
@@ -15,7 +19,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionInterfacePackedVector4ArrayOperatorIndexConst {
 
     private GDExtensionInterfacePackedVector4ArrayOperatorIndexConst() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -23,8 +27,7 @@ public final class GDExtensionInterfacePackedVector4ArrayOperatorIndexConst {
         MemorySegment apply(MemorySegment p_self, long p_index);
     }
 
-    private static final FunctionDescriptor $DESC =
-            FunctionDescriptor.of(FFMUtils.C_POINTER, FFMUtils.C_POINTER, FFMUtils.C_LONG);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(C_POINTER, C_POINTER, C_LONG);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
@@ -32,7 +35,7 @@ public final class GDExtensionInterfacePackedVector4ArrayOperatorIndexConst {
     }
 
     private static final MethodHandle UP$MH =
-            FFMUtils.upcallHandle(GDExtensionInterfacePackedVector4ArrayOperatorIndexConst.Function.class, $DESC);
+            upcallHandle(GDExtensionInterfacePackedVector4ArrayOperatorIndexConst.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment

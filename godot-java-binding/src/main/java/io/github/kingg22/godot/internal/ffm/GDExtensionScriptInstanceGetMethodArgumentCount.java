@@ -8,6 +8,10 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_LONG;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
+
 /**
  * {@snippet lang = c: typedef GDExtensionInt
  * (*GDExtensionScriptInstanceGetMethodArgumentCount)(GDExtensionScriptInstanceDataPtr, GDExtensionConstStringNamePtr,
@@ -16,7 +20,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionScriptInstanceGetMethodArgumentCount {
 
     private GDExtensionScriptInstanceGetMethodArgumentCount() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -24,8 +28,7 @@ public final class GDExtensionScriptInstanceGetMethodArgumentCount {
         long apply(MemorySegment p_instance, MemorySegment p_name, MemorySegment r_is_valid);
     }
 
-    private static final FunctionDescriptor $DESC =
-            FunctionDescriptor.of(FFMUtils.C_LONG, FFMUtils.C_POINTER, FFMUtils.C_POINTER, FFMUtils.C_POINTER);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(C_LONG, C_POINTER, C_POINTER, C_POINTER);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
@@ -33,7 +36,7 @@ public final class GDExtensionScriptInstanceGetMethodArgumentCount {
     }
 
     private static final MethodHandle UP$MH =
-            FFMUtils.upcallHandle(GDExtensionScriptInstanceGetMethodArgumentCount.Function.class, $DESC);
+            upcallHandle(GDExtensionScriptInstanceGetMethodArgumentCount.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment

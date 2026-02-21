@@ -45,7 +45,7 @@ import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 public final class GDExtensionScriptInstanceInfo {
 
     private GDExtensionScriptInstanceInfo() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(

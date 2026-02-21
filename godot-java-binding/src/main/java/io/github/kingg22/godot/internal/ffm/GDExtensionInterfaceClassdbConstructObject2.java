@@ -8,6 +8,9 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
+import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
+
 /**
  * {@snippet lang = c: typedef GDExtensionObjectPtr
  * (*GDExtensionInterfaceClassdbConstructObject2)(GDExtensionConstStringNamePtr) }
@@ -15,7 +18,7 @@ import java.lang.invoke.MethodHandle;
 public final class GDExtensionInterfaceClassdbConstructObject2 {
 
     private GDExtensionInterfaceClassdbConstructObject2() {
-        // Should not be called directly
+        throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
@@ -23,7 +26,7 @@ public final class GDExtensionInterfaceClassdbConstructObject2 {
         MemorySegment apply(MemorySegment p_classname);
     }
 
-    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(FFMUtils.C_POINTER, FFMUtils.C_POINTER);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(C_POINTER, C_POINTER);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
@@ -31,7 +34,7 @@ public final class GDExtensionInterfaceClassdbConstructObject2 {
     }
 
     private static final MethodHandle UP$MH =
-            FFMUtils.upcallHandle(GDExtensionInterfaceClassdbConstructObject2.Function.class, $DESC);
+            upcallHandle(GDExtensionInterfaceClassdbConstructObject2.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment
