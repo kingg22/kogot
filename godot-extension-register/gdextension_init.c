@@ -40,6 +40,7 @@
 // Global JVM state
 static JavaVM *g_jvm = NULL;
 static JNIEnv *g_env = NULL;
+static LibHandle g_jvm_handle = NULL;
 
 // Global Godot functions
 static GDExtensionInterfaceGetProcAddress g_get_proc_address = NULL;
@@ -203,6 +204,7 @@ static int initialize_jvm_with_panama() {
     if (!jvm_handle) {
         return 0;
     }
+    g_jvm_handle = jvm_handle;
 
     // Get JNI_CreateJavaVM function pointer
     const JNI_CreateJavaVM_func create_jvm = GET_SYMBOL(jvm_handle, "JNI_CreateJavaVM");
@@ -244,12 +246,11 @@ static int initialize_jvm_with_panama() {
     // options[option_count++].optionString = "-verbose:jni";
     options[option_count++].optionString = "-Xcheck:jni";
     // 7. Enable JDWP in debug builds
-    options[option_count++].optionString = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:50005";
+    options[option_count++].optionString = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:0";
     // transport TCP socket
     // server yes, the JVM going to listen
     // don't await to connection in the startup
     // port
-    log_info("JVM Debug agent going to listen in port *:50005");
     #endif
 
     // 5. GC options (optional, tune as needed)
@@ -362,6 +363,10 @@ static void cleanup_jvm(const void *userdata, const GDExtensionInitializationLev
         (*g_jvm)->DestroyJavaVM(g_jvm);
         g_jvm = NULL;
         g_env = NULL;
+        if (g_jvm_handle) {
+            CLOSE_LIB(g_jvm_handle);
+            g_jvm_handle = NULL;
+        }
         log_info("JVM destroyed");
     }
 }
