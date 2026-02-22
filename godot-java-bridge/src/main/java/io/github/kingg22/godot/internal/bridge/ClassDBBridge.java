@@ -85,20 +85,20 @@ public final class ClassDBBridge {
         methodUserdata.set(ValueLayout.JAVA_LONG, 0, methodId);
         methods.put(methodId, handler);
 
-        final var methodInfo = arena.allocate(GDExtensionClassMethodInfo.layout());
-        GDExtensionClassMethodInfo.name(methodInfo, stringNames.get(methodName));
-        GDExtensionClassMethodInfo.method_userdata(methodInfo, methodUserdata);
-        GDExtensionClassMethodInfo.call_func(methodInfo, methodCallStub);
-        GDExtensionClassMethodInfo.ptrcall_func(methodInfo, MemorySegment.NULL);
-        GDExtensionClassMethodInfo.method_flags(methodInfo, 0);
-        GDExtensionClassMethodInfo.has_return_value(methodInfo, (byte) 0);
-        GDExtensionClassMethodInfo.return_value_info(methodInfo, MemorySegment.NULL);
-        GDExtensionClassMethodInfo.return_value_metadata(methodInfo, 0);
-        GDExtensionClassMethodInfo.argument_count(methodInfo, 0);
-        GDExtensionClassMethodInfo.arguments_info(methodInfo, MemorySegment.NULL);
-        GDExtensionClassMethodInfo.arguments_metadata(methodInfo, MemorySegment.NULL);
-        GDExtensionClassMethodInfo.default_argument_count(methodInfo, 0);
-        GDExtensionClassMethodInfo.default_arguments(methodInfo, MemorySegment.NULL);
+        final var methodInfo = GDExtensionClassMethodInfo.create(
+                stringNames.get(methodName),
+                methodCallStub,
+                0,
+                false,
+                0,
+                0,
+                0,
+                methodUserdata,
+                null,
+                null,
+                null,
+                null,
+                null);
 
         ffi.classdbRegisterExtensionClassMethod(stringNames.get(className), methodInfo);
     }

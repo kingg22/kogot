@@ -2,6 +2,8 @@
 
 package io.github.kingg22.godot.internal.ffm;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.foreign.AddressLayout;
 import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
@@ -17,20 +19,35 @@ import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 import static java.lang.foreign.ValueLayout.OfByte;
 import static java.lang.foreign.ValueLayout.OfInt;
 
-// TODO add static helper
 /// ```C
 /// struct {
 ///     GDExtensionStringNamePtr name;
 ///     void *method_userdata;
 ///     GDExtensionClassMethodCall call_func;
 ///     GDExtensionClassMethodPtrCall ptrcall_func;
+///     // Bitfield of `GDExtensionClassMethodFlags`.
 ///     uint32_t method_flags;
+///
+///     /* If `has_return_value` is false, `return_value_info` and `return_value_metadata` are ignored.
+///      *
+///      * @todo Consider dropping `has_return_value` and making the other two properties match
+///      * `GDExtensionMethodInfo` and `GDExtensionClassVirtualMethod` for consistency in future version of this struct.
+///      */
 ///     GDExtensionBool has_return_value;
 ///     GDExtensionPropertyInfo *return_value_info;
 ///     GDExtensionClassMethodArgumentMetadata return_value_metadata;
+///
+///     /* Arguments: `arguments_info` and `arguments_metadata` are array of size `argument_count`.
+///      * Name and hint information for the argument can be omitted in release builds. Class name should always be
+///      * present if it applies.
+///      *
+///      * @todo Consider renaming `arguments_info` to `arguments` for consistency in future version of this struct.
+///      */
 ///     uint32_t argument_count;
 ///     GDExtensionPropertyInfo *arguments_info;
 ///     GDExtensionClassMethodArgumentMetadata *arguments_metadata;
+///
+///     /* Default arguments: `default_arguments` is an array of size `default_argument_count`. */
 ///     uint32_t default_argument_count;
 ///     GDExtensionVariantPtr *default_arguments;
 /// }
@@ -62,6 +79,41 @@ public final class GDExtensionClassMethodInfo {
     /** The layout of this struct */
     public static GroupLayout layout() {
         return $LAYOUT;
+    }
+
+    /// Create a new [GDExtensionClassMethodInfo] instance.
+    /// For more information, see class documentation.
+    /// @return A pointer to instance
+    public static MemorySegment create(
+            final MemorySegment name,
+            final MemorySegment callFunc,
+            final int methodFlags,
+            final boolean hasReturnValue,
+            final int returnValueMetadata,
+            final int argumentCount,
+            final int defaultArgumentCount,
+            final @Nullable MemorySegment methodUserdata,
+            final @Nullable MemorySegment ptrcallFunc,
+            final @Nullable MemorySegment returnValueInfo,
+            final @Nullable MemorySegment argumentsInfo,
+            final @Nullable MemorySegment argumentsMetadata,
+            final @Nullable MemorySegment defaultArguments) {
+        var arena = Arena.ofAuto();
+        var struct = arena.allocate(layout());
+        name(struct, name);
+        method_userdata(struct, methodUserdata != null ? methodUserdata : MemorySegment.NULL);
+        call_func(struct, callFunc);
+        ptrcall_func(struct, ptrcallFunc != null ? ptrcallFunc : MemorySegment.NULL);
+        method_flags(struct, methodFlags);
+        has_return_value(struct, hasReturnValue ? (byte) 1 : (byte) 0);
+        return_value_info(struct, returnValueInfo != null ? returnValueInfo : MemorySegment.NULL);
+        return_value_metadata(struct, returnValueMetadata);
+        argument_count(struct, argumentCount);
+        arguments_info(struct, argumentsInfo != null ? argumentsInfo : MemorySegment.NULL);
+        arguments_metadata(struct, argumentsMetadata != null ? argumentsMetadata : MemorySegment.NULL);
+        default_argument_count(struct, defaultArgumentCount);
+        default_arguments(struct, defaultArguments != null ? defaultArguments : MemorySegment.NULL);
+        return struct;
     }
 
     private static final AddressLayout name$LAYOUT = (AddressLayout) $LAYOUT.select(groupElement("name"));
