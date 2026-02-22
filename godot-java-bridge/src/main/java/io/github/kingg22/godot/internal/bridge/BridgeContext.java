@@ -1,5 +1,6 @@
 package io.github.kingg22.godot.internal.bridge;
 
+import io.github.kingg22.godot.api.GodotRegistry;
 import org.jspecify.annotations.Nullable;
 
 import java.lang.foreign.Arena;
@@ -9,6 +10,7 @@ import java.lang.foreign.ValueLayout;
 /** Holds Godot FFI state shared across the bridge. */
 public final class BridgeContext implements AutoCloseable {
     private static @Nullable BridgeContext instance;
+    private static @Nullable GodotRegistry registry;
 
     private final Arena arena;
     private final GodotFFI ffi;
@@ -44,11 +46,24 @@ public final class BridgeContext implements AutoCloseable {
     }
 
     public static void shutdown() {
-        if (instance == null) {
+        if (instance == null && registry == null) {
             return;
         }
-        instance.close();
-        instance = null;
+        if (instance != null) {
+            instance.close();
+            instance = null;
+        }
+        if (registry != null) {
+            registry.close();
+            registry = null;
+        }
+    }
+
+    public static GodotRegistry getRegistry() {
+        if (registry == null) {
+            registry = new GodotRegistryImpl(get().classDB());
+        }
+        return registry;
     }
 
     GodotFFI ffi() {

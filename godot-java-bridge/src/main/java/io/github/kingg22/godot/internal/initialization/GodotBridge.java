@@ -2,7 +2,6 @@ package io.github.kingg22.godot.internal.initialization;
 
 import io.github.kingg22.godot.internal.annotations.Initializer;
 import io.github.kingg22.godot.internal.bridge.BridgeContext;
-import io.github.kingg22.godot.internal.bridge.GodotRegistryImpl;
 import io.github.kingg22.godot.internal.registry.GeneratedRegistry;
 
 /** Entry point invoked by the GDExtension C bootstrap. */
@@ -25,8 +24,7 @@ final class GodotBridge {
             System.out.println("[Java] Setting up game systems...");
 
             BridgeContext.initialize(getProcAddressPointer, libraryPointer);
-            final var registry = new GodotRegistryImpl(BridgeContext.get().classDB());
-            GeneratedRegistry.registerAll(registry);
+            GeneratedRegistry.registerAll(BridgeContext.getRegistry());
 
             // Example: Load configurations
             loadConfigurations();
