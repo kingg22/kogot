@@ -1,6 +1,5 @@
 package io.github.kingg22.godot.internal.bridge;
 
-import io.github.kingg22.godot.api.GodotClass;
 import io.github.kingg22.godot.internal.ffm.GDExtensionCallError;
 import io.github.kingg22.godot.internal.ffm.GDExtensionClassCreateInstance2;
 import io.github.kingg22.godot.internal.ffm.GDExtensionClassCreationInfo5;
@@ -27,9 +26,9 @@ public final class ClassDBBridge implements AutoCloseable {
     private final Arena arena;
     private final AtomicLong classIdGenerator = new AtomicLong(1);
     private final AtomicLong methodIdGenerator = new AtomicLong(1);
-    private final Map<Long, ClassEntry> classes = new ConcurrentHashMap<>();
+    private final Map<Long, ClassEntry<?>> classes = new ConcurrentHashMap<>();
     private final Map<Long, MethodHandler> methods = new ConcurrentHashMap<>();
-    private final Map<Long, InstanceHandle> instances = new ConcurrentHashMap<>();
+    private final Map<Long, InstanceHandle<?>> instances = new ConcurrentHashMap<>();
 
     private final MemorySegment methodCallStub;
     private final MemorySegment createInstanceStub;
@@ -70,7 +69,7 @@ public final class ClassDBBridge implements AutoCloseable {
         methods.clear();
     }
 
-    public void registerClass(final ClassDefinition definition) {
+    public <T> void registerClass(final ClassDefinition<T> definition) {
         System.out.println("Registering class named : '" + definition.className() + "' with parent: "
                 + definition.parentClassName());
         final long classId = classIdGenerator.getAndIncrement();
@@ -105,7 +104,7 @@ public final class ClassDBBridge implements AutoCloseable {
                 null,
                 classUserdata);
 
-        classes.put(classId, new ClassEntry(definition, className, parentName, classUserdata));
+        classes.put(classId, new ClassEntry<>(definition, className, parentName, classUserdata));
         ffi.classdbRegisterExtensionClass5(className, parentName, creationInfo);
     }
 
@@ -182,10 +181,9 @@ public final class ClassDBBridge implements AutoCloseable {
     }
 
     /** Dispatches a ClassDB method call into Java. */
-    @FunctionalInterface
     public interface MethodHandler {
-        void invoke(
-                GodotClass instance,
+        <T> void invoke(
+                T instance,
                 MemorySegment args,
                 long argCount,
                 MemorySegment returnValue,
@@ -194,34 +192,34 @@ public final class ClassDBBridge implements AutoCloseable {
     }
 
     /** Defines the ClassDB entry and the factory for creating Java instances. */
-    public record ClassDefinition(String className, String parentClassName, Supplier<? extends GodotClass> factory) {}
+    public record ClassDefinition<T>(String className, String parentClassName, Supplier<? extends T> factory) {}
 
-    private record ClassEntry(
-            ClassDefinition definition,
+    private record ClassEntry<T>(
+            ClassDefinition<T> definition,
             MemorySegment className,
             MemorySegment parentName,
             MemorySegment classUserdata) {}
 
-    private static final class InstanceHandle implements AutoCloseable {
-        private final GodotClass instance;
+    private static final class InstanceHandle<T> implements AutoCloseable {
+        private final T instance;
         private final Arena arena;
         private final MemorySegment dataPointer;
         private final long address;
 
-        private InstanceHandle(final GodotClass instance, final Arena arena, final MemorySegment dataPointer) {
+        private InstanceHandle(final T instance, final Arena arena, final MemorySegment dataPointer) {
             this.instance = instance;
             this.arena = arena;
             this.dataPointer = dataPointer;
             this.address = dataPointer.address();
         }
 
-        static InstanceHandle create(final Supplier<? extends GodotClass> factory) {
+        static <T> InstanceHandle<T> create(final Supplier<? extends T> factory) {
             final var instance = factory.get();
             requireNonNull(instance, "Instance factory returned null");
             final var arena = Arena.ofShared();
             final var dataPointer = arena.allocate(ValueLayout.JAVA_LONG);
             dataPointer.set(ValueLayout.JAVA_LONG, 0, dataPointer.address());
-            return new InstanceHandle(instance, arena, dataPointer);
+            return new InstanceHandle<>(instance, arena, dataPointer);
         }
 
         @Override
