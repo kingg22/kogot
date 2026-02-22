@@ -36,7 +36,7 @@ public final class GDExtensionMainLoopCallbacks {
                     C_POINTER.withName("startup_func"),
                     C_POINTER.withName("shutdown_func"),
                     C_POINTER.withName("frame_func"))
-            .withName("$anon$825:9");
+            .withName("GDExtensionMainLoopCallbacks");
 
     /** The layout of this struct */
     public static GroupLayout layout() {

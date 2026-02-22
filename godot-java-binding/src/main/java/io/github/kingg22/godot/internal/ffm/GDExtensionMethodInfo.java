@@ -49,7 +49,7 @@ public final class GDExtensionMethodInfo {
                     C_INT.withName("default_argument_count"),
                     MemoryLayout.paddingLayout(4),
                     C_POINTER.withName("default_arguments"))
-            .withName("$anon$244:9");
+            .withName("GDExtensionMethodInfo");
 
     /** The layout of this struct */
     public static GroupLayout layout() {
@@ -58,7 +58,7 @@ public final class GDExtensionMethodInfo {
 
     /// Create a new [GDExtensionMethodInfo] instance.
     /// @param returnValue [GDExtensionPropertyInfo] pointer.
-    /// @param flags Bitfield of [GDExtensionClassMethodInfo.ClassMethodFlags]
+    /// @param flags Bitfield of [GDExtensionClassMethodFlags]
     /// @param arguments Array of [GDExtensionPropertyInfo] pointers.
     /// @param defaultArguments Array of `GDExtensionVariant` pointer.
     /// @return A pointer to instance

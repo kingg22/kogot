@@ -28,7 +28,7 @@ public final class GDExtensionCallError {
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
                     C_INT.withName("error"), C_INT.withName("argument"), C_INT.withName("expected"))
-            .withName("$anon$193:9");
+            .withName("GDExtensionCallError");
 
     /// Set a [GDExtensionCallError] at the given address.
     /// @param struct a [MemorySegment] represents a pointer to a [GDExtensionCallError]

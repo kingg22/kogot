@@ -86,7 +86,7 @@ public class GDExtensionClassCreationInfo4 {
                     C_POINTER.withName("get_virtual_call_data_func"),
                     C_POINTER.withName("call_virtual_with_data_func"),
                     C_POINTER.withName("class_userdata"))
-            .withName("$anon$368:9");
+            .withName("GDExtensionClassCreationInfo4");
 
     /** The layout of this struct */
     public static GroupLayout layout() {

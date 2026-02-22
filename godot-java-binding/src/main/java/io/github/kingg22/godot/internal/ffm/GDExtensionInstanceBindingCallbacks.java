@@ -30,7 +30,7 @@ public final class GDExtensionInstanceBindingCallbacks {
                     C_POINTER.withName("create_callback"),
                     C_POINTER.withName("free_callback"),
                     C_POINTER.withName("reference_callback"))
-            .withName("$anon$221:9");
+            .withName("GDExtensionInstanceBindingCallbacks");
 
     /** The layout of this struct */
     public static GroupLayout layout() {

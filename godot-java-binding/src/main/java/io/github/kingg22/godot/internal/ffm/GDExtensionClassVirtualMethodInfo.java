@@ -44,7 +44,7 @@ public final class GDExtensionClassVirtualMethodInfo {
                     C_INT.withName("argument_count"),
                     C_POINTER.withName("arguments"),
                     C_POINTER.withName("arguments_metadata"))
-            .withName("$anon$470:9");
+            .withName("GDExtensionClassVirtualMethodInfo");
 
     /** The layout of this struct */
     public static GroupLayout layout() {
@@ -54,7 +54,7 @@ public final class GDExtensionClassVirtualMethodInfo {
     /// Create a new [GDExtensionClassVirtualMethodInfo] instance.
     /// For more information, see the class documentation.
     /// @param methodFlags Bitfield of
-    /// [GDExtensionClassMethodInfo.ClassMethodFlags].
+    /// [GDExtensionClassMethodFlags].
     /// @return A pointer to instance
     public static MemorySegment create(
             final MemorySegment name,

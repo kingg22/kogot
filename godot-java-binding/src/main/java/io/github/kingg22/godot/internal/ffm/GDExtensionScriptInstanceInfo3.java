@@ -152,7 +152,7 @@ public final class GDExtensionScriptInstanceInfo3 {
                     C_POINTER.withName("get_fallback_func"),
                     C_POINTER.withName("get_language_func"),
                     C_POINTER.withName("free_func"))
-            .withName("$anon$686:9");
+            .withName("GDExtensionScriptInstanceInfo3");
 
     /** The layout of this struct */
     public static GroupLayout layout() {

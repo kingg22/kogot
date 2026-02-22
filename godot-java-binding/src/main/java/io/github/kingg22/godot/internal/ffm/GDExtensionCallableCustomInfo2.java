@@ -65,7 +65,7 @@ public final class GDExtensionCallableCustomInfo2 {
                     C_POINTER.withName("less_than_func"),
                     C_POINTER.withName("to_string_func"),
                     C_POINTER.withName("get_argument_count_func"))
-            .withName("$anon$525:9");
+            .withName("GDExtensionCallableCustomInfo2");
 
     /** The layout of this struct */
     public static GroupLayout layout() {

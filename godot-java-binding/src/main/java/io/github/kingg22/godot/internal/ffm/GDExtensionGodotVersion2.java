@@ -30,6 +30,16 @@ import static java.lang.foreign.ValueLayout.OfLong;
 ///     const char *string;
 /// }
 /// ```
+/// **Private constructor** Use [GDExtensionGodotVersion2#parse(MemorySegment)] to get an instance.
+///
+/// @param hex Full version encoded as hexadecimal with one byte (2 hex digits) per number
+/// (e.g., for "3.1.12" it would be 0x03010C)
+/// @param status e.g. "stable", "beta", "rc1", "rc2"
+/// @param build e.g. "custom_build"
+/// @param hash Full Git commit hash.
+/// @param timestamp Git commit date UNIX timestamp in seconds, or 0 if unavailable.
+/// @param string e.g. "Godot v3.1.4.stable.official.mono"
+/// @see GDExtensionInterfaceGetGodotVersion2
 public record GDExtensionGodotVersion2(
         int major,
         int minor,
@@ -56,7 +66,7 @@ public record GDExtensionGodotVersion2(
                     C_POINTER.withName("hash"),
                     C_LONG.withName("timestamp"),
                     C_POINTER.withName("string"))
-            .withName("$anon$804:9");
+            .withName("GDExtensionGodotVersion2");
 
     /** The layout of this struct */
     public static GroupLayout layout() {

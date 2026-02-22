@@ -68,7 +68,7 @@ public final class GDExtensionPropertyInfo {
                     C_POINTER.withName("hint_string"),
                     C_INT.withName("usage"),
                     MemoryLayout.paddingLayout(4))
-            .withName("$anon$235:9");
+            .withName("GDExtensionPropertyInfo");
 
     /** The layout of this struct */
     public static GroupLayout layout() {
