@@ -2,6 +2,8 @@
 
 package io.github.kingg22.godot.internal.ffm;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.foreign.AddressLayout;
 import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
@@ -13,34 +15,47 @@ import java.util.function.Consumer;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 
-// TODO add static helper
-/// ```C
+/// ```c++
 /// struct {
 ///     GDExtensionScriptInstanceSet set_func;
 ///     GDExtensionScriptInstanceGet get_func;
 ///     GDExtensionScriptInstanceGetPropertyList get_property_list_func;
 ///     GDExtensionScriptInstanceFreePropertyList2 free_property_list_func;
+///     // Optional. Set to NULL for the default behavior.
 ///     GDExtensionScriptInstanceGetClassCategory get_class_category_func;
+///
 ///     GDExtensionScriptInstancePropertyCanRevert property_can_revert_func;
 ///     GDExtensionScriptInstancePropertyGetRevert property_get_revert_func;
+///
 ///     GDExtensionScriptInstanceGetOwner get_owner_func;
 ///     GDExtensionScriptInstanceGetPropertyState get_property_state_func;
+///
 ///     GDExtensionScriptInstanceGetMethodList get_method_list_func;
 ///     GDExtensionScriptInstanceFreeMethodList2 free_method_list_func;
 ///     GDExtensionScriptInstanceGetPropertyType get_property_type_func;
 ///     GDExtensionScriptInstanceValidateProperty validate_property_func;
+///
 ///     GDExtensionScriptInstanceHasMethod has_method_func;
+///
 ///     GDExtensionScriptInstanceGetMethodArgumentCount get_method_argument_count_func;
+///
 ///     GDExtensionScriptInstanceCall call_func;
 ///     GDExtensionScriptInstanceNotification2 notification_func;
+///
 ///     GDExtensionScriptInstanceToString to_string_func;
+///
 ///     GDExtensionScriptInstanceRefCountIncremented refcount_incremented_func;
 ///     GDExtensionScriptInstanceRefCountDecremented refcount_decremented_func;
+///
 ///     GDExtensionScriptInstanceGetScript get_script_func;
+///
 ///     GDExtensionScriptInstanceIsPlaceholder is_placeholder_func;
+///
 ///     GDExtensionScriptInstanceSet set_fallback_func;
 ///     GDExtensionScriptInstanceGet get_fallback_func;
+///
 ///     GDExtensionScriptInstanceGetLanguage get_language_func;
+///
 ///     GDExtensionScriptInstanceFree free_func;
 /// }
 /// ```
@@ -48,6 +63,66 @@ public final class GDExtensionScriptInstanceInfo3 {
 
     private GDExtensionScriptInstanceInfo3() {
         throw new UnsupportedOperationException();
+    }
+
+    /// Creates a new [GDExtensionScriptInstanceInfo3] backed by an [Arena#ofAuto()] allocation.
+    /// @return A pointer to instance
+    public static MemorySegment create(
+            final MemorySegment setFunc,
+            final MemorySegment getFunc,
+            final MemorySegment getPropertyListFunc,
+            final MemorySegment freePropertyListFunc,
+            final MemorySegment propertyCanRevertFunc,
+            final MemorySegment propertyGetRevertFunc,
+            final MemorySegment getOwnerFunc,
+            final MemorySegment getPropertyStateFunc,
+            final MemorySegment getMethodListFunc,
+            final MemorySegment freeMethodListFunc,
+            final MemorySegment getPropertyTypeFunc,
+            final MemorySegment validatePropertyFunc,
+            final MemorySegment hasMethodFunc,
+            final MemorySegment getMethodArgumentCountFunc,
+            final MemorySegment callFunc,
+            final MemorySegment notificationFunc,
+            final MemorySegment toStringFunc,
+            final MemorySegment refcountIncrementedFunc,
+            final MemorySegment refcountDecrementedFunc,
+            final MemorySegment getScriptFunc,
+            final MemorySegment isPlaceholderFunc,
+            final MemorySegment setFallbackFunc,
+            final MemorySegment getFallbackFunc,
+            final MemorySegment getLanguageFunc,
+            final MemorySegment freeFunc,
+            final @Nullable MemorySegment getClassCategoryFunc) {
+        final var arena = Arena.ofAuto();
+        final var struct = arena.allocate(layout());
+        set_func(struct, setFunc);
+        get_func(struct, getFunc);
+        get_property_list_func(struct, getPropertyListFunc);
+        free_property_list_func(struct, freePropertyListFunc);
+        get_class_category_func(struct, getClassCategoryFunc != null ? getClassCategoryFunc : MemorySegment.NULL);
+        property_can_revert_func(struct, propertyCanRevertFunc);
+        property_get_revert_func(struct, propertyGetRevertFunc);
+        get_owner_func(struct, getOwnerFunc);
+        get_property_state_func(struct, getPropertyStateFunc);
+        get_method_list_func(struct, getMethodListFunc);
+        free_method_list_func(struct, freeMethodListFunc);
+        get_property_type_func(struct, getPropertyTypeFunc);
+        validate_property_func(struct, validatePropertyFunc);
+        has_method_func(struct, hasMethodFunc);
+        get_method_argument_count_func(struct, getMethodArgumentCountFunc);
+        call_func(struct, callFunc);
+        notification_func(struct, notificationFunc);
+        to_string_func(struct, toStringFunc);
+        refcount_incremented_func(struct, refcountIncrementedFunc);
+        refcount_decremented_func(struct, refcountDecrementedFunc);
+        get_script_func(struct, getScriptFunc);
+        is_placeholder_func(struct, isPlaceholderFunc);
+        set_fallback_func(struct, setFallbackFunc);
+        get_fallback_func(struct, getFallbackFunc);
+        get_language_func(struct, getLanguageFunc);
+        free_func(struct, freeFunc);
+        return struct;
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(

@@ -58,8 +58,9 @@ public final class ScriptInstanceBridge {
         ffi.objectSetScriptInstance(objectPtr, scriptInstancePtr);
     }
 
+    // TODO migrate to GDExtensionScriptInstanceInfo3 create
     private MemorySegment buildInfoStruct() {
-        final var info = arena.allocate(GDExtensionScriptInstanceInfo3.layout());
+        final var info = GDExtensionScriptInstanceInfo3.allocate(arena);
         GDExtensionScriptInstanceInfo3.has_method_func(info, hasMethodStub);
         GDExtensionScriptInstanceInfo3.call_func(info, callStub);
         GDExtensionScriptInstanceInfo3.free_func(info, freeStub);
