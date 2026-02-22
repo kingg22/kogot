@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static io.github.kingg22.godot.internal.ffm.GDExtensionCallError.CallErrorType.CALL_OK;
+
 /** Handles script instance callbacks for Java-backed scripts. */
 public final class ScriptInstanceBridge {
     /** Callback interface used by script instances for method dispatch. */
@@ -24,8 +26,6 @@ public final class ScriptInstanceBridge {
             return false;
         }
     }
-
-    private static final int CALL_OK = 0;
 
     private final GodotFFI ffi;
     private final StringNameCache stringNames;
@@ -84,7 +84,7 @@ public final class ScriptInstanceBridge {
             final MemorySegment error) {
         final var handle = instances.get(self.address());
         if (handle == null) {
-            setError(error, CALL_OK, 0, 0);
+            GDExtensionCallError.setError(error, CALL_OK, 0, 0);
             ffi.variantNewNil(returnValue);
             return;
         }
@@ -97,15 +97,6 @@ public final class ScriptInstanceBridge {
         if (handle != null) {
             handle.close();
         }
-    }
-
-    private static void setError(final MemorySegment error, final int code, final int argument, final int expected) {
-        if (error == MemorySegment.NULL) {
-            return;
-        }
-        GDExtensionCallError.error(error, code);
-        GDExtensionCallError.argument(error, argument);
-        GDExtensionCallError.expected(error, expected);
     }
 
     private static final class ScriptHandle implements AutoCloseable {

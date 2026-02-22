@@ -16,12 +16,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
+import static io.github.kingg22.godot.internal.ffm.GDExtensionCallError.CallErrorType.CALL_OK;
 import static java.util.Objects.requireNonNull;
 
 /** High-level ClassDB registration and instance dispatch. */
 public final class ClassDBBridge {
-    private static final int CALL_OK = 0;
-
     private final GodotFFI ffi;
     private final StringNameCache stringNames;
     private final Arena arena;
@@ -144,7 +143,7 @@ public final class ClassDBBridge {
 
         final var handle = instances.get(instancePtr.address());
         if (handler == null || handle == null) {
-            GDExtensionCallError.create(error, CALL_OK, 0, 0);
+            GDExtensionCallError.setError(error, CALL_OK, 0, 0);
             ffi.variantNewNil(returnValue);
             return;
         }

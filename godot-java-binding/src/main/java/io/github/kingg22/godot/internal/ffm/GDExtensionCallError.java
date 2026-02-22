@@ -30,20 +30,35 @@ public final class GDExtensionCallError {
                     C_INT.withName("error"), C_INT.withName("argument"), C_INT.withName("expected"))
             .withName("$anon$193:9");
 
-    public static void create(final MemorySegment struct, final int code, final int argument, final int expected) {
-        if (struct == MemorySegment.NULL) {
+    /// Equivalent to GDExtensionCallErrorType enum with constant
+    public static class CallErrorType {
+        private CallErrorType() {
+            throw new UnsupportedOperationException("Utility class");
+        }
+
+        public static final short CALL_OK = 0;
+        public static final short CALL_ERROR_INVALID_METHOD = 1;
+        /// Expected a different variant type.
+        public static final short CALL_ERROR_INVALID_ARGUMENT = 2;
+        /// Expected lower number of arguments.
+        public static final short CALL_ERROR_TOO_MANY_ARGUMENTS = 3;
+        /// Expected higher number of arguments.
+        public static final short CALL_ERROR_TOO_FEW_ARGUMENTS = 4;
+        public static final short CALL_ERROR_INSTANCE_IS_NULL = 5;
+        /// Used for const call.
+        public static final short CALL_ERROR_METHOD_NOT_CONST = 6;
+    }
+
+    /// Set a [GDExtensionCallError] at the given address.
+    /// @param struct a [MemorySegment] represents a pointer to a [GDExtensionCallError]
+    /// @param code a [CallErrorType]
+    public static void setError(final MemorySegment struct, final short code, final int argument, final int expected) {
+        if (MemorySegment.NULL.equals(struct)) {
             return;
         }
         error(struct, code);
         argument(struct, argument);
         expected(struct, expected);
-    }
-
-    public static MemorySegment create(final int code, final int argument, final int expected) {
-        final var arena = Arena.ofAuto();
-        final var struct = arena.allocate(layout());
-        create(struct, code, argument, expected);
-        return struct;
     }
 
     /** The layout of this struct */
