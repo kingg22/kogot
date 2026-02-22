@@ -13,43 +13,43 @@ import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 
 /// ```c++
-/// typedef GDExtensionBool (*GDExtensionCallableCustomEqual)(void *, void *)
+/// typedef GDExtensionObjectPtr (*GDExtensionClassCreateInstance2)(void *, GDExtensionBool)
 /// ```
-public final class CallableCustomEqual {
+public final class GDExtensionClassCreateInstance2 {
 
-    private CallableCustomEqual() {
+    private GDExtensionClassCreateInstance2() {
         throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
     public interface Function {
-        byte apply(MemorySegment callable_userdata_a, MemorySegment callable_userdata_b);
+        MemorySegment apply(MemorySegment p_class_userdata, byte p_notify_postinitialize);
     }
 
-    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(C_CHAR, C_POINTER, C_POINTER);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(C_POINTER, C_POINTER, C_CHAR);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
         return $DESC;
     }
 
-    private static final MethodHandle UP$MH = upcallHandle(CallableCustomEqual.Function.class, $DESC);
+    private static final MethodHandle UP$MH = upcallHandle(GDExtensionClassCreateInstance2.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment
      * is managed by {@code arena}
      */
-    public static MemorySegment allocate(CallableCustomEqual.Function fi, Arena arena) {
+    public static MemorySegment allocate(GDExtensionClassCreateInstance2.Function fi, Arena arena) {
         return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
     }
 
     private static final MethodHandle DOWN$MH = Linker.nativeLinker().downcallHandle($DESC);
 
     /** Invoke the upcall stub {@code funcPtr}, with given parameters */
-    public static byte invoke(
-            MemorySegment funcPtr, MemorySegment callable_userdata_a, MemorySegment callable_userdata_b) {
+    public static MemorySegment invoke(
+            MemorySegment funcPtr, MemorySegment p_class_userdata, byte p_notify_postinitialize) {
         try {
-            return (byte) DOWN$MH.invokeExact(funcPtr, callable_userdata_a, callable_userdata_b);
+            return (MemorySegment) DOWN$MH.invokeExact(funcPtr, p_class_userdata, p_notify_postinitialize);
         } catch (Error | RuntimeException ex) {
             throw ex;
         } catch (Throwable ex$) {

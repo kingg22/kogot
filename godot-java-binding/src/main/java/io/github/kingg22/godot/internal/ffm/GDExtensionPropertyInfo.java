@@ -36,9 +36,9 @@ public final class GDExtensionPropertyInfo {
     }
 
     /// Creates a new [GDExtensionPropertyInfo] backed by an [Arena#ofAuto()] allocation.
-    /// @param type The type of the property [VariantType].
-    /// @param hint Bitfield of [PropertyHint]
-    /// @param usage Bitfield of [PropertyUsageFlags]
+    /// @param type The type of the property [GDExtensionVariantType].
+    /// @param hint Bitfield of [GDExtensionPropertyHint]
+    /// @param usage Bitfield of [GDExtensionPropertyUsageFlags]
     /// @return A pointer to instance
     public static MemorySegment create(
             final int type,

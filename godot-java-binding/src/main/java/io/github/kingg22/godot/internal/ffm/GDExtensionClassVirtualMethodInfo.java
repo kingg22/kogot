@@ -54,7 +54,7 @@ public final class GDExtensionClassVirtualMethodInfo {
     /// Create a new [GDExtensionClassVirtualMethodInfo] instance.
     /// For more information, see the class documentation.
     /// @param methodFlags Bitfield of
-    /// [io.github.kingg22.godot.internal.ffm.GDExtensionClassMethodInfo.ClassMethodFlags].
+    /// [GDExtensionClassMethodInfo.ClassMethodFlags].
     /// @return A pointer to instance
     public static MemorySegment create(
             final MemorySegment name,

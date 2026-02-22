@@ -47,9 +47,9 @@ import static java.lang.foreign.ValueLayout.OfLong;
 ///     GDExtensionCallableCustomGetArgumentCount get_argument_count_func;
 /// }
 /// ```
-public final class CallableCustomInfo2 {
+public final class GDExtensionCallableCustomInfo2 {
 
-    private CallableCustomInfo2() {
+    private GDExtensionCallableCustomInfo2() {
         throw new UnsupportedOperationException();
     }
 
@@ -72,7 +72,7 @@ public final class CallableCustomInfo2 {
         return $LAYOUT;
     }
 
-    /// Creates a new [CallableCustomInfo2] instance.
+    /// Creates a new [GDExtensionCallableCustomInfo2] instance.
     /// See the class documentation for more information.
     /// @return A pointer to instance
     public static MemorySegment create(

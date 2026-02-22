@@ -30,7 +30,7 @@ import static java.lang.foreign.ValueLayout.OfLong;
 ///     const char *string;
 /// }
 /// ```
-public record GodotVersion2(
+public record GDExtensionGodotVersion2(
         int major,
         int minor,
         int patch,
@@ -63,8 +63,8 @@ public record GodotVersion2(
         return $LAYOUT;
     }
 
-    public static GodotVersion2 parse(final MemorySegment struct) {
-        return new GodotVersion2(
+    public static GDExtensionGodotVersion2 parse(final MemorySegment struct) {
+        return new GDExtensionGodotVersion2(
                 major(struct),
                 minor(struct),
                 patch(struct),

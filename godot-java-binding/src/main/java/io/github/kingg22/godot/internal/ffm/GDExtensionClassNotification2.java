@@ -13,10 +13,9 @@ import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_INT;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 
-/**
- * {@snippet lang = c: typedef void (*GDExtensionClassNotification2)(GDExtensionClassInstancePtr, int32_t,
- * GDExtensionBool) }
- */
+/// ```c++
+/// typedef void (*GDExtensionClassNotification2)(GDExtensionClassInstancePtr, int32_t, GDExtensionBool)
+/// ```
 public final class GDExtensionClassNotification2 {
 
     private GDExtensionClassNotification2() {

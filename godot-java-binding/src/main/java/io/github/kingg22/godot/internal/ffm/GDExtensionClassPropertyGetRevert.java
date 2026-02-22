@@ -12,10 +12,10 @@ import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_CHAR;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 
-/**
- * {@snippet lang = c: typedef GDExtensionBool (*GDExtensionClassPropertyGetRevert)(GDExtensionClassInstancePtr,
- * GDExtensionConstStringNamePtr, GDExtensionVariantPtr) }
- */
+/// ```c++
+/// typedef GDExtensionBool (*GDExtensionClassPropertyGetRevert)(GDExtensionClassInstancePtr,
+/// GDExtensionConstStringNamePtr, GDExtensionVariantPtr)
+/// ```
 public final class GDExtensionClassPropertyGetRevert {
 
     private GDExtensionClassPropertyGetRevert() {

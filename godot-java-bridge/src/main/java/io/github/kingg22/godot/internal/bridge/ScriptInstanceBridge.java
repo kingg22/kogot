@@ -1,6 +1,6 @@
 package io.github.kingg22.godot.internal.bridge;
 
-import io.github.kingg22.godot.internal.ffm.CallError;
+import io.github.kingg22.godot.internal.ffm.GDExtensionCallError;
 import io.github.kingg22.godot.internal.ffm.GDExtensionScriptInstanceCall;
 import io.github.kingg22.godot.internal.ffm.GDExtensionScriptInstanceFree;
 import io.github.kingg22.godot.internal.ffm.GDExtensionScriptInstanceHasMethod;
@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static io.github.kingg22.godot.internal.ffm.CallErrorType.CALL_OK;
+import static io.github.kingg22.godot.internal.ffm.GDExtensionCallErrorType.GDEXTENSION_CALL_OK;
 
 /** Handles script instance callbacks for Java-backed scripts. */
 public final class ScriptInstanceBridge {
@@ -85,7 +85,7 @@ public final class ScriptInstanceBridge {
             final MemorySegment error) {
         final var handle = instances.get(self.address());
         if (handle == null) {
-            CallError.setError(error, CALL_OK, 0, 0);
+            GDExtensionCallError.setError(error, GDEXTENSION_CALL_OK, 0, 0);
             ffi.variantNewNil(returnValue);
             return;
         }

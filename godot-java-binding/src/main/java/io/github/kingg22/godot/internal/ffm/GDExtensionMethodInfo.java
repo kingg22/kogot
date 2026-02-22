@@ -58,7 +58,7 @@ public final class GDExtensionMethodInfo {
 
     /// Create a new [GDExtensionMethodInfo] instance.
     /// @param returnValue [GDExtensionPropertyInfo] pointer.
-    /// @param flags Bitfield of [io.github.kingg22.godot.internal.ffm.GDExtensionClassMethodInfo.ClassMethodFlags]
+    /// @param flags Bitfield of [GDExtensionClassMethodInfo.ClassMethodFlags]
     /// @param arguments Array of [GDExtensionPropertyInfo] pointers.
     /// @param defaultArguments Array of `GDExtensionVariant` pointer.
     /// @return A pointer to instance

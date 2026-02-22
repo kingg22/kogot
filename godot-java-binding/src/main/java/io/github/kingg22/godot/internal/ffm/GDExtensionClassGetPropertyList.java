@@ -11,10 +11,9 @@ import java.lang.invoke.MethodHandle;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 
-/**
- * {@snippet lang = c: typedef const GDExtensionPropertyInfo
- * *(*GDExtensionClassGetPropertyList)(GDExtensionClassInstancePtr, uint32_t *) }
- */
+/// ```c++
+/// typedef const GDExtensionPropertyInfo *(*GDExtensionClassGetPropertyList)(GDExtensionClassInstancePtr, uint32_t *)
+/// ```
 public final class GDExtensionClassGetPropertyList {
 
     private GDExtensionClassGetPropertyList() {

@@ -11,10 +11,10 @@ import java.lang.invoke.MethodHandle;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 
-/**
- * {@snippet lang = c: typedef void (*GDExtensionClassMethodValidatedCall)(void *, GDExtensionClassInstancePtr, const
- * GDExtensionConstVariantPtr *, GDExtensionVariantPtr) }
- */
+/// ```c++
+/// typedef void (*GDExtensionClassMethodValidatedCall)(void *, GDExtensionClassInstancePtr,
+/// const GDExtensionConstVariantPtr *, GDExtensionVariantPtr)
+/// ```
 public final class GDExtensionClassMethodValidatedCall {
 
     private GDExtensionClassMethodValidatedCall() {

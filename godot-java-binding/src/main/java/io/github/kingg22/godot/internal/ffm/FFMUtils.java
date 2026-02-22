@@ -13,6 +13,8 @@ import java.lang.foreign.StructLayout;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -31,8 +33,10 @@ final class FFMUtils {
     static final AddressLayout C_POINTER;
     static final ValueLayout.OfLong C_LONG;
 
+    static final boolean TRACE_DOWNCALLS = Boolean.getBoolean("jextract.trace.downcalls");
+
     static {
-        var layouts = Linker.nativeLinker().canonicalLayouts();
+        final var layouts = Linker.nativeLinker().canonicalLayouts();
 
         C_BOOL = (ValueLayout.OfBoolean)
                 requireNonNull(layouts.get("bool"), "Missing canonical layout for C type: bool");
@@ -53,12 +57,17 @@ final class FFMUtils {
         C_DOUBLE = (ValueLayout.OfDouble)
                 requireNonNull(layouts.get("double"), "Missing canonical layout for C type: double");
 
-        AddressLayout basePointer =
+        final var basePointer =
                 (AddressLayout) requireNonNull(layouts.get("void*"), "Missing canonical layout for C type: void*");
 
         C_POINTER = basePointer.withTargetLayout(MemoryLayout.sequenceLayout(Long.MAX_VALUE, C_CHAR));
 
         C_LONG = (ValueLayout.OfLong) requireNonNull(layouts.get("long"), "Missing canonical layout for C type: long");
+    }
+
+    static void traceDowncall(final String name, final Object... args) {
+        final var traceArgs = Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", "));
+        System.out.printf("%s(%s)\n", name, traceArgs);
     }
 
     static MethodHandle upcallHandle(final Class<?> clazz, final FunctionDescriptor functionDescriptor) {
@@ -74,7 +83,7 @@ final class FFMUtils {
             case PaddingLayout p -> p;
             case ValueLayout v -> v.withByteAlignment(align);
             case GroupLayout g -> {
-                MemoryLayout[] alignedMembers =
+                final var alignedMembers =
                         g.memberLayouts().stream().map(m -> align(m, align)).toArray(MemoryLayout[]::new);
                 yield g instanceof StructLayout
                         ? MemoryLayout.structLayout(alignedMembers)

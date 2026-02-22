@@ -12,7 +12,9 @@ import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_LONG;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 
-/** {@snippet lang = c: typedef uint64_t (*GDExtensionClassGetRID)(GDExtensionClassInstancePtr) } */
+/// ```c++
+/// typedef uint64_t (*GDExtensionClassGetRID)(GDExtensionClassInstancePtr)
+/// ```
 public final class GDExtensionClassGetRID {
 
     private GDExtensionClassGetRID() {

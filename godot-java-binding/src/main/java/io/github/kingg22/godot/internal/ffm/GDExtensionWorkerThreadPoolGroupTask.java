@@ -12,43 +12,41 @@ import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_INT;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 
-/// ```c++
-/// typedef uint32_t (*GDExtensionCallableCustomHash)(void *)
-/// ```
-public final class CallableCustomHash {
+/** {@snippet lang = c: typedef void (*GDExtensionWorkerThreadPoolGroupTask)(void *, uint32_t) } */
+public final class GDExtensionWorkerThreadPoolGroupTask {
 
-    private CallableCustomHash() {
+    private GDExtensionWorkerThreadPoolGroupTask() {
         throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
     public interface Function {
-        int apply(MemorySegment callable_userdata);
+        void apply(MemorySegment _x0, int _x1);
     }
 
-    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(C_INT, C_POINTER);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.ofVoid(C_POINTER, C_INT);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
         return $DESC;
     }
 
-    private static final MethodHandle UP$MH = upcallHandle(CallableCustomHash.Function.class, $DESC);
+    private static final MethodHandle UP$MH = upcallHandle(GDExtensionWorkerThreadPoolGroupTask.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment
      * is managed by {@code arena}
      */
-    public static MemorySegment allocate(CallableCustomHash.Function fi, Arena arena) {
+    public static MemorySegment allocate(GDExtensionWorkerThreadPoolGroupTask.Function fi, Arena arena) {
         return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
     }
 
     private static final MethodHandle DOWN$MH = Linker.nativeLinker().downcallHandle($DESC);
 
     /** Invoke the upcall stub {@code funcPtr}, with given parameters */
-    public static int invoke(MemorySegment funcPtr, MemorySegment callable_userdata) {
+    public static void invoke(MemorySegment funcPtr, MemorySegment _x0, int _x1) {
         try {
-            return (int) DOWN$MH.invokeExact(funcPtr, callable_userdata);
+            DOWN$MH.invokeExact(funcPtr, _x0, _x1);
         } catch (Error | RuntimeException ex) {
             throw ex;
         } catch (Throwable ex$) {

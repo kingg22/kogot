@@ -12,10 +12,9 @@ import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_INT;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 
-/**
- * {@snippet lang = c: typedef GDExtensionClassCallVirtual (*GDExtensionClassGetVirtual2)(void *,
- * GDExtensionConstStringNamePtr, uint32_t) }
- */
+/// ```c++
+/// typedef GDExtensionClassCallVirtual (*GDExtensionClassGetVirtual2)(void *, GDExtensionConstStringNamePtr, uint32_t)
+/// ```
 public final class GDExtensionClassGetVirtual2 {
 
     private GDExtensionClassGetVirtual2() {

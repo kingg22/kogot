@@ -20,9 +20,9 @@ import static java.lang.foreign.ValueLayout.OfInt;
 ///     int32_t expected;
 /// }
 /// ```
-public final class CallError {
+public final class GDExtensionCallError {
 
-    private CallError() {
+    private GDExtensionCallError() {
         throw new UnsupportedOperationException();
     }
 
@@ -30,9 +30,9 @@ public final class CallError {
                     C_INT.withName("error"), C_INT.withName("argument"), C_INT.withName("expected"))
             .withName("$anon$193:9");
 
-    /// Set a [CallError] at the given address.
-    /// @param struct a [MemorySegment] represents a pointer to a [CallError]
-    /// @param code a [CallErrorType]
+    /// Set a [GDExtensionCallError] at the given address.
+    /// @param struct a [MemorySegment] represents a pointer to a [GDExtensionCallError]
+    /// @param code a [GDExtensionCallErrorType]
     public static void setError(final MemorySegment struct, final short code, final int argument, final int expected) {
         if (MemorySegment.NULL.equals(struct)) {
             return;
