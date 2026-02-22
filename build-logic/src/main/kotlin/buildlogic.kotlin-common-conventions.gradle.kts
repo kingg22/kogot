@@ -8,10 +8,18 @@ plugins {
     id("buildlogic.jvm-toolchain-conventions")
 }
 
+val kotlinVersion: Provider<String> = providers
+    .gradleProperty("kotlinVersion")
+    .orElse("2.3")
+
 kotlin {
     compilerOptions {
-        languageVersion.set(KotlinVersion.KOTLIN_2_3)
-        apiVersion.set(KotlinVersion.KOTLIN_2_3)
+        languageVersion.set(KotlinVersion.fromVersion(kotlinVersion.get()))
+        apiVersion.set(languageVersion)
         jvmDefault.set(JvmDefaultMode.NO_COMPATIBILITY)
     }
+}
+
+afterEvaluate {
+    logger.lifecycle("Kotlin target version: ${kotlinVersion.get()}")
 }
