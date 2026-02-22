@@ -10,13 +10,13 @@ import java.lang.foreign.MemorySegment;
 /// ```C
 /// typedef GDExtensionClassCreationInfo4 GDExtensionClassCreationInfo5
 /// ```
-public final class GDExtensionClassCreationInfo5 extends GDExtensionClassCreationInfo4 {
-    private GDExtensionClassCreationInfo5() {
+public final class ClassCreationInfo5 extends ClassCreationInfo4 {
+    private ClassCreationInfo5() {
         throw new UnsupportedOperationException();
     }
 
-    /// Create a new [GDExtensionClassCreationInfo5] instance
-    /// @see GDExtensionClassCreationInfo4
+    /// Create a new [ClassCreationInfo5] instance
+    /// @see ClassCreationInfo4
     /// @return A pointer to instance
     public static MemorySegment create(
             final boolean isVirtual,

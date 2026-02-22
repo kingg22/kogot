@@ -1,12 +1,8 @@
 package io.github.kingg22.godot.internal.bridge;
 
 import io.github.kingg22.godot.api.GodotClass;
-import io.github.kingg22.godot.internal.ffm.CallError;
-import io.github.kingg22.godot.internal.ffm.GDExtensionClassCreateInstance2;
-import io.github.kingg22.godot.internal.ffm.GDExtensionClassCreationInfo5;
-import io.github.kingg22.godot.internal.ffm.GDExtensionClassFreeInstance;
-import io.github.kingg22.godot.internal.ffm.GDExtensionClassMethodCall;
-import io.github.kingg22.godot.internal.ffm.GDExtensionClassMethodInfo;
+import io.github.kingg22.godot.internal.ffm.*;
+import io.github.kingg22.godot.internal.ffm.ClassCreateInstance2;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -39,7 +35,7 @@ public final class ClassDBBridge {
         this.stringNames = stringNames;
         this.arena = arena;
         this.methodCallStub = GDExtensionClassMethodCall.allocate(this::onMethodCall, arena);
-        this.createInstanceStub = GDExtensionClassCreateInstance2.allocate(this::onCreateInstance, arena);
+        this.createInstanceStub = ClassCreateInstance2.allocate(this::onCreateInstance, arena);
         this.freeInstanceStub = GDExtensionClassFreeInstance.allocate(this::onFreeInstance, arena);
     }
 
@@ -51,7 +47,7 @@ public final class ClassDBBridge {
         final var className = stringNames.get(definition.className());
         final var parentName = stringNames.get(definition.parentClassName());
 
-        final var creationInfo = GDExtensionClassCreationInfo5.create(
+        final var creationInfo = ClassCreationInfo5.create(
                 false,
                 false,
                 true,

@@ -55,9 +55,9 @@ import static java.lang.foreign.ValueLayout.OfByte;
 ///     void *class_userdata;
 /// };
 /// ```
-public class GDExtensionClassCreationInfo4 {
+public class ClassCreationInfo4 {
 
-    protected GDExtensionClassCreationInfo4() {
+    protected ClassCreationInfo4() {
         throw new UnsupportedOperationException();
     }
 

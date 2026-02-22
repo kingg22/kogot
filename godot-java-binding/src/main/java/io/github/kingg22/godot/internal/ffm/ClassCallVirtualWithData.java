@@ -11,13 +11,13 @@ import java.lang.invoke.MethodHandle;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 
-/**
- * {@snippet lang = c: typedef void (*GDExtensionClassCallVirtualWithData)(GDExtensionClassInstancePtr,
- * GDExtensionConstStringNamePtr, void *, const GDExtensionConstTypePtr *, GDExtensionTypePtr) }
- */
-public final class GDExtensionClassCallVirtualWithData {
+/// ```c++
+/// typedef void (*GDExtensionClassCallVirtualWithData)(GDExtensionClassInstancePtr,
+/// GDExtensionConstStringNamePtr, void *, const GDExtensionConstTypePtr *, GDExtensionTypePtr)
+/// ```
+public final class ClassCallVirtualWithData {
 
-    private GDExtensionClassCallVirtualWithData() {
+    private ClassCallVirtualWithData() {
         throw new UnsupportedOperationException();
     }
 
@@ -39,13 +39,13 @@ public final class GDExtensionClassCallVirtualWithData {
         return $DESC;
     }
 
-    private static final MethodHandle UP$MH = upcallHandle(GDExtensionClassCallVirtualWithData.Function.class, $DESC);
+    private static final MethodHandle UP$MH = upcallHandle(ClassCallVirtualWithData.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment
      * is managed by {@code arena}
      */
-    public static MemorySegment allocate(GDExtensionClassCallVirtualWithData.Function fi, Arena arena) {
+    public static MemorySegment allocate(ClassCallVirtualWithData.Function fi, Arena arena) {
         return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
     }
 

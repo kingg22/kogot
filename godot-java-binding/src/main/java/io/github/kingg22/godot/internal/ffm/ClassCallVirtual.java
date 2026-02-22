@@ -11,41 +11,45 @@ import java.lang.invoke.MethodHandle;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 
-/** {@snippet lang = c: typedef GDExtensionObjectPtr (*GDExtensionClassConstructor)() } */
-public final class GDExtensionClassConstructor {
+/// ```c++
+/// typedef void (*GDExtensionClassCallVirtual)
+/// (GDExtensionClassInstancePtr, const GDExtensionConstTypePtr *, GDExtensionTypePtr)
+/// ```
+public final class ClassCallVirtual {
 
-    private GDExtensionClassConstructor() {
+    private ClassCallVirtual() {
         throw new UnsupportedOperationException();
     }
 
     /** The function pointer signature, expressed as a functional interface */
     public interface Function {
-        MemorySegment apply();
+        void apply(MemorySegment p_instance, MemorySegment p_args, MemorySegment r_ret);
     }
 
-    private static final FunctionDescriptor $DESC = FunctionDescriptor.of(C_POINTER);
+    private static final FunctionDescriptor $DESC = FunctionDescriptor.ofVoid(C_POINTER, C_POINTER, C_POINTER);
 
     /** The descriptor of this function pointer */
     public static FunctionDescriptor descriptor() {
         return $DESC;
     }
 
-    private static final MethodHandle UP$MH = upcallHandle(GDExtensionClassConstructor.Function.class, $DESC);
+    private static final MethodHandle UP$MH = upcallHandle(ClassCallVirtual.Function.class, $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}. The lifetime of the returned segment
      * is managed by {@code arena}
      */
-    public static MemorySegment allocate(GDExtensionClassConstructor.Function fi, Arena arena) {
+    public static MemorySegment allocate(ClassCallVirtual.Function fi, Arena arena) {
         return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
     }
 
     private static final MethodHandle DOWN$MH = Linker.nativeLinker().downcallHandle($DESC);
 
     /** Invoke the upcall stub {@code funcPtr}, with given parameters */
-    public static MemorySegment invoke(MemorySegment funcPtr) {
+    public static void invoke(
+            MemorySegment funcPtr, MemorySegment p_instance, MemorySegment p_args, MemorySegment r_ret) {
         try {
-            return (MemorySegment) DOWN$MH.invokeExact(funcPtr);
+            DOWN$MH.invokeExact(funcPtr, p_instance, p_args, r_ret);
         } catch (Error | RuntimeException ex) {
             throw ex;
         } catch (Throwable ex$) {
