@@ -16,7 +16,7 @@ import static io.github.kingg22.godot.internal.ffm.CallErrorType.CALL_OK;
 import static java.util.Objects.requireNonNull;
 
 /** High-level ClassDB registration and instance dispatch. */
-public final class ClassDBBridge {
+public final class ClassDBBridge implements AutoCloseable {
     private final GodotFFI ffi;
     private final StringNameCache stringNames;
     private final Arena arena;
@@ -29,6 +29,7 @@ public final class ClassDBBridge {
     private final MemorySegment methodCallStub;
     private final MemorySegment createInstanceStub;
     private final MemorySegment freeInstanceStub;
+    private final MemorySegment instanceToString;
 
     ClassDBBridge(final GodotFFI ffi, final StringNameCache stringNames, final Arena arena) {
         this.ffi = ffi;
@@ -37,9 +38,36 @@ public final class ClassDBBridge {
         this.methodCallStub = GDExtensionClassMethodCall.allocate(this::onMethodCall, arena);
         this.createInstanceStub = ClassCreateInstance2.allocate(this::onCreateInstance, arena);
         this.freeInstanceStub = GDExtensionClassFreeInstance.allocate(this::onFreeInstance, arena);
+        this.instanceToString = GDExtensionClassToString.allocate(
+                (instance, _, out) -> {
+                    final var handle = instances.get(instance.address());
+                    if (handle == null) {
+                        System.err.println(
+                                "Not found instance with address: '" + instance.address() + "' for toString");
+                        return;
+                    }
+
+                    try {
+                        final var message = handle.instance.toString();
+                        ffi.stringNameNewWithUtf8Chars(out, arena.allocateFrom(message));
+                    } catch (Exception e) {
+                        System.err.println("Catch exception during toString: " + e.getMessage());
+                    }
+                },
+                arena);
+    }
+
+    @Override
+    public void close() {
+        instances.values().forEach(InstanceHandle::close);
+        instances.clear();
+        classes.clear();
+        methods.clear();
     }
 
     public void registerClass(final ClassDefinition definition) {
+        System.out.println("Registering class named : '" + definition.className() + "' with parent: "
+                + definition.parentClassName());
         final long classId = classIdGenerator.getAndIncrement();
         final var classUserdata = arena.allocate(ValueLayout.JAVA_LONG);
         classUserdata.set(ValueLayout.JAVA_LONG, 0, classId);
@@ -50,6 +78,7 @@ public final class ClassDBBridge {
         final var creationInfo = ClassCreationInfo5.create(
                 false,
                 false,
+                true,
                 true,
                 createInstanceStub,
                 freeInstanceStub,
@@ -62,7 +91,7 @@ public final class ClassDBBridge {
                 null,
                 null,
                 null,
-                null,
+                instanceToString,
                 null,
                 null,
                 null,
@@ -107,7 +136,7 @@ public final class ClassDBBridge {
             return MemorySegment.NULL;
         }
 
-        final var objectPtr = ffi.classdbConstructObject2(entry.className);
+        final var objectPtr = ffi.classdbConstructObject2(entry.parentName);
         if (objectPtr == MemorySegment.NULL) {
             return MemorySegment.NULL;
         }
