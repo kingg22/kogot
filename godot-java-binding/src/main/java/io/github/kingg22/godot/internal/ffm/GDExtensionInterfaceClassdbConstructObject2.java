@@ -11,10 +11,9 @@ import java.lang.invoke.MethodHandle;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 
-/**
- * {@snippet lang = c: typedef GDExtensionObjectPtr
- * (*GDExtensionInterfaceClassdbConstructObject2)(GDExtensionConstStringNamePtr) }
- */
+/// ```c++
+/// typedef GDExtensionObjectPtr (*GDExtensionInterfaceClassdbConstructObject2)(GDExtensionConstStringNamePtr)
+/// ```
 public final class GDExtensionInterfaceClassdbConstructObject2 {
 
     private GDExtensionInterfaceClassdbConstructObject2() {

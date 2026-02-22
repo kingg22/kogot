@@ -11,10 +11,9 @@ import java.lang.invoke.MethodHandle;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static io.github.kingg22.godot.internal.ffm.FFMUtils.upcallHandle;
 
-/**
- * {@snippet lang = c: typedef void (*GDExtensionClassToString)(GDExtensionClassInstancePtr, GDExtensionBool *,
- * GDExtensionStringPtr) }
- */
+/// ```c++
+/// typedef void (*GDExtensionClassToString)(GDExtensionClassInstancePtr, GDExtensionBool *, GDExtensionStringPtr)
+/// ```
 public final class GDExtensionClassToString {
 
     private GDExtensionClassToString() {
