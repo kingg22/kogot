@@ -9,10 +9,6 @@ spotless {
     encoding = Charset.forName("UTF-8")
     lineEndings = LineEnding.PRESERVE
 
-    groovyGradle {
-        greclipse()
-    }
-
     kotlinGradle {
         ktlint("1.8.0")
     }
