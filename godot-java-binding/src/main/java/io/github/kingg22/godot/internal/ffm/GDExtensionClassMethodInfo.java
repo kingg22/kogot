@@ -58,6 +58,20 @@ public final class GDExtensionClassMethodInfo {
         throw new UnsupportedOperationException();
     }
 
+    public static class ClassMethodFlags {
+        private ClassMethodFlags() {
+            throw new UnsupportedOperationException("Utility class");
+        }
+
+        public static final short NORMAL = 1;
+        public static final short EDITOR = 2;
+        public static final short CONST = 4;
+        public static final short VIRTUAL = 8;
+        public static final short VARARG = 16;
+        public static final short STATIC = 32;
+        public static final short DEFAULT = NORMAL;
+    }
+
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
                     C_POINTER.withName("name"),
                     C_POINTER.withName("method_userdata"),
@@ -82,7 +96,8 @@ public final class GDExtensionClassMethodInfo {
     }
 
     /// Create a new [GDExtensionClassMethodInfo] instance.
-    /// For more information, see class documentation.
+    /// For more information, see the class documentation.
+    /// @param methodFlags Bitfield of [ClassMethodFlags].
     /// @return A pointer to instance
     public static MemorySegment create(
             final MemorySegment name,
