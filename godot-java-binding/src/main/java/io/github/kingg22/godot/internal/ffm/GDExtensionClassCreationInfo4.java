@@ -15,7 +15,6 @@ import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 import static java.lang.foreign.ValueLayout.OfByte;
 
-// TODO add static helper
 /// ```C
 /// struct {
 ///     GDExtensionBool is_virtual;
@@ -34,14 +33,27 @@ import static java.lang.foreign.ValueLayout.OfByte;
 ///     GDExtensionClassToString to_string_func;
 ///     GDExtensionClassReference reference_func;
 ///     GDExtensionClassUnreference unreference_func;
+///     // (Default) constructor; mandatory. If the class is not instantiable, consider making it virtual or abstract.
 ///     GDExtensionClassCreateInstance2 create_instance_func;
+///     // Destructor; mandatory.
 ///     GDExtensionClassFreeInstance free_instance_func;
 ///     GDExtensionClassRecreateInstance recreate_instance_func;
+///     // Queries a virtual function by name and returns a callback to invoke the requested virtual function.
 ///     GDExtensionClassGetVirtual2 get_virtual_func;
+///     // Paired with `call_virtual_with_data_func`, this is an alternative to `get_virtual_func` for extensions that
+///     // need or benefit from extra data when calling virtual functions.
+///     // Returns user data that will be passed to `call_virtual_with_data_func`.
+///     // Returning `NULL` from this function signals to Godot that the virtual function is not overridden.
+///     // Data returned from this function should be managed by the extension and must be valid until the extension is
+/// deinitialized.
+///     // You should supply either `get_virtual_func`, or `get_virtual_call_data_func` with
+/// `call_virtual_with_data_func`.
 ///     GDExtensionClassGetVirtualCallData2 get_virtual_call_data_func;
+///     // Used to call virtual functions when `get_virtual_call_data_func` is not null.
 ///     GDExtensionClassCallVirtualWithData call_virtual_with_data_func;
+///     // Per-class user data, later accessible in instance bindings.
 ///     void *class_userdata;
-/// }
+/// };
 /// ```
 public class GDExtensionClassCreationInfo4 {
 

@@ -15,29 +15,9 @@ public final class GDExtensionClassCreationInfo5 extends GDExtensionClassCreatio
         throw new UnsupportedOperationException();
     }
 
-    ///  *     GDExtensionBool is_virtual;
-    ///  *     GDExtensionBool is_abstract;
-    ///  *     GDExtensionBool is_exposed;
-    ///  *     GDExtensionBool is_runtime;
-    ///  *     GDExtensionConstStringPtr icon_path;
-    ///  *     GDExtensionClassSet set_func;
-    ///  *     GDExtensionClassGet get_func;
-    ///  *     GDExtensionClassGetPropertyList get_property_list_func;
-    ///  *     GDExtensionClassFreePropertyList2 free_property_list_func;
-    ///  *     GDExtensionClassPropertyCanRevert property_can_revert_func;
-    ///  *     GDExtensionClassPropertyGetRevert property_get_revert_func;
-    ///  *     GDExtensionClassValidateProperty validate_property_func;
-    ///  *     GDExtensionClassNotification2 notification_func;
-    ///  *     GDExtensionClassToString to_string_func;
-    ///  *     GDExtensionClassReference reference_func;
-    ///  *     GDExtensionClassUnreference unreference_func;
-    ///  *     GDExtensionClassCreateInstance2 create_instance_func;
-    ///  *     GDExtensionClassFreeInstance free_instance_func;
-    ///  *     GDExtensionClassRecreateInstance recreate_instance_func;
-    ///  *     GDExtensionClassGetVirtual2 get_virtual_func;
-    ///  *     GDExtensionClassGetVirtualCallData2 get_virtual_call_data_func;
-    ///  *     GDExtensionClassCallVirtualWithData call_virtual_with_data_func;
-    ///  *     void *class_userdata;
+    /// Create a new [GDExtensionClassCreationInfo5] instance
+    /// @see GDExtensionClassCreationInfo4
+    /// @return A pointer to instance
     public static MemorySegment create(
             final boolean isVirtual,
             final boolean isAbstract,
