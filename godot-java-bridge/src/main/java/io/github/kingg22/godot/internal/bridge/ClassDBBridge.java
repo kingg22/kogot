@@ -2,10 +2,8 @@ package io.github.kingg22.godot.internal.bridge;
 
 import io.github.kingg22.godot.internal.ffm.GDExtensionCallError;
 import io.github.kingg22.godot.internal.ffm.GDExtensionClassCreateInstance2;
-import io.github.kingg22.godot.internal.ffm.GDExtensionClassCreationInfo5;
 import io.github.kingg22.godot.internal.ffm.GDExtensionClassFreeInstance;
 import io.github.kingg22.godot.internal.ffm.GDExtensionClassMethodCall;
-import io.github.kingg22.godot.internal.ffm.GDExtensionClassMethodInfo;
 import io.github.kingg22.godot.internal.ffm.GDExtensionClassToString;
 
 import java.lang.foreign.Arena;
@@ -17,6 +15,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import static io.github.kingg22.godot.internal.ffm.GDExtensionCallErrorType.GDEXTENSION_CALL_OK;
+import static io.github.kingg22.godot.internal.wrapper.StructWrapper.GDExtensionClassCreationInfo5;
+import static io.github.kingg22.godot.internal.wrapper.StructWrapper.GDExtensionClassMethodInfo;
 import static java.util.Objects.requireNonNull;
 
 /** High-level ClassDB registration and instance dispatch. */
@@ -79,30 +79,8 @@ public final class ClassDBBridge implements AutoCloseable {
         final var className = stringNames.get(definition.className());
         final var parentName = stringNames.get(definition.parentClassName());
 
-        final var creationInfo = GDExtensionClassCreationInfo5.create(
-                false,
-                false,
-                true,
-                true,
-                createInstanceStub,
-                freeInstanceStub,
-                "",
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                instanceToString,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                classUserdata);
+        final var creationInfo = GDExtensionClassCreationInfo5(
+                false, false, true, true, createInstanceStub, freeInstanceStub, classUserdata);
 
         classes.put(classId, new ClassEntry<>(definition, className, parentName, classUserdata));
         ffi.classdbRegisterExtensionClass5(className, parentName, creationInfo);
@@ -114,20 +92,8 @@ public final class ClassDBBridge implements AutoCloseable {
         methodUserdata.set(ValueLayout.JAVA_LONG, 0, methodId);
         methods.put(methodId, handler);
 
-        final var methodInfo = GDExtensionClassMethodInfo.create(
-                stringNames.get(methodName),
-                methodCallStub,
-                0,
-                false,
-                0,
-                0,
-                0,
-                methodUserdata,
-                null,
-                null,
-                null,
-                null,
-                null);
+        final var methodInfo = GDExtensionClassMethodInfo(
+                stringNames.get(methodName), methodCallStub, 0, false, 0, 0, 0, methodUserdata);
 
         ffi.classdbRegisterExtensionClassMethod(stringNames.get(className), methodInfo);
     }
