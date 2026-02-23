@@ -9,7 +9,7 @@ import java.lang.foreign.MemorySegment
 import java.lang.foreign.SegmentAllocator
 
 /**
- * Creates a new [GDExtensionInstanceBindingCallbacks] instance.
+ * Creates a new `GDExtensionInstanceBindingCallbacks` instance.
  * @return A pointer to instance
  * @see io.github.kingg22.godot.internal.ffm.GDExtensionInstanceBindingCreateCallback
  * @see io.github.kingg22.godot.internal.ffm.GDExtensionInstanceBindingFreeCallback
@@ -30,7 +30,7 @@ fun GDExtensionInstanceBindingCallbacks(
 }
 
 /**
- * Creates a new [GDExtensionCallableCustomInfo2] instance.
+ * Creates a new `GDExtensionCallableCustomInfo2` instance.
  *
  * Only [callFunc] and [token] are strictly required, however, [objectId] should be passed if it's not a static
  * method.
@@ -80,7 +80,7 @@ fun GDExtensionCallableCustomInfo2(
 }
 
 /**
- * Create a new [GDExtensionClassCreationInfo5] instance
+ * Create a new `GDExtensionClassCreationInfo5` instance
  * @see GDExtensionClassCreationInfo4
  *
  * @param createInstanceFunc (Default) constructor; mandatory. If the class is not instantiable, consider making it virtual or abstract.
@@ -156,7 +156,7 @@ fun GDExtensionClassCreationInfo5(
 }
 
 /**
- * Create a new [GDExtensionClassMethodInfo] instance.
+ * Create a new `GDExtensionClassMethodInfo` instance.
  * For more information, see the class documentation.
  *
  * @param methodFlags Bitfield of [io.github.kingg22.godot.internal.ffm.GDExtensionClassMethodFlags].
@@ -202,7 +202,7 @@ fun GDExtensionClassMethodInfo(
 }
 
 /**
- * Creates a new [GDExtensionScriptInstanceInfo3] backed by an [Arena.ofAuto] allocation.
+ * Creates a new `GDExtensionScriptInstanceInfo3` backed by an [Arena.ofAuto] allocation.
  * @param getClassCategoryFunc Optional. Set to NULL for the default behavior.
  * @return A pointer to instance
  */
@@ -267,7 +267,7 @@ fun GDExtensionScriptInstanceInfo3(
 }
 
 /**
- * Create a new [GDExtensionClassVirtualMethodInfo] instance.
+ * Create a new `GDExtensionClassVirtualMethodInfo` instance.
  * For more information, see the class documentation.
  * @param methodFlags Bitfield of [io.github.kingg22.godot.internal.ffm.GDExtensionClassMethodFlags].
  * @return A pointer to instance
@@ -295,7 +295,7 @@ fun GDExtensionClassVirtualMethodInfo(
 }
 
 /**
- * Create a new [GDExtensionMainLoopCallbacks] instance.
+ * Create a new `GDExtensionMainLoopCallbacks` instance.
  * @param startupFunc
  * [GDExtensionMainLoopStartupCallback][io.github.kingg22.godot.internal.ffm.GDExtensionMainLoopStartupCallback]
  * Will be called after Godot is started and is fully initialized.
@@ -325,7 +325,7 @@ fun GDExtensionMainLoopCallbacks(
 }
 
 /**
- * Create a new [GDExtensionMethodInfo] instance.
+ * Create a new `GDExtensionMethodInfo` instance.
  * @param returnValue [io.github.kingg22.godot.internal.ffm.GDExtensionPropertyInfo] pointer.
  * @param argumentCount Arguments: [defaultArguments] is an array of size [argumentCount].
  * @param defaultArgumentCount Default arguments: [defaultArguments] is an array of size [defaultArgumentCount].
@@ -359,7 +359,7 @@ fun GDExtensionMethodInfo(
 }
 
 /**
- * Creates a new [GDExtensionPropertyInfo] backed by an [Arena.ofAuto] allocation.
+ * Creates a new `GDExtensionPropertyInfo` backed by an [Arena.ofAuto] allocation.
  * @param type The type of the property [io.github.kingg22.godot.internal.ffm.GDExtensionVariantType].
  * @param hint Bitfield of [io.github.kingg22.godot.internal.ffm.GDExtensionPropertyHint].
  * @param usage Bitfield of [io.github.kingg22.godot.internal.ffm.GDExtensionPropertyUsageFlags].
@@ -386,8 +386,8 @@ fun GDExtensionPropertyInfo(
 }
 
 /**
- * Set a [GDExtensionCallError] at the given address.
- * @param struct a [MemorySegment] represents a pointer to a [GDExtensionCallError]
+ * Set a `GDExtensionCallError` at the given address.
+ * @param struct a [MemorySegment] represents a pointer to a `GDExtensionCallError`
  * @param code a [io.github.kingg22.godot.internal.ffm.GDExtensionCallErrorType]
  */
 fun GDExtensionCallError(struct: MemorySegment, code: Short, argument: Int, expected: Int) {

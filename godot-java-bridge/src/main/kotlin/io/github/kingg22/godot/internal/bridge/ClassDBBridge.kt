@@ -81,26 +81,29 @@ class ClassDBBridge internal constructor(
         instances.remove(address)?.close()
     }
 
+    private val onToString = GDExtensionClassToString.Function {
+            instance: MemorySegment?,
+            isValid: MemorySegment?,
+            out: MemorySegment?,
+        ->
+        val handle = instances[instance!!.address()]
+        if (handle == null) {
+            System.err.println("Not found instance with address: '${instance.address()}' for toString")
+            return@Function
+        }
+        try {
+            val message = handle.instance.toString()
+            ffi.stringNameNewWithUtf8Chars(out!!, arena.allocateFrom(message))
+        } catch (e: Exception) {
+            System.err.println("Catch exception during toString: " + e.message)
+        }
+    }
+
     init {
         this.methodCallStub = GDExtensionClassMethodCall.allocate(this.onMethodCall, arena)
         this.createInstanceStub = GDExtensionClassCreateInstance2.allocate(this.onCreateInstance, arena)
         this.freeInstanceStub = GDExtensionClassFreeInstance.allocate(this.onFreeInstance, arena)
-        this.instanceToString = GDExtensionClassToString.allocate(
-            GDExtensionClassToString.Function { instance: MemorySegment?, _: MemorySegment?, out: MemorySegment? ->
-                val handle = instances[instance!!.address()]
-                if (handle == null) {
-                    System.err.println("Not found instance with address: '${instance.address()}' for toString")
-                    return@Function
-                }
-                try {
-                    val message = handle.instance.toString()
-                    ffi.stringNameNewWithUtf8Chars(out!!, arena.allocateFrom(message))
-                } catch (e: Exception) {
-                    System.err.println("Catch exception during toString: " + e.message)
-                }
-            },
-            arena,
-        )
+        this.instanceToString = GDExtensionClassToString.allocate(this.onToString, arena)
     }
 
     override fun close() {
