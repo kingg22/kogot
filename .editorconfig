@@ -21,9 +21,6 @@ ktlint_standard_no-consecutive-comments = enabled
 ktlint_standard_if-else-wrapping = enabled
 ktlint_standard_try-catch-finally-spacing = enabled
 
-[compiler/src/test/kotlin/**/*.kt]
-ktlint_standard_function-naming = disabled
-
 [**/build/**/*.{kt,kts}]
 ij_formatter_enabled = false
 ktlint = disabled
