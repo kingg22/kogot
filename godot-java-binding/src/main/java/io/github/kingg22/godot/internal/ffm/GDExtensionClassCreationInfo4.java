@@ -10,82 +10,69 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.function.Consumer;
 
-import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_CHAR;
-import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 import static java.lang.foreign.ValueLayout.OfByte;
 
-/// ```C
-/// struct {
-///     GDExtensionBool is_virtual;
-///     GDExtensionBool is_abstract;
-///     GDExtensionBool is_exposed;
-///     GDExtensionBool is_runtime;
-///     GDExtensionConstStringPtr icon_path;
-///     GDExtensionClassSet set_func;
-///     GDExtensionClassGet get_func;
-///     GDExtensionClassGetPropertyList get_property_list_func;
-///     GDExtensionClassFreePropertyList2 free_property_list_func;
-///     GDExtensionClassPropertyCanRevert property_can_revert_func;
-///     GDExtensionClassPropertyGetRevert property_get_revert_func;
-///     GDExtensionClassValidateProperty validate_property_func;
-///     GDExtensionClassNotification2 notification_func;
-///     GDExtensionClassToString to_string_func;
-///     GDExtensionClassReference reference_func;
-///     GDExtensionClassUnreference unreference_func;
-///     // (Default) constructor; mandatory. If the class is not instantiable, consider making it virtual or abstract.
-///     GDExtensionClassCreateInstance2 create_instance_func;
-///     // Destructor; mandatory.
-///     GDExtensionClassFreeInstance free_instance_func;
-///     GDExtensionClassRecreateInstance recreate_instance_func;
-///     // Queries a virtual function by name and returns a callback to invoke the requested virtual function.
-///     GDExtensionClassGetVirtual2 get_virtual_func;
-///     // Paired with `call_virtual_with_data_func`, this is an alternative to `get_virtual_func` for extensions that
-///     // need or benefit from extra data when calling virtual functions.
-///     // Returns user data that will be passed to `call_virtual_with_data_func`.
-///     // Returning `NULL` from this function signals to Godot that the virtual function is not overridden.
-///     // Data returned from this function should be managed by the extension and must be valid until the extension is
-/// deinitialized.
-///     // You should supply either `get_virtual_func`, or `get_virtual_call_data_func` with
-/// `call_virtual_with_data_func`.
-///     GDExtensionClassGetVirtualCallData2 get_virtual_call_data_func;
-///     // Used to call virtual functions when `get_virtual_call_data_func` is not null.
-///     GDExtensionClassCallVirtualWithData call_virtual_with_data_func;
-///     // Per-class user data, later accessible in instance bindings.
-///     void *class_userdata;
-/// };
-/// ```
-public class GDExtensionClassCreationInfo4 {
+/**
+ * {@snippet lang=c :
+ * struct {
+ *     GDExtensionBool is_virtual;
+ *     GDExtensionBool is_abstract;
+ *     GDExtensionBool is_exposed;
+ *     GDExtensionBool is_runtime;
+ *     GDExtensionConstStringPtr icon_path;
+ *     GDExtensionClassSet set_func;
+ *     GDExtensionClassGet get_func;
+ *     GDExtensionClassGetPropertyList get_property_list_func;
+ *     GDExtensionClassFreePropertyList2 free_property_list_func;
+ *     GDExtensionClassPropertyCanRevert property_can_revert_func;
+ *     GDExtensionClassPropertyGetRevert property_get_revert_func;
+ *     GDExtensionClassValidateProperty validate_property_func;
+ *     GDExtensionClassNotification2 notification_func;
+ *     GDExtensionClassToString to_string_func;
+ *     GDExtensionClassReference reference_func;
+ *     GDExtensionClassUnreference unreference_func;
+ *     GDExtensionClassCreateInstance2 create_instance_func;
+ *     GDExtensionClassFreeInstance free_instance_func;
+ *     GDExtensionClassRecreateInstance recreate_instance_func;
+ *     GDExtensionClassGetVirtual2 get_virtual_func;
+ *     GDExtensionClassGetVirtualCallData2 get_virtual_call_data_func;
+ *     GDExtensionClassCallVirtualWithData call_virtual_with_data_func;
+ *     void *class_userdata;
+ * }
+ * }
+ */
+public sealed class GDExtensionClassCreationInfo4 permits GDExtensionClassCreationInfo5 {
 
     protected GDExtensionClassCreationInfo4() {
         throw new UnsupportedOperationException();
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-                    C_CHAR.withName("is_virtual"),
-                    C_CHAR.withName("is_abstract"),
-                    C_CHAR.withName("is_exposed"),
-                    C_CHAR.withName("is_runtime"),
+                    FFMUtils.C_CHAR.withName("is_virtual"),
+                    FFMUtils.C_CHAR.withName("is_abstract"),
+                    FFMUtils.C_CHAR.withName("is_exposed"),
+                    FFMUtils.C_CHAR.withName("is_runtime"),
                     MemoryLayout.paddingLayout(4),
-                    C_POINTER.withName("icon_path"),
-                    C_POINTER.withName("set_func"),
-                    C_POINTER.withName("get_func"),
-                    C_POINTER.withName("get_property_list_func"),
-                    C_POINTER.withName("free_property_list_func"),
-                    C_POINTER.withName("property_can_revert_func"),
-                    C_POINTER.withName("property_get_revert_func"),
-                    C_POINTER.withName("validate_property_func"),
-                    C_POINTER.withName("notification_func"),
-                    C_POINTER.withName("to_string_func"),
-                    C_POINTER.withName("reference_func"),
-                    C_POINTER.withName("unreference_func"),
-                    C_POINTER.withName("create_instance_func"),
-                    C_POINTER.withName("free_instance_func"),
-                    C_POINTER.withName("recreate_instance_func"),
-                    C_POINTER.withName("get_virtual_func"),
-                    C_POINTER.withName("get_virtual_call_data_func"),
-                    C_POINTER.withName("call_virtual_with_data_func"),
-                    C_POINTER.withName("class_userdata"))
+                    FFMUtils.C_POINTER.withName("icon_path"),
+                    FFMUtils.C_POINTER.withName("set_func"),
+                    FFMUtils.C_POINTER.withName("get_func"),
+                    FFMUtils.C_POINTER.withName("get_property_list_func"),
+                    FFMUtils.C_POINTER.withName("free_property_list_func"),
+                    FFMUtils.C_POINTER.withName("property_can_revert_func"),
+                    FFMUtils.C_POINTER.withName("property_get_revert_func"),
+                    FFMUtils.C_POINTER.withName("validate_property_func"),
+                    FFMUtils.C_POINTER.withName("notification_func"),
+                    FFMUtils.C_POINTER.withName("to_string_func"),
+                    FFMUtils.C_POINTER.withName("reference_func"),
+                    FFMUtils.C_POINTER.withName("unreference_func"),
+                    FFMUtils.C_POINTER.withName("create_instance_func"),
+                    FFMUtils.C_POINTER.withName("free_instance_func"),
+                    FFMUtils.C_POINTER.withName("recreate_instance_func"),
+                    FFMUtils.C_POINTER.withName("get_virtual_func"),
+                    FFMUtils.C_POINTER.withName("get_virtual_call_data_func"),
+                    FFMUtils.C_POINTER.withName("call_virtual_with_data_func"),
+                    FFMUtils.C_POINTER.withName("class_userdata"))
             .withName("GDExtensionClassCreationInfo4");
 
     /** The layout of this struct */

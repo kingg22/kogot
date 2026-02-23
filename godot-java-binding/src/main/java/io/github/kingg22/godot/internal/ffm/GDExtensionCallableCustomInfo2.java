@@ -2,8 +2,6 @@
 
 package io.github.kingg22.godot.internal.ffm;
 
-import org.jspecify.annotations.Nullable;
-
 import java.lang.foreign.AddressLayout;
 import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
@@ -12,41 +10,26 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.function.Consumer;
 
-import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_LONG;
-import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 import static java.lang.foreign.ValueLayout.OfLong;
 
-/// Only `call_func` and `token` are strictly required, however, `object_id` should be passed if its not a static
-/// method.
-///
-/// `token` should point to an address that uniquely identifies the GDExtension (for example, the
-/// `GDExtensionClassLibraryPtr` passed to the entry symbol function.
-///
-/// `hash_func`, `equal_func`, and `less_than_func` are optional. If not provided both `call_func` and
-/// `callable_userdata` together are used as the identity of the callable for hashing and comparison purposes.
-///
-/// The hash returned by `hash_func` is cached, `hash_func` will not be called more than once per callable.
-///
-/// `is_valid_func` is necessary if the validity of the callable can change before destruction.
-///
-/// `free_func` is necessary if `callable_userdata` needs to be cleaned up when the callable is freed.
-///
-/// ```C
-/// struct {
-///     void *callable_userdata;
-///     void *token;
-///     GDObjectInstanceID object_id;
-///     GDExtensionCallableCustomCall call_func;
-///     GDExtensionCallableCustomIsValid is_valid_func;
-///     GDExtensionCallableCustomFree free_func;
-///     GDExtensionCallableCustomHash hash_func;
-///     GDExtensionCallableCustomEqual equal_func;
-///     GDExtensionCallableCustomLessThan less_than_func;
-///     GDExtensionCallableCustomToString to_string_func;
-///     GDExtensionCallableCustomGetArgumentCount get_argument_count_func;
-/// }
-/// ```
+/**
+ * {@snippet lang=c :
+ * struct {
+ *     void *callable_userdata;
+ *     void *token;
+ *     GDObjectInstanceID object_id;
+ *     GDExtensionCallableCustomCall call_func;
+ *     GDExtensionCallableCustomIsValid is_valid_func;
+ *     GDExtensionCallableCustomFree free_func;
+ *     GDExtensionCallableCustomHash hash_func;
+ *     GDExtensionCallableCustomEqual equal_func;
+ *     GDExtensionCallableCustomLessThan less_than_func;
+ *     GDExtensionCallableCustomToString to_string_func;
+ *     GDExtensionCallableCustomGetArgumentCount get_argument_count_func;
+ * }
+ * }
+ */
 public final class GDExtensionCallableCustomInfo2 {
 
     private GDExtensionCallableCustomInfo2() {
@@ -54,53 +37,22 @@ public final class GDExtensionCallableCustomInfo2 {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-                    C_POINTER.withName("callable_userdata"),
-                    C_POINTER.withName("token"),
-                    C_LONG.withName("object_id"),
-                    C_POINTER.withName("call_func"),
-                    C_POINTER.withName("is_valid_func"),
-                    C_POINTER.withName("free_func"),
-                    C_POINTER.withName("hash_func"),
-                    C_POINTER.withName("equal_func"),
-                    C_POINTER.withName("less_than_func"),
-                    C_POINTER.withName("to_string_func"),
-                    C_POINTER.withName("get_argument_count_func"))
+                    FFMUtils.C_POINTER.withName("callable_userdata"),
+                    FFMUtils.C_POINTER.withName("token"),
+                    FFMUtils.C_LONG.withName("object_id"),
+                    FFMUtils.C_POINTER.withName("call_func"),
+                    FFMUtils.C_POINTER.withName("is_valid_func"),
+                    FFMUtils.C_POINTER.withName("free_func"),
+                    FFMUtils.C_POINTER.withName("hash_func"),
+                    FFMUtils.C_POINTER.withName("equal_func"),
+                    FFMUtils.C_POINTER.withName("less_than_func"),
+                    FFMUtils.C_POINTER.withName("to_string_func"),
+                    FFMUtils.C_POINTER.withName("get_argument_count_func"))
             .withName("GDExtensionCallableCustomInfo2");
 
     /** The layout of this struct */
     public static GroupLayout layout() {
         return $LAYOUT;
-    }
-
-    /// Creates a new [GDExtensionCallableCustomInfo2] instance.
-    /// See the class documentation for more information.
-    /// @return A pointer to instance
-    public static MemorySegment create(
-            final MemorySegment token,
-            final long objectId,
-            final MemorySegment callFunc,
-            final @Nullable MemorySegment isValidFunc,
-            final @Nullable MemorySegment freeFunc,
-            final @Nullable MemorySegment hashFunc,
-            final @Nullable MemorySegment equalFunc,
-            final @Nullable MemorySegment lessThanFunc,
-            final @Nullable MemorySegment toStringFunc,
-            final @Nullable MemorySegment getArgumentCountFunc,
-            final @Nullable MemorySegment callableUserdata) {
-        var arena = Arena.ofAuto();
-        var struct = arena.allocate(layout());
-        callable_userdata(struct, callableUserdata != null ? callableUserdata : MemorySegment.NULL);
-        token(struct, token);
-        object_id(struct, objectId);
-        call_func(struct, callFunc);
-        is_valid_func(struct, isValidFunc != null ? isValidFunc : MemorySegment.NULL);
-        free_func(struct, freeFunc != null ? freeFunc : MemorySegment.NULL);
-        hash_func(struct, hashFunc != null ? hashFunc : MemorySegment.NULL);
-        equal_func(struct, equalFunc != null ? equalFunc : MemorySegment.NULL);
-        less_than_func(struct, lessThanFunc != null ? lessThanFunc : MemorySegment.NULL);
-        to_string_func(struct, toStringFunc != null ? toStringFunc : MemorySegment.NULL);
-        get_argument_count_func(struct, getArgumentCountFunc != null ? getArgumentCountFunc : MemorySegment.NULL);
-        return struct;
     }
 
     private static final AddressLayout callable_userdata$LAYOUT =

@@ -10,16 +10,17 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.function.Consumer;
 
-import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 
-/// ```
-/// struct {
-///     GDExtensionInstanceBindingCreateCallback create_callback;
-///     GDExtensionInstanceBindingFreeCallback free_callback;
-///     GDExtensionInstanceBindingReferenceCallback reference_callback;
-/// }
-/// ```
+/**
+ * {@snippet lang=c :
+ * struct {
+ *     GDExtensionInstanceBindingCreateCallback create_callback;
+ *     GDExtensionInstanceBindingFreeCallback free_callback;
+ *     GDExtensionInstanceBindingReferenceCallback reference_callback;
+ * }
+ * }
+ */
 public final class GDExtensionInstanceBindingCallbacks {
 
     private GDExtensionInstanceBindingCallbacks() {
@@ -27,31 +28,14 @@ public final class GDExtensionInstanceBindingCallbacks {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-                    C_POINTER.withName("create_callback"),
-                    C_POINTER.withName("free_callback"),
-                    C_POINTER.withName("reference_callback"))
+                    FFMUtils.C_POINTER.withName("create_callback"),
+                    FFMUtils.C_POINTER.withName("free_callback"),
+                    FFMUtils.C_POINTER.withName("reference_callback"))
             .withName("GDExtensionInstanceBindingCallbacks");
 
     /** The layout of this struct */
     public static GroupLayout layout() {
         return $LAYOUT;
-    }
-
-    /// Creates a new [GDExtensionInstanceBindingCallbacks] instance.
-    /// @return A pointer to instance
-    /// @see GDExtensionInstanceBindingCreateCallback
-    /// @see GDExtensionInstanceBindingFreeCallback
-    /// @see GDExtensionInstanceBindingReferenceCallback
-    public static MemorySegment create(
-            final MemorySegment create_callback,
-            final MemorySegment free_callback,
-            final MemorySegment reference_callback) {
-        final var arena = Arena.ofAuto();
-        final var struct = arena.allocate(layout());
-        create_callback(struct, create_callback);
-        free_callback(struct, free_callback);
-        reference_callback(struct, reference_callback);
-        return struct;
     }
 
     private static final AddressLayout create_callback$LAYOUT =

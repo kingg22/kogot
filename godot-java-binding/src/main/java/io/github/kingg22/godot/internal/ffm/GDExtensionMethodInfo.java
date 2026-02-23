@@ -2,8 +2,6 @@
 
 package io.github.kingg22.godot.internal.ffm;
 
-import org.jspecify.annotations.Nullable;
-
 import java.lang.foreign.AddressLayout;
 import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
@@ -54,34 +52,6 @@ public final class GDExtensionMethodInfo {
     /** The layout of this struct */
     public static GroupLayout layout() {
         return $LAYOUT;
-    }
-
-    /// Create a new [GDExtensionMethodInfo] instance.
-    /// @param returnValue [GDExtensionPropertyInfo] pointer.
-    /// @param flags Bitfield of [GDExtensionClassMethodFlags]
-    /// @param arguments Array of [GDExtensionPropertyInfo] pointers.
-    /// @param defaultArguments Array of `GDExtensionVariant` pointer.
-    /// @return A pointer to instance
-    public static MemorySegment create(
-            final MemorySegment name,
-            final MemorySegment returnValue,
-            final int flags,
-            final int id,
-            final int argumentCount,
-            final @Nullable MemorySegment arguments,
-            final int defaultArgumentCount,
-            final @Nullable MemorySegment defaultArguments) {
-        var arena = Arena.ofAuto();
-        var struct = arena.allocate(layout());
-        name(struct, name);
-        return_value(struct, returnValue);
-        flags(struct, flags);
-        id(struct, id);
-        argument_count(struct, argumentCount);
-        arguments(struct, arguments != null ? arguments : MemorySegment.NULL);
-        default_argument_count(struct, defaultArgumentCount);
-        default_arguments(struct, defaultArguments != null ? defaultArguments : MemorySegment.NULL);
-        return struct;
     }
 
     private static final AddressLayout name$LAYOUT = (AddressLayout) $LAYOUT.select(groupElement("name"));

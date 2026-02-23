@@ -2,73 +2,11 @@
 
 package io.github.kingg22.godot.internal.ffm;
 
-import org.jspecify.annotations.Nullable;
-
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
-
 /// ```C
 /// typedef GDExtensionClassCreationInfo4 GDExtensionClassCreationInfo5
 /// ```
 public final class GDExtensionClassCreationInfo5 extends GDExtensionClassCreationInfo4 {
     private GDExtensionClassCreationInfo5() {
-        throw new UnsupportedOperationException();
-    }
-
-    /// Create a new [GDExtensionClassCreationInfo5] instance
-    /// @see GDExtensionClassCreationInfo4
-    /// @return A pointer to instance
-    public static MemorySegment create(
-            final boolean isVirtual,
-            final boolean isAbstract,
-            final boolean isExposed,
-            final boolean isRuntime,
-            final MemorySegment createInstanceFunc,
-            final MemorySegment freeInstanceFunc,
-            final @Nullable String iconPath,
-            final @Nullable MemorySegment setFunc,
-            final @Nullable MemorySegment getFunc,
-            final @Nullable MemorySegment getPropertyListFunc,
-            final @Nullable MemorySegment freePropertyListFunc,
-            final @Nullable MemorySegment propertyCanReverFunc,
-            final @Nullable MemorySegment propertyGetReverFunc,
-            final @Nullable MemorySegment validatePropertyFunc,
-            final @Nullable MemorySegment notificationFunc,
-            final @Nullable MemorySegment toStringFunc,
-            final @Nullable MemorySegment referenceFunc,
-            final @Nullable MemorySegment unreferenceFunc,
-            final @Nullable MemorySegment recreateInstanceFunc,
-            final @Nullable MemorySegment get_virtual_func,
-            final @Nullable MemorySegment get_virtual_call_data_func,
-            final @Nullable MemorySegment call_virtual_with_data_func,
-            final @Nullable MemorySegment classUserdata) {
-        var arena = Arena.ofAuto();
-        var struct = arena.allocate(layout());
-        is_virtual(struct, isVirtual ? (byte) 1 : (byte) 0);
-        is_abstract(struct, isAbstract ? (byte) 1 : (byte) 0);
-        is_exposed(struct, isExposed ? (byte) 1 : (byte) 0);
-        is_runtime(struct, isRuntime ? (byte) 1 : (byte) 0);
-        icon_path(struct, arena.allocateFrom(iconPath));
-        create_instance_func(struct, createInstanceFunc);
-        free_instance_func(struct, freeInstanceFunc);
-        set_func(struct, setFunc != null ? setFunc : MemorySegment.NULL);
-        get_func(struct, getFunc != null ? getFunc : MemorySegment.NULL);
-        get_property_list_func(struct, getPropertyListFunc != null ? getPropertyListFunc : MemorySegment.NULL);
-        free_property_list_func(struct, freePropertyListFunc != null ? freePropertyListFunc : MemorySegment.NULL);
-        property_can_revert_func(struct, propertyCanReverFunc != null ? propertyCanReverFunc : MemorySegment.NULL);
-        property_get_revert_func(struct, propertyGetReverFunc != null ? propertyGetReverFunc : MemorySegment.NULL);
-        validate_property_func(struct, validatePropertyFunc != null ? validatePropertyFunc : MemorySegment.NULL);
-        notification_func(struct, notificationFunc != null ? notificationFunc : MemorySegment.NULL);
-        to_string_func(struct, toStringFunc != null ? toStringFunc : MemorySegment.NULL);
-        reference_func(struct, referenceFunc != null ? referenceFunc : MemorySegment.NULL);
-        unreference_func(struct, unreferenceFunc != null ? unreferenceFunc : MemorySegment.NULL);
-        recreate_instance_func(struct, recreateInstanceFunc != null ? recreateInstanceFunc : MemorySegment.NULL);
-        get_virtual_func(struct, get_virtual_func != null ? get_virtual_func : MemorySegment.NULL);
-        get_virtual_call_data_func(
-                struct, get_virtual_call_data_func != null ? get_virtual_call_data_func : MemorySegment.NULL);
-        call_virtual_with_data_func(
-                struct, call_virtual_with_data_func != null ? call_virtual_with_data_func : MemorySegment.NULL);
-        class_userdata(struct, classUserdata != null ? classUserdata : MemorySegment.NULL);
-        return struct;
+        super();
     }
 }

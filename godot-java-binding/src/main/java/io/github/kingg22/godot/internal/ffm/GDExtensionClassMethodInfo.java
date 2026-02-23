@@ -2,8 +2,6 @@
 
 package io.github.kingg22.godot.internal.ffm;
 
-import org.jspecify.annotations.Nullable;
-
 import java.lang.foreign.AddressLayout;
 import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
@@ -12,9 +10,6 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.function.Consumer;
 
-import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_CHAR;
-import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_INT;
-import static io.github.kingg22.godot.internal.ffm.FFMUtils.C_POINTER;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 import static java.lang.foreign.ValueLayout.OfByte;
 import static java.lang.foreign.ValueLayout.OfInt;
@@ -59,62 +54,26 @@ public final class GDExtensionClassMethodInfo {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-                    C_POINTER.withName("name"),
-                    C_POINTER.withName("method_userdata"),
-                    C_POINTER.withName("call_func"),
-                    C_POINTER.withName("ptrcall_func"),
-                    C_INT.withName("method_flags"),
-                    C_CHAR.withName("has_return_value"),
+                    FFMUtils.C_POINTER.withName("name"),
+                    FFMUtils.C_POINTER.withName("method_userdata"),
+                    FFMUtils.C_POINTER.withName("call_func"),
+                    FFMUtils.C_POINTER.withName("ptrcall_func"),
+                    FFMUtils.C_INT.withName("method_flags"),
+                    FFMUtils.C_CHAR.withName("has_return_value"),
                     MemoryLayout.paddingLayout(3),
-                    C_POINTER.withName("return_value_info"),
-                    C_INT.withName("return_value_metadata"),
-                    C_INT.withName("argument_count"),
-                    C_POINTER.withName("arguments_info"),
-                    C_POINTER.withName("arguments_metadata"),
-                    C_INT.withName("default_argument_count"),
+                    FFMUtils.C_POINTER.withName("return_value_info"),
+                    FFMUtils.C_INT.withName("return_value_metadata"),
+                    FFMUtils.C_INT.withName("argument_count"),
+                    FFMUtils.C_POINTER.withName("arguments_info"),
+                    FFMUtils.C_POINTER.withName("arguments_metadata"),
+                    FFMUtils.C_INT.withName("default_argument_count"),
                     MemoryLayout.paddingLayout(4),
-                    C_POINTER.withName("default_arguments"))
+                    FFMUtils.C_POINTER.withName("default_arguments"))
             .withName("GDExtensionClassMethodInfo");
 
     /** The layout of this struct */
     public static GroupLayout layout() {
         return $LAYOUT;
-    }
-
-    /// Create a new [GDExtensionClassMethodInfo] instance.
-    /// For more information, see the class documentation.
-    /// @param methodFlags Bitfield of [GDExtensionClassMethodFlags].
-    /// @return A pointer to instance
-    public static MemorySegment create(
-            final MemorySegment name,
-            final MemorySegment callFunc,
-            final int methodFlags,
-            final boolean hasReturnValue,
-            final int returnValueMetadata,
-            final int argumentCount,
-            final int defaultArgumentCount,
-            final @Nullable MemorySegment methodUserdata,
-            final @Nullable MemorySegment ptrcallFunc,
-            final @Nullable MemorySegment returnValueInfo,
-            final @Nullable MemorySegment argumentsInfo,
-            final @Nullable MemorySegment argumentsMetadata,
-            final @Nullable MemorySegment defaultArguments) {
-        var arena = Arena.ofAuto();
-        var struct = arena.allocate(layout());
-        name(struct, name);
-        method_userdata(struct, methodUserdata != null ? methodUserdata : MemorySegment.NULL);
-        call_func(struct, callFunc);
-        ptrcall_func(struct, ptrcallFunc != null ? ptrcallFunc : MemorySegment.NULL);
-        method_flags(struct, methodFlags);
-        has_return_value(struct, hasReturnValue ? (byte) 1 : (byte) 0);
-        return_value_info(struct, returnValueInfo != null ? returnValueInfo : MemorySegment.NULL);
-        return_value_metadata(struct, returnValueMetadata);
-        argument_count(struct, argumentCount);
-        arguments_info(struct, argumentsInfo != null ? argumentsInfo : MemorySegment.NULL);
-        arguments_metadata(struct, argumentsMetadata != null ? argumentsMetadata : MemorySegment.NULL);
-        default_argument_count(struct, defaultArgumentCount);
-        default_arguments(struct, defaultArguments != null ? defaultArguments : MemorySegment.NULL);
-        return struct;
     }
 
     private static final AddressLayout name$LAYOUT = (AddressLayout) $LAYOUT.select(groupElement("name"));

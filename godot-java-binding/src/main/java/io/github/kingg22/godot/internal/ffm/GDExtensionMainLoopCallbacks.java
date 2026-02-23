@@ -43,22 +43,6 @@ public final class GDExtensionMainLoopCallbacks {
         return $LAYOUT;
     }
 
-    /// Create a new [GDExtensionMainLoopCallbacks] instance.
-    /// See the class documentation for more information.
-    /// @return A pointer to instance
-    /// @see GDExtensionMainLoopStartupCallback
-    /// @see GDExtensionMainLoopShutdownCallback
-    /// @see GDExtensionMainLoopFrameCallback
-    public static MemorySegment create(
-            final MemorySegment startup_func, final MemorySegment shutdown_func, final MemorySegment frame_func) {
-        final var arena = Arena.ofAuto();
-        final var struct = allocate(arena);
-        startup_func(struct, startup_func);
-        shutdown_func(struct, shutdown_func);
-        frame_func(struct, frame_func);
-        return struct;
-    }
-
     private static final AddressLayout startup_func$LAYOUT =
             (AddressLayout) $LAYOUT.select(groupElement("startup_func"));
 
