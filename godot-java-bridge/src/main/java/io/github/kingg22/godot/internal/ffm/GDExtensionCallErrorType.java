@@ -1,7 +1,7 @@
 package io.github.kingg22.godot.internal.ffm;
 
 /// Equivalent to `GDExtensionCallErrorType` enum with constant
-public class GDExtensionCallErrorType {
+public final class GDExtensionCallErrorType {
     private GDExtensionCallErrorType() {
         throw new UnsupportedOperationException("Utility class");
     }
