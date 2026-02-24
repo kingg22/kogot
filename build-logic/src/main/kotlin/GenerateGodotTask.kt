@@ -12,29 +12,6 @@ import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.the
 import org.gradle.process.CommandLineArgumentProvider
 
-class GodotArgsProvider(private val task: GenerateGodotTask) : CommandLineArgumentProvider {
-    override fun asArguments(): Iterable<String> {
-        val args = mutableListOf<String>()
-
-        if (task.inputInterface.isPresent) {
-            args += listOf("--input-interface", task.inputInterface.get().asFile.absolutePath)
-        }
-
-        if (task.inputExtension.isPresent) {
-            args += listOf("--input-extension", task.inputExtension.get().asFile.absolutePath)
-        }
-
-        args += listOf(
-            "--output",
-            task.outputDir.get().asFile.absolutePath,
-            "--package",
-            task.packageName.get(),
-        )
-
-        return args
-    }
-}
-
 abstract class GenerateGodotTask : JavaExec() {
     @get:[InputFile Optional Option(option = "input-interface", description = "Path to gdextension_interface.json")]
     abstract val inputInterface: RegularFileProperty
@@ -63,5 +40,28 @@ abstract class GenerateGodotTask : JavaExec() {
             "Either --input-interface or --input-extension must be specified"
         }
         super.exec()
+    }
+
+    class GodotArgsProvider(private val task: GenerateGodotTask) : CommandLineArgumentProvider {
+        override fun asArguments(): Iterable<String> {
+            val args = mutableListOf<String>()
+
+            if (task.inputInterface.isPresent) {
+                args += listOf("--input-interface", task.inputInterface.get().asFile.absolutePath)
+            }
+
+            if (task.inputExtension.isPresent) {
+                args += listOf("--input-extension", task.inputExtension.get().asFile.absolutePath)
+            }
+
+            args += listOf(
+                "--output",
+                task.outputDir.get().asFile.absolutePath,
+                "--package",
+                task.packageName.get(),
+            )
+
+            return args
+        }
     }
 }

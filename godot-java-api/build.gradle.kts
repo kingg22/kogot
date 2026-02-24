@@ -9,12 +9,19 @@ kotlin {
     }
 }
 
+val codegenProject = evaluationDependsOn(":godot-java-codegen")
+val generateApi = codegenProject.tasks.named("generateGodotExtensionApi")
+
 sourceSets {
     main {
-        kotlin.srcDir("build/generated/sources/godotApi")
+        kotlin.srcDir(generateApi.map { it.outputs.files })
     }
 }
 
 tasks.compileKotlin {
-    dependsOn(":godot-java-codegen:generateGodotExtensionApi")
+    dependsOn(generateApi)
+}
+
+tasks.spotlessKotlin {
+    dependsOn(generateApi)
 }
