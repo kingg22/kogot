@@ -11,7 +11,7 @@ data class GodotClass(
     val inherits: String? = null,
     @SerialName("api_type") val apiType: String,
     val constants: List<EnumConstant>? = null,
-    val enums: List<ApiEnum>? = null,
+    val enums: List<ApiEnum> = emptyList(),
     val methods: List<ClassMethod>? = null,
     val properties: List<ClassProperty>? = null,
     val signals: List<Signal>? = null,

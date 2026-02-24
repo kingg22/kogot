@@ -3,6 +3,4 @@ package io.github.kingg22.godot.codegen.models.extensionapi
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class NativeStructure(val name: String, val format: String) {
-    val formatList get() = format.split(";")
-}
+data class NativeStructure(val name: String, val format: String)
