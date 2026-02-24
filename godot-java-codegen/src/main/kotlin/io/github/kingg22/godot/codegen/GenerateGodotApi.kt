@@ -123,12 +123,15 @@ private fun run(args: Array<String>): Int {
             val paths = generator.generate(extensionInterface, outputDir)
             println("---Generated GDExtension Interface files---:")
             paths.forEach { println(it) }
-            println("--------------------------------------------")
+            println("----- Total: ${paths.size} -----------------")
         }
         if (extensionFile != null) {
             println()
             val extensionApi = json.decodeFromStream<ExtensionApi>(extensionFile.inputStream())
-            println(extensionApi.toString())
+            val paths = generator.generate(extensionApi, outputDir)
+            println("---Generated Extension API files---")
+            paths.forEach { println(it) }
+            println("--- Total: ${paths.size} ----------")
         }
     } catch (e: Exception) {
         logger.fatal(e, "file.read.error", interfaceFile)
