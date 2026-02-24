@@ -112,7 +112,8 @@ private val kotlinKeywords = setOf(
     "yield",
 )
 
-val nameRegex = Regex("[^A-Za-z0-9_]")
+private val nameRegex = Regex("[^A-Za-z0-9_]")
+private val K_JVM_NAME = ClassName("kotlin.jvm", "JvmName")
 private val K_DEPRECATED = ClassName("kotlin", "Deprecated")
 private val K_REPLACE_WITH = ClassName("kotlin", "ReplaceWith")
 
@@ -144,12 +145,11 @@ fun typeNameFor(packageName: String, rawType: String): TypeName {
     val normalized = normalizedType.lowercase()
     return when (normalized) {
         "void" -> UNIT
-        "bool", "boolean" -> BOOLEAN
+        "boolean" -> BOOLEAN
         "char" -> CHAR
-        "float" -> FLOAT
         "double" -> DOUBLE
-        "string", "char16_t", "char32_t", "wchar_t" -> STRING
-        "int", "int32_t" -> INT
+        "char16_t", "char32_t", "wchar_t" -> STRING
+        "int32_t" -> INT
         "uint", "uint32_t" -> U_INT
         "short", "int16_t" -> SHORT
         "ushort", "uint16_t" -> U_SHORT
@@ -157,6 +157,10 @@ fun typeNameFor(packageName: String, rawType: String): TypeName {
         "ubyte", "uint8_t" -> U_BYTE
         "long", "int64_t", "intptr_t" -> LONG
         "ulong", "uint64_t", "uintptr_t", "size_t" -> U_LONG
+        "bool" -> ClassName(packageName, "bool")
+        "float" -> ClassName(packageName, "float")
+        "string" -> ClassName(packageName, "String")
+        "int" -> ClassName(packageName, "int")
         else -> ClassName(packageName, normalizedType.split(".").map { sanitizeTypeName(it) })
     }
 }
@@ -173,30 +177,54 @@ fun argumentsToParameters(packageName: String, arguments: List<Arguments>): List
                         CodeBlock.of("%L", line)
                     },
                 )
-                addKdocForBitfield(this, arg.type)
+                addKdocForBitfield(arg.type)
             }
             .build()
     }
 
-fun methodArgsToParameters(packageName: String, arguments: List<MethodArg>): List<ParameterSpec> =
-    arguments.mapIndexed { index, arg ->
-        val name = methodArgName(arg, index)
-        val type = typeNameFor(packageName, arg.type)
-        // TODO add default values
-        ParameterSpec
-            .builder(name, type)
-            .apply {
-                addKdocForBitfield(this, arg.type)
+fun methodArgsToParameters(packageName: String, isVararg: Boolean, arguments: List<MethodArg>): List<ParameterSpec> =
+    if (isVararg) {
+        buildList {
+            arguments.forEachIndexed { index, arg ->
+                val name = methodArgName(arg, index)
+                check(name != "args") {
+                    "Cannot use 'args' as parameter name for vararg function. $arg"
+                }
+                val type = typeNameFor(packageName, arg.type)
+                add(
+                    ParameterSpec
+                        .builder(name, type)
+                        .addKdocForBitfield(arg.type)
+                        .build(),
+                )
             }
-            .build()
+
+            addLast(
+                ParameterSpec.builder(
+                    "args",
+                    ClassName(packageName, "Variant"),
+                    KModifier.VARARG,
+                ).build(),
+            )
+        }
+    } else {
+        arguments.mapIndexed { index, arg ->
+            val name = methodArgName(arg, index)
+            val type = typeNameFor(packageName, arg.type)
+            ParameterSpec
+                .builder(name, type)
+                .addKdocForBitfield(arg.type)
+                .build()
+        }
     }
 
-fun addKdocForBitfield(typeBuilder: Documentable.Builder<*>, returnType: String?, prefixKdoc: String? = null) {
-    if (returnType == null) return
+fun <T : Documentable.Builder<*>> T.addKdocForBitfield(returnType: String?, prefixKdoc: String? = null): T {
+    if (returnType == null) return this
     if (returnType.startsWith("bitfield::")) {
         val prefix = if (prefixKdoc != null) "$prefixKdoc " else ""
-        typeBuilder.addKdoc("$prefix`bitfield` for [%L]", returnType.removePrefix("bitfield::"))
+        addKdoc("$prefix`bitfield` for [%L]", returnType.removePrefix("bitfield::"))
     }
+    return this
 }
 
 fun argumentName(arg: Arguments, index: Int): String {
@@ -282,6 +310,11 @@ fun deprecatedAnnotation(deprecated: Deprecated): AnnotationSpec {
 
     return builder.build()
 }
+
+fun jvmNameAnnotation(name: String): AnnotationSpec = AnnotationSpec
+    .builder(K_JVM_NAME)
+    .addMember("%S", name)
+    .build()
 
 fun safeIdentifier(name: String): String {
     val trimmed = name.trim()
