@@ -131,7 +131,7 @@ fun typeNameFor(packageName: String, rawType: String): TypeName {
         "ubyte", "uint8_t" -> U_BYTE
         "long", "int64_t", "intptr_t" -> LONG
         "ulong", "uint64_t", "uintptr_t", "size_t" -> U_LONG
-        else -> ClassName(packageName, sanitizeTypeName(normalizedType))
+        else -> ClassName(packageName, normalizedType.split(".").map { sanitizeTypeName(it) })
     }
 }
 
@@ -243,7 +243,7 @@ fun safeIdentifier(name: String): String {
 
 fun sanitizeEnumConstant(name: String): String {
     val trimmed = name.trim()
-    if (trimmed.isBlank()) return "UNKNOWN"
+    check(!trimmed.isBlank()) { "Enum constant name cannot be blank, '$name' given" }
     val sanitized = trimmed.replace(nameRegex, "_")
     val fixed = if (sanitized.first().isDigit()) "_$sanitized" else sanitized
     return if (isKotlinKeyword(fixed)) "${fixed}_" else fixed
@@ -253,7 +253,7 @@ fun isKotlinKeyword(name: String): Boolean = name in kotlinKeywords
 
 fun sanitizeTypeName(name: String): String {
     val trimmed = name.trim()
-    if (trimmed.isBlank()) return "Unnamed"
+    check(!trimmed.isBlank()) { "Type name cannot be blank, '$name' given" }
     val sanitized = trimmed.replace(nameRegex, "_")
     val fixed = if (sanitized.first().isDigit()) "_$sanitized" else sanitized
     return if (isKotlinKeyword(fixed)) "${fixed}_" else fixed
@@ -262,13 +262,15 @@ fun sanitizeTypeName(name: String): String {
 fun normalizeTypeName(rawType: String): String {
     var type = rawType.trim()
     if (type.startsWith("enum::")) {
+        println(
+            "INFO: Type '$rawType' starts with 'enum::', which is not supported by KotlinPoet. This going to be handle!",
+        )
         type = type.removePrefix("enum::")
     }
     if (type.contains("::")) {
-        type = type.split("::").joinToString("")
+        System.err.println("WARNING: Type '$rawType' contains '::', which is not supported by KotlinPoet.")
+        type = type.split("::").joinToString("_")
     }
-    if (type.contains(".")) {
-        type = type.split('.').joinToString("")
-    }
+    check(!type.isBlank()) { "Type name cannot be blank, '$rawType' given" }
     return type
 }

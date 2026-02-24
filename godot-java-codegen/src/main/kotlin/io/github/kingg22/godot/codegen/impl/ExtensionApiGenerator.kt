@@ -12,31 +12,53 @@ import io.github.kingg22.godot.codegen.models.extensionapi.GodotClass
 import java.nio.file.Path
 
 class ExtensionApiGenerator(private val packageName: String) {
-    fun generate(api: ExtensionApi, outputDir: Path): List<Path> = api.globalEnums.asSequence().map { enumDef ->
-        generateEnum(enumDef).writeTo(outputDir)
-    }.plus(
-        api.classes.asSequence().flatMap { cls ->
+    fun generate(api: ExtensionApi, outputDir: Path): List<Path> {
+        val deferredNestedEnums = mutableListOf<ApiEnum>()
+        return api.globalEnums.asSequence().mapNotNull { enumDef ->
+            if (enumDef.name.contains(".")) {
+                deferredNestedEnums += enumDef
+                return@mapNotNull null
+            }
+            val enumSpec = generateEnum(enumDef)
+            createFile(enumSpec, enumDef.name).writeTo(outputDir)
+        }.plus(
+            api.classes.asSequence().map { cls ->
+                generateClass(cls).writeTo(outputDir)
+            },
+        ).plus(
             sequence {
-                yield(generateClass(cls).writeTo(outputDir))
-                yieldAll(
-                    cls.enums.asSequence().map { enumDef ->
-                        generateEnum(enumDef, cls.name).writeTo(outputDir)
+                val fakeVariantClass = GodotClass(
+                    name = "Variant",
+                    isRefcounted = false,
+                    isInstantiable = false,
+                    apiType = "",
+                    enums = deferredNestedEnums.mapNotNull {
+                        if (it.name.startsWith("Variant.")) {
+                            deferredNestedEnums.remove(it)
+                            it.copy(name = it.name.substringAfter("Variant."))
+                        } else {
+                            null
+                        }
                     },
                 )
-            }
-        },
-    ).toList()
+                yield(generateClass(fakeVariantClass).writeTo(outputDir))
+                deferredNestedEnums.forEach { enumDef ->
+                    System.err.println(
+                        "WARNING: Enum '${enumDef.name}' is not in the global namespace and will be ignored.",
+                    )
+                }
+            },
+        ).toList()
+    }
 
-    private fun generateEnum(enumDef: ApiEnum, owner: String? = null): FileSpec {
-        // TODO check this new name
-        // Can't escape identifier `Variant.Type` because it contains illegal characters: .
-        val (enumName, originalName) = if (owner == null) {
-            enumDef.name.replace(".", "") to enumDef.name
-        } else {
-            "${owner.replace(".", "")}${enumDef.name.replace(".", "")}" to "$owner -> ${enumDef.name}"
-        }
-        val typeBuilder = TypeSpec.enumBuilder(enumName)
-            .addKdoc("Original name is: `$originalName`")
+    private fun createFile(type: TypeSpec, fileName: String): FileSpec = FileSpec
+        .builder(packageName, fileName)
+        .commonConfiguration()
+        .addType(type)
+        .build()
+
+    private fun generateEnum(enumDef: ApiEnum): TypeSpec {
+        val typeBuilder = TypeSpec.enumBuilder(enumDef.name)
             .primaryConstructor(
                 FunSpec.constructorBuilder()
                     .addParameter("value", LONG)
@@ -54,11 +76,7 @@ class ExtensionApiGenerator(private val packageName: String) {
                 .build()
             typeBuilder.addEnumConstant(sanitizeEnumConstant(value.name), enumConst)
         }
-
-        return FileSpec.builder(packageName, enumName)
-            .commonConfiguration()
-            .addType(typeBuilder.build())
-            .build()
+        return typeBuilder.build()
     }
 
     private fun generateClass(cls: GodotClass): FileSpec {
@@ -80,9 +98,10 @@ class ExtensionApiGenerator(private val packageName: String) {
             typeBuilder.addFunction(funSpec)
         }
 
-        return FileSpec.builder(packageName, cls.name)
-            .commonConfiguration()
-            .addType(typeBuilder.build())
-            .build()
+        val enumSpecs = cls.enums.map { enumDef -> generateEnum(enumDef) }
+
+        typeBuilder.addTypes(enumSpecs)
+
+        return createFile(typeBuilder.build(), cls.name)
     }
 }
