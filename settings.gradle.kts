@@ -46,5 +46,4 @@ include(
     "godot-java-codegen",
     "godot-java-api",
     "godot-kotlin-api",
-    "sample",
 )
