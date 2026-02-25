@@ -131,7 +131,7 @@ class ExtensionApiGenerator(private val packageName: String) {
                         method.name,
                         method.returnType,
                         methodReturnType,
-                        isOpen = !cls.isSingleton(),
+                        isOpen = !cls.isSingleton() && !method.isStatic,
                     ) {
                         enrichExceptions({
                             "Generating parameters: [${
@@ -184,7 +184,7 @@ class ExtensionApiGenerator(private val packageName: String) {
                         method.name,
                         method.returnValue?.type,
                         methodReturnType,
-                        isOpen = !cls.isSingleton(),
+                        isOpen = !cls.isSingleton() && !method.isStatic,
                     ) {
                         enrichExceptions({
                             "Generating parameters: [${
