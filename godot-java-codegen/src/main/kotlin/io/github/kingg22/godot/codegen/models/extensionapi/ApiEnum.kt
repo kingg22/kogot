@@ -4,4 +4,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class ApiEnum(val name: String, @SerialName("is_bitfield") val isBitfield: Boolean, val values: List<EnumConstant>)
+data class ApiEnum(
+    override val name: String,
+    @SerialName("is_bitfield") val isBitfield: Boolean,
+    override val values: List<EnumConstant>,
+) : EnumDescriptor

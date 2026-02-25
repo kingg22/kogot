@@ -5,10 +5,13 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 class UtilityFunction(
-    val name: String,
+    override val name: String,
     @SerialName("return_type") val returnType: String? = null,
     val category: String,
     @SerialName("is_vararg") val isVararg: Boolean,
-    val hash: Long,
+    override val hash: Long,
     val arguments: List<MethodArg> = emptyList(),
-)
+) : Hashable,
+    Named {
+    override val hashCompatibility: List<Long> = emptyList()
+}

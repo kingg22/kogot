@@ -5,8 +5,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 class MethodArg(
-    val name: String,
-    val type: String,
-    val meta: String? = null,
+    override val name: String,
+    override val type: String,
+    override val meta: String? = null,
     @SerialName("default_value") val defaultValue: String? = null,
-)
+) : TypeMetaHolder,
+    Named

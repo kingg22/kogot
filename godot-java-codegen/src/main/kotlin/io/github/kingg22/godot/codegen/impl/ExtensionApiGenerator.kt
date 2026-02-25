@@ -1,16 +1,14 @@
 package io.github.kingg22.godot.codegen.impl
 
 import com.squareup.kotlinpoet.*
-import io.github.kingg22.godot.codegen.models.extensionapi.ApiEnum
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
-import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinEnum
+import io.github.kingg22.godot.codegen.models.extensionapi.EnumDescriptor
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 import io.github.kingg22.godot.codegen.models.extensionapi.GodotClass
 import io.github.kingg22.godot.codegen.models.extensionapi.NativeStructure
 import io.github.kingg22.godot.codegen.models.extensionapi.UtilityFunction
 import java.nio.file.Path
 
-private const val TYPE_PREFIX = "GD"
 private val MAPPED_GODOT_BUILTIN_CLASSES = setOf(
     "int",
     "long",
@@ -83,21 +81,25 @@ class ExtensionApiGenerator(private val packageName: String) {
         .addType(type)
         .build()
 
-    private fun generateEnum(enumDef: ApiEnum): TypeSpec {
-        val typeBuilder = TypeSpec.enumBuilder(enumDef.name)
+    private fun generateEnum(enumDef: EnumDescriptor): TypeSpec {
+        val typeBuilder = TypeSpec
+            .enumBuilder(enumDef.name)
             .primaryConstructor(
-                FunSpec.constructorBuilder()
+                FunSpec
+                    .constructorBuilder()
                     .addParameter("value", LONG)
                     .build(),
             )
             .addProperty(
-                PropertySpec.builder("value", LONG)
+                PropertySpec
+                    .builder("value", LONG)
                     .initializer("value")
                     .build(),
             )
 
         enumDef.values.forEach { value ->
-            val enumConst = TypeSpec.anonymousClassBuilder()
+            val enumConst = TypeSpec
+                .anonymousClassBuilder()
                 .addSuperclassConstructorParameter("%L", value.value)
                 .build()
             typeBuilder.addEnumConstant(sanitizeEnumConstant(value.name), enumConst)
@@ -150,15 +152,11 @@ class ExtensionApiGenerator(private val packageName: String) {
                 }
             }
 
-            fun BuiltinEnum.asApiEnum() = ApiEnum(name = name, isBitfield = false, values = values)
-
             if (companionObject.build() != TypeSpec.companionObjectBuilder().build()) {
                 typeBuilder.typeSpecs.addFirst(companionObject.build())
             }
 
-            val enums = cls.enums.map { enumDef ->
-                generateEnum(enumDef.asApiEnum())
-            }
+            val enums = cls.enums.map { enumDef -> generateEnum(enumDef) }
             typeBuilder.addTypes(enums)
 
             return createFile(typeBuilder.build(), className)
@@ -272,7 +270,7 @@ class ExtensionApiGenerator(private val packageName: String) {
     }
 
     /** enums internos vendrán de globalEnums Variant. */
-    private fun generateVariant(enums: List<ApiEnum>): FileSpec {
+    private fun generateVariant(enums: List<EnumDescriptor>): FileSpec {
         enrichExceptions({ "Generating Variant class, nested enums count: ${enums.size}" }) {
             val typeBuilder = TypeSpec
                 .classBuilder("Variant")
