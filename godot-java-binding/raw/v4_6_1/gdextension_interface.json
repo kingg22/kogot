@@ -28,7 +28,7 @@
         "/* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */",
         "/**************************************************************************/"
     ],
-    "$schema": "https://raw.githubusercontent.com/godotengine/godot/refs/heads/master/core/extension/gdextension_interface.schema.json",
+    "$schema": "./gdextension_interface.schema.json",
     "format_version": 1,
     "types": [
         {
