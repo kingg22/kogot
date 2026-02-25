@@ -114,6 +114,7 @@ private val kotlinKeywords = setOf(
 
 private val nameRegex = Regex("[^A-Za-z0-9_]")
 private val K_JVM_NAME = ClassName("kotlin.jvm", "JvmName")
+private val K_JVM_STATIC = ClassName("kotlin.jvm", "JvmStatic")
 private val K_DEPRECATED = ClassName("kotlin", "Deprecated")
 private val K_REPLACE_WITH = ClassName("kotlin", "ReplaceWith")
 
@@ -143,11 +144,15 @@ fun typeNameFor(packageName: String, rawType: String): TypeName {
 
     val normalizedType = normalizeTypeName(type)
     val normalized = normalizedType.lowercase()
+
+    // float in Godot = 64 bits => Double
+    // int in Godot = 64 bits => Long
+    // string in Godot = UTF-32 => GodotString != kotlin.String
     return when (normalized) {
         "void" -> UNIT
-        "boolean" -> BOOLEAN
+        "bool", "boolean" -> BOOLEAN
         "char" -> CHAR
-        "double" -> DOUBLE
+        "float", "double" -> DOUBLE
         "char16_t", "char32_t", "wchar_t" -> STRING
         "int32_t" -> INT
         "uint", "uint32_t" -> U_INT
@@ -155,12 +160,9 @@ fun typeNameFor(packageName: String, rawType: String): TypeName {
         "ushort", "uint16_t" -> U_SHORT
         "byte", "int8_t" -> BYTE
         "ubyte", "uint8_t" -> U_BYTE
-        "long", "int64_t", "intptr_t" -> LONG
+        "long", "int", "int64_t", "intptr_t" -> LONG
         "ulong", "uint64_t", "uintptr_t", "size_t" -> U_LONG
-        "bool" -> ClassName(packageName, "bool")
-        "float" -> ClassName(packageName, "float")
-        "string" -> ClassName(packageName, "String")
-        "int" -> ClassName(packageName, "int")
+        "string" -> ClassName(packageName, "GodotString")
         else -> ClassName(packageName, normalizedType.split(".").map { sanitizeTypeName(it) })
     }
 }
@@ -311,10 +313,11 @@ fun deprecatedAnnotation(deprecated: Deprecated): AnnotationSpec {
     return builder.build()
 }
 
-fun jvmNameAnnotation(name: String): AnnotationSpec = AnnotationSpec
+fun jvmNameAnnotation(name: String): AnnotationSpec.Builder = AnnotationSpec
     .builder(K_JVM_NAME)
     .addMember("%S", name)
-    .build()
+
+fun jvmStaticAnnotation() = AnnotationSpec.builder(K_JVM_STATIC).build()
 
 fun safeIdentifier(name: String): String {
     val trimmed = name.trim()

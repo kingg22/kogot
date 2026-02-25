@@ -1,14 +1,6 @@
 package io.github.kingg22.godot.codegen.impl
 
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.LONG
-import com.squareup.kotlinpoet.ParameterSpec
-import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.UNIT
+import com.squareup.kotlinpoet.*
 import io.github.kingg22.godot.codegen.models.extensionapi.ApiEnum
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinEnum
@@ -19,6 +11,14 @@ import io.github.kingg22.godot.codegen.models.extensionapi.UtilityFunction
 import java.nio.file.Path
 
 private const val TYPE_PREFIX = "GD"
+private val MAPPED_GODOT_BUILTIN_CLASSES = setOf(
+    "int",
+    "long",
+    "float",
+    "double",
+    "bool",
+    "nil",
+)
 
 class ExtensionApiGenerator(private val packageName: String) {
     fun generate(api: ExtensionApi, outputDir: Path): List<Path> {
@@ -30,13 +30,14 @@ class ExtensionApiGenerator(private val packageName: String) {
                 api.nativeStructures.size +
                 1 // utility functions
             )
+        val singletons = api.singletons.map { it.name }
 
-        val builtinClasses = api.builtinClasses.asSequence().map { clazz ->
-            generateBuiltinClass(clazz).writeTo(outputDir)
+        val builtinClasses = api.builtinClasses.asSequence().mapNotNull { clazz ->
+            generateBuiltinClass(clazz, singletons)?.writeTo(outputDir)
         }
 
         val classes = api.classes.asSequence().map { clazz ->
-            generateClass(clazz).writeTo(outputDir)
+            generateClass(clazz, singletons).writeTo(outputDir)
         }
 
         if (api.globalConstants.isNotEmpty()) {
@@ -104,55 +105,85 @@ class ExtensionApiGenerator(private val packageName: String) {
         return typeBuilder.build()
     }
 
-    private fun generateBuiltinClass(cls: BuiltinClass): FileSpec {
-        enrichExceptions({ "Generating builtin class '${cls.name}'" }) {
-            val typeBuilder = TypeSpec.classBuilder(cls.name)
-                .addModifiers(KModifier.OPEN)
+    private fun generateBuiltinClass(cls: BuiltinClass, singletons: List<String>): FileSpec? {
+        // TODO generate special GodotX utilities (operators, constructor, mapper, etc)
+        if (cls.name.lowercase() in MAPPED_GODOT_BUILTIN_CLASSES) return null
+
+        fun BuiltinClass.isSingleton(): Boolean = singletons.any { it == this.name }
+
+        val className = if (cls.name == "String") {
+            "GodotString"
+        } else {
+            cls.name
+        }
+
+        enrichExceptions({ "Generating builtin class '$className', isSingleton: ${cls.isSingleton()}" }) {
+            val typeBuilder = generateClass(className, null, cls.isSingleton())
+            val companionObject = typeBuilder.typeSpecs
+                .find { it.isCompanion }?.also { typeBuilder.typeSpecs.remove(it) }?.toBuilder()
+                ?: TypeSpec.companionObjectBuilder()
 
             // Métodos
             cls.methods.forEach { method ->
                 enrichExceptions({ "Error generating function '${method.name}', type: ${method.returnType}" }) {
                     val methodReturnType = method.returnType?.let { typeNameFor(packageName, it) } ?: UNIT
-                    val funSpec = generateMethod(method.name, method.returnType, methodReturnType) {
+                    val funSpec = generateMethod(
+                        method.name,
+                        method.returnType,
+                        methodReturnType,
+                        isOpen = !cls.isSingleton(),
+                    ) {
                         enrichExceptions({
                             "Generating parameters: [${
-                                method.arguments.joinToString {
-                                    "Name: ${it.name}, type: ${it.type}"
-                                }
+                                method.arguments.joinToString { "Name: ${it.name}, type: ${it.type}" }
                             }]"
                         }) {
                             methodArgsToParameters(packageName, method.isVararg, method.arguments)
                         }
-                    }.build()
-                    typeBuilder.addFunction(funSpec)
+                    }
+
+                    if (method.isStatic) {
+                        companionObject.addFunction(funSpec.addAnnotation(jvmStaticAnnotation()).build())
+                    } else {
+                        typeBuilder.addFunction(funSpec.build())
+                    }
                 }
             }
 
             fun BuiltinEnum.asApiEnum() = ApiEnum(name = name, isBitfield = false, values = values)
 
-            // Enums anidados (aquí vive Variant.Type, etc.)
-            cls.enums.forEach { enumDef ->
-                typeBuilder.addType(generateEnum(enumDef.asApiEnum()))
-            }
+            typeBuilder.typeSpecs.addFirst(companionObject.build())
 
-            return createFile(typeBuilder.build(), cls.name)
+            val enums = cls.enums.map { enumDef ->
+                generateEnum(enumDef.asApiEnum())
+            }
+            typeBuilder.addTypes(enums)
+
+            return createFile(typeBuilder.build(), className)
         }
     }
 
-    private fun generateClass(cls: GodotClass): FileSpec {
-        enrichExceptions({ "Generating class '${cls.name}'" }) {
-            val typeBuilder = TypeSpec.classBuilder(cls.name)
-                .addModifiers(KModifier.ABSTRACT)
+    private fun generateClass(cls: GodotClass, singletons: List<String>): FileSpec {
+        fun GodotClass.isSingleton(): Boolean = singletons.any { it == this.name }
 
+        enrichExceptions({ "Generating class '${cls.name}', isSingleton: ${cls.isSingleton()}" }) {
             val parent = cls.inherits?.takeIf { it.isNotBlank() }
-            if (parent != null) {
-                typeBuilder.superclass(typeNameFor(packageName, parent))
-            }
+            val parentClass = parent?.let { typeNameFor(packageName, parent) }
+            val typeBuilder = generateClass(cls.name, parentClass, cls.isSingleton())
+            val companionObject = typeBuilder.typeSpecs
+                .find { it.isCompanion }?.also { typeBuilder.typeSpecs.remove(it) }?.toBuilder()
+                ?: TypeSpec.companionObjectBuilder()
 
             cls.methods.forEach { method ->
                 enrichExceptions({ "Error generating function '${method.name}', type: ${method.returnValue?.type}" }) {
                     val methodReturnType = methodReturnTypeName(packageName, method.returnValue)
-                    val funSpec = generateMethod(method.name, method.returnValue?.type, methodReturnType) {
+
+                    val funSpec = generateMethod(
+                        method.name,
+                        method.returnValue?.type,
+                        methodReturnType,
+                        isOpen = !cls.isSingleton(),
+                    ) {
                         enrichExceptions({
                             "Generating parameters: [${
                                 method.arguments.joinToString {
@@ -162,13 +193,18 @@ class ExtensionApiGenerator(private val packageName: String) {
                         }) {
                             methodArgsToParameters(packageName, method.isVararg, method.arguments)
                         }
-                    }.build()
-                    typeBuilder.addFunction(funSpec)
+                    }
+
+                    if (method.isStatic) {
+                        companionObject.addFunction(funSpec.addAnnotation(jvmStaticAnnotation()).build())
+                    } else {
+                        typeBuilder.addFunction(funSpec.build())
+                    }
                 }
             }
 
+            typeBuilder.typeSpecs.addFirst(companionObject.build())
             val enumSpecs = cls.enums.map { enumDef -> generateEnum(enumDef) }
-
             typeBuilder.addTypes(enumSpecs)
 
             return createFile(typeBuilder.build(), cls.name)
@@ -184,17 +220,17 @@ class ExtensionApiGenerator(private val packageName: String) {
         name: String,
         returnTypeString: String?,
         returnType: TypeName,
-        modifiers: List<KModifier> = listOf(KModifier.OPEN),
+        isOpen: Boolean,
         arguments: () -> List<ParameterSpec>,
     ): FunSpec.Builder {
         val methodName = safeIdentifier(name)
         val funSpec = FunSpec.builder(methodName)
-            .addModifiers(modifiers)
             .addParameters(arguments())
             .returns(returnType)
             .addKdocForBitfield(returnTypeString, "@return")
             .addStatement("TODO()")
             .accidentalOverride(methodName, returnType)
+        if (isOpen) funSpec.addModifiers(KModifier.OPEN)
         return funSpec
     }
 
@@ -207,7 +243,12 @@ class ExtensionApiGenerator(private val packageName: String) {
             functions.forEach { method ->
                 enrichExceptions({ "Error generating function '${method.name}', type: ${method.returnType}" }) {
                     val methodReturnType = method.returnType?.let { typeNameFor(packageName, it) } ?: UNIT
-                    val funSpec = generateMethod(method.name, method.returnType, methodReturnType, emptyList()) {
+                    val funSpec = generateMethod(
+                        method.name,
+                        method.returnType,
+                        methodReturnType,
+                        isOpen = false,
+                    ) {
                         enrichExceptions({
                             "Generating parameters: [${
                                 method.arguments.joinToString {
@@ -245,9 +286,70 @@ class ExtensionApiGenerator(private val packageName: String) {
         }
     }
 
+    private fun generateClass(className: String, baseClass: TypeName?, isSingleton: Boolean): TypeSpec.Builder =
+        if (isSingleton) {
+            generateSingletonClass(className, baseClass)
+        } else {
+            generateRegularClass(className, baseClass)
+        }
+
+    private fun generateSingletonClass(className: String, baseClass: TypeName?): TypeSpec.Builder {
+        val classType = ClassName(packageName, className)
+
+        val lazyMethod = MemberName("kotlin", "lazy")
+
+        val lazyMode = ClassName("kotlin", "LazyThreadSafetyMode")
+
+        val companion = TypeSpec
+            .companionObjectBuilder()
+            .addProperty(
+                PropertySpec
+                    .builder("instance", classType)
+                    .addAnnotation(
+                        jvmNameAnnotation("instance")
+                            .useSiteTarget(AnnotationSpec.UseSiteTarget.GET)
+                            .build(),
+                    )
+                    .delegate(
+                        CodeBlock
+                            .builder()
+                            .beginControlFlow("%M(%T.NONE)", lazyMethod, lazyMode)
+                            .addStatement("%T()", classType)
+                            .endControlFlow()
+                            .build(),
+                    )
+                    .build(),
+            )
+            .build()
+
+        // Make open and protected constructor because some singletons are base for extensions
+        // TODO mark as @ApiStatus.NoExtensible or something else
+        val classSpec = TypeSpec
+            .classBuilder(classType)
+            .addModifiers(KModifier.OPEN)
+            .primaryConstructor(
+                // TODO
+                FunSpec
+                    .constructorBuilder()
+                    .addModifiers(KModifier.PROTECTED)
+                    .build(),
+            )
+            .addType(companion)
+        baseClass?.let { classSpec.superclass(it) }
+
+        return classSpec
+    }
+
+    private fun generateRegularClass(
+        className: String,
+        baseClass: TypeName?,
+        modifiers: List<KModifier> = listOf(KModifier.OPEN),
+    ): TypeSpec.Builder = TypeSpec.classBuilder(className)
+        .addModifiers(modifiers).apply { baseClass?.let { superclass(it) } }
+
     private fun FunSpec.Builder.accidentalOverride(funName: String, returnType: TypeName): FunSpec.Builder =
         if (funName == "wait" && returnType == UNIT) {
-            System.err.println("WARNING: modifying wait() to avoid conflicts with JVM Object method")
+            System.err.println("INFO: modifying wait() to avoid conflicts with JVM Object method")
             this
                 .addKdoc(
                     "Generated Note: Original name was `wait`, renamed to avoid conflicts with JVM [java.lang.Object] method.",
