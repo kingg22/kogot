@@ -10,4 +10,7 @@ class BuiltinClassMemberOffsets(
 ) {
     @Serializable
     class Classes(val name: String, val members: List<Members>)
+
+    @Serializable
+    class Members(val member: String, val offset: Int, val meta: String)
 }
