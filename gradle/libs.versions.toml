@@ -64,6 +64,7 @@ gradle-plugins = [
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 error-prone = { id = "net.ltgt.errorprone", version.ref = "errorprone-gradle" }
 nullaway = { id = "net.ltgt.nullaway", version.ref = "nullaway-gradle" }

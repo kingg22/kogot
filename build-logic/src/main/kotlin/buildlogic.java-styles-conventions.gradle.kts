@@ -1,5 +1,5 @@
 plugins {
-    id("buildlogic.jvm-styles-conventions")
+    id("buildlogic.common-styles-conventions")
 }
 
 spotless {
