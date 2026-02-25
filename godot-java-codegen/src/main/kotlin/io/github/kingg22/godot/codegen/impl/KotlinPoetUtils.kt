@@ -165,7 +165,6 @@ fun typeNameFor(packageName: String, rawType: String): TypeName {
     return when (normalized) {
         "void" -> UNIT
         "bool", "boolean" -> BOOLEAN
-        "char" -> BYTE
         "float" -> FLOAT
         "double" -> DOUBLE
         "int8_t", "int8", "byte" -> BYTE
@@ -180,6 +179,16 @@ fun typeNameFor(packageName: String, rawType: String): TypeName {
         else -> ClassName(packageName, normalizedType.split(".").map { sanitizeTypeName(it) })
     }
     /*
+    | C/C++     | Significado       | Kotlin                                      |
+    | --------- | ----------------- | ------------------------------------------- |
+    | char      | byte / Latin-1    | Byte                                        |
+    | char*     | C string          | ByteArray / String (alto nivel)             |
+    | char16_t  | UTF-16 unit       | Char                                        |
+    | char16_t* | UTF-16 string     | CharArray                                   |
+    | char32_t  | UTF-32 code point | Int                                         |
+    | char32_t* | UTF-32 string     | IntArray                                    |
+    | wchar_t   | depende           | ❌ evitar → usar Int o Char según plataforma |
+
     return when (normalized) {
         "void" -> UNIT
         "bool", "boolean" -> BOOLEAN
@@ -210,26 +219,27 @@ fun <T : Documentable.Builder<*>> T.addKdocForBitfield(returnType: String?, pref
 }
 
 fun buildKdoc(
-    description: List<String>,
-    see: List<String>,
-    paramDocs: List<Pair<String, List<String>>>,
-    since: String?,
+    description: List<String> = emptyList(),
+    see: List<String> = emptyList(),
+    paramDocs: Map<String, List<String>> = emptyMap(),
+    since: String? = null,
 ): String {
-    val lines = mutableListOf<String>()
+    val lines = StringBuilder()
     if (description.isNotEmpty()) {
-        lines.addAll(description)
+        description.forEach { lines.appendLine(it) }
     }
     if (!since.isNullOrBlank()) {
-        lines.add("@since $since")
+        lines.appendLine("@since $since")
     }
     paramDocs.forEach { (name, docs) ->
-        val text = if (docs.isEmpty()) "" else " ${docs.joinToString(" ")}"
-        lines.add("@param $name$text")
+        val text = if (docs.isEmpty()) "" else docs.joinToString(" ")
+        lines.appendLine("@param $name $text")
+        lines.appendLine()
     }
     see.forEach { entry ->
-        lines.add("@see $entry")
+        lines.appendLine("@see $entry")
     }
-    return lines.joinToString("\n")
+    return lines.toString()
 }
 
 fun jvmNameAnnotation(name: String): AnnotationSpec.Builder = AnnotationSpec

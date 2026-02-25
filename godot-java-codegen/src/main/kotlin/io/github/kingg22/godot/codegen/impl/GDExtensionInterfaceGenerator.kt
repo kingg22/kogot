@@ -44,7 +44,7 @@ class GDExtensionInterfaceGenerator(private val packageName: String) {
             val enumConst = TypeSpec.anonymousClassBuilder()
                 .addSuperclassConstructorParameter("%L", value.value)
                 .apply {
-                    val kdoc = buildKdoc(value.description, emptyList(), emptyList(), null)
+                    val kdoc = buildKdoc(value.description)
                     if (kdoc.isNotBlank()) {
                         addKdoc("%L\n", kdoc)
                     }
@@ -126,32 +126,29 @@ class GDExtensionInterfaceGenerator(private val packageName: String) {
         val typeBuilder = TypeSpec.classBuilder("GDExtensionInterface")
             .addModifiers(KModifier.ABSTRACT)
 
-        interfaces.forEachIndexed { index, iface ->
+        val functions = interfaces.mapIndexed { index, iface ->
             val funName = safeIdentifier(iface.name.ifBlank { "function$index" })
-            val funSpec = FunSpec.builder(funName)
+            FunSpec
+                .builder(funName)
                 .addModifiers(KModifier.OPEN)
                 .addParameters(argumentsToParameters(packageName, iface.arguments))
                 .returns(returnTypeName(packageName, iface.returnValue))
                 .apply {
-                    val paramDocs = iface.arguments.mapIndexed { argIndex, arg ->
-                        val name = argumentName(arg, argIndex)
-                        name to arg.description
-                    }
                     val kdoc = buildKdoc(
                         iface.description,
                         iface.see,
-                        paramDocs,
-                        iface.since,
+                        since = iface.since,
                     )
                     if (kdoc.isNotBlank()) {
-                        addKdoc("%L\n", kdoc)
+                        addKdoc("%L", kdoc)
                     }
                     iface.deprecated?.let { addAnnotation(deprecatedAnnotation(it)) }
                 }
                 .addStatement("TODO()")
                 .build()
-            typeBuilder.addFunction(funSpec)
         }
+
+        typeBuilder.addFunctions(functions)
 
         return createFile(typeBuilder.build(), "GDExtensionInterface")
     }
@@ -164,11 +161,8 @@ private fun argumentsToParameters(packageName: String, arguments: List<Arguments
         ParameterSpec
             .builder(name, type)
             .apply {
-                addKdoc(
-                    arg.description.joinToCode { line ->
-                        CodeBlock.of("%L", line)
-                    },
-                )
+                val kdoc = buildKdoc(arg.description)
+                addKdoc(kdoc)
                 addKdocForBitfield(arg.type)
             }
             .build()
@@ -179,28 +173,15 @@ private fun argumentName(arg: Arguments, index: Int): String {
     return safeIdentifier(baseName)
 }
 
-private fun addCommonDocs(
-    builder: TypeSpec.Builder,
+private fun <T> addCommonDocs(
+    builder: T,
     description: List<String>,
     see: List<String>,
     deprecated: Deprecated?,
-) {
-    val kdoc = buildKdoc(description, see, emptyList(), null)
+) where T : Documentable.Builder<T>, T : Annotatable.Builder<T> {
+    val kdoc = buildKdoc(description, see)
     if (kdoc.isNotBlank()) {
-        builder.addKdoc("%L\n", kdoc)
-    }
-    deprecated?.let { builder.addAnnotation(deprecatedAnnotation(it)) }
-}
-
-private fun addCommonDocs(
-    builder: TypeAliasSpec.Builder,
-    description: List<String>,
-    see: List<String>,
-    deprecated: Deprecated?,
-) {
-    val kdoc = buildKdoc(description, see, emptyList(), null)
-    if (kdoc.isNotBlank()) {
-        builder.addKdoc("%L\n", kdoc)
+        builder.addKdoc("%L", kdoc)
     }
     deprecated?.let { builder.addAnnotation(deprecatedAnnotation(it)) }
 }
@@ -223,7 +204,7 @@ private fun deprecatedAnnotation(deprecated: Deprecated): AnnotationSpec {
 
     val replaceWith = deprecated.replaceWith
     if (!replaceWith.isNullOrBlank()) {
-        builder.addMember("replaceWith = %T(%S)", K_REPLACE_WITH, replaceWith)
+        builder.addMember("replaceWith = %T(%S)", K_REPLACE_WITH, replaceWith.snakeCaseToCamelCase())
     }
 
     return builder.build()
