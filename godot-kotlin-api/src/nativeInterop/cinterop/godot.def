@@ -1,0 +1,5 @@
+headers = gdextension_interface.h
+headerFilter = gdextension_interface.h
+
+strictEnums = GDExtensionVariantType GDExtensionVariantOperator GDExtensionCallErrorType GDExtensionClassMethodFlags GDExtensionClassMethodArgumentMetadata GDExtensionInitializationLevel
+userSetupHint = message
