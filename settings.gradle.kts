@@ -27,23 +27,37 @@ plugins {
 
 @Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     // Use Maven Central as the default repository (where Gradle will download dependencies) in all subprojects.
     repositories {
         mavenCentral()
     }
 }
 
-rootProject.name = "godot-jvm"
+rootProject.name = "kogot"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 // If there are changes in only one of the projects, Gradle will rebuild only the one that has changed.
 // Learn more about structuring projects with Gradle - https://docs.gradle.org/8.7/userguide/multi_project_builds.html
+
+// JVM using FFM API
 include(
-    "godot-java-binding",
-    "godot-java-bridge",
-    "godot-java-codegen",
-    "godot-java-api",
-    "godot-kotlin-api",
+    "jvm-ffm-ffm",
+    "jvm-ffm-api",
+    "jvm-ffm-runtime",
 )
+
+project(":jvm-ffm-ffm").projectDir = file("jvm-ffm/ffm")
+project(":jvm-ffm-api").projectDir = file("jvm-ffm/api")
+project(":jvm-ffm-runtime").projectDir = file("jvm-ffm/runtime")
+
+// Kotlin using Native Cinterop
+include(
+    "kotlin-native-ffm",
+)
+
+project(":kotlin-native-ffm").projectDir = file("kotlin-native/ffm")
+
+// codegen and processor
+include("codegen", "processor")

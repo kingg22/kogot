@@ -1,0 +1,2696 @@
+{
+    "global_enums": [
+        {
+            "name": "Side",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "SIDE_LEFT",
+                    "value": 0,
+                    "description": "Left side, usually used for [Control] or [StyleBox]-derived classes."
+                },
+                {
+                    "name": "SIDE_TOP",
+                    "value": 1,
+                    "description": "Top side, usually used for [Control] or [StyleBox]-derived classes."
+                },
+                {
+                    "name": "SIDE_RIGHT",
+                    "value": 2,
+                    "description": "Right side, usually used for [Control] or [StyleBox]-derived classes."
+                },
+                {
+                    "name": "SIDE_BOTTOM",
+                    "value": 3,
+                    "description": "Bottom side, usually used for [Control] or [StyleBox]-derived classes."
+                }
+            ]
+        },
+        {
+            "name": "Corner",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "CORNER_TOP_LEFT",
+                    "value": 0,
+                    "description": "Top-left corner."
+                },
+                {
+                    "name": "CORNER_TOP_RIGHT",
+                    "value": 1,
+                    "description": "Top-right corner."
+                },
+                {
+                    "name": "CORNER_BOTTOM_RIGHT",
+                    "value": 2,
+                    "description": "Bottom-right corner."
+                },
+                {
+                    "name": "CORNER_BOTTOM_LEFT",
+                    "value": 3,
+                    "description": "Bottom-left corner."
+                }
+            ]
+        },
+        {
+            "name": "Orientation",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "VERTICAL",
+                    "value": 1,
+                    "description": "General vertical alignment, usually used for [Separator], [ScrollBar], [Slider], etc."
+                },
+                {
+                    "name": "HORIZONTAL",
+                    "value": 0,
+                    "description": "General horizontal alignment, usually used for [Separator], [ScrollBar], [Slider], etc."
+                }
+            ]
+        },
+        {
+            "name": "ClockDirection",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "CLOCKWISE",
+                    "value": 0,
+                    "description": "Clockwise rotation. Used by some methods (e.g. [method Image.rotate_90])."
+                },
+                {
+                    "name": "COUNTERCLOCKWISE",
+                    "value": 1,
+                    "description": "Counter-clockwise rotation. Used by some methods (e.g. [method Image.rotate_90])."
+                }
+            ]
+        },
+        {
+            "name": "HorizontalAlignment",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "HORIZONTAL_ALIGNMENT_LEFT",
+                    "value": 0,
+                    "description": "Horizontal left alignment, usually for text-derived classes."
+                },
+                {
+                    "name": "HORIZONTAL_ALIGNMENT_CENTER",
+                    "value": 1,
+                    "description": "Horizontal center alignment, usually for text-derived classes."
+                },
+                {
+                    "name": "HORIZONTAL_ALIGNMENT_RIGHT",
+                    "value": 2,
+                    "description": "Horizontal right alignment, usually for text-derived classes."
+                },
+                {
+                    "name": "HORIZONTAL_ALIGNMENT_FILL",
+                    "value": 3,
+                    "description": "Expand row to fit width, usually for text-derived classes."
+                }
+            ]
+        },
+        {
+            "name": "VerticalAlignment",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "VERTICAL_ALIGNMENT_TOP",
+                    "value": 0,
+                    "description": "Vertical top alignment, usually for text-derived classes."
+                },
+                {
+                    "name": "VERTICAL_ALIGNMENT_CENTER",
+                    "value": 1,
+                    "description": "Vertical center alignment, usually for text-derived classes."
+                },
+                {
+                    "name": "VERTICAL_ALIGNMENT_BOTTOM",
+                    "value": 2,
+                    "description": "Vertical bottom alignment, usually for text-derived classes."
+                },
+                {
+                    "name": "VERTICAL_ALIGNMENT_FILL",
+                    "value": 3,
+                    "description": "Expand rows to fit height, usually for text-derived classes."
+                }
+            ]
+        },
+        {
+            "name": "InlineAlignment",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "INLINE_ALIGNMENT_TOP_TO",
+                    "value": 0,
+                    "description": "Aligns the top of the inline object (e.g. image, table) to the position of the text specified by [code]INLINE_ALIGNMENT_TO_*[/code] constant."
+                },
+                {
+                    "name": "INLINE_ALIGNMENT_CENTER_TO",
+                    "value": 1,
+                    "description": "Aligns the center of the inline object (e.g. image, table) to the position of the text specified by [code]INLINE_ALIGNMENT_TO_*[/code] constant."
+                },
+                {
+                    "name": "INLINE_ALIGNMENT_BASELINE_TO",
+                    "value": 3,
+                    "description": "Aligns the baseline (user defined) of the inline object (e.g. image, table) to the position of the text specified by [code]INLINE_ALIGNMENT_TO_*[/code] constant."
+                },
+                {
+                    "name": "INLINE_ALIGNMENT_BOTTOM_TO",
+                    "value": 2,
+                    "description": "Aligns the bottom of the inline object (e.g. image, table) to the position of the text specified by [code]INLINE_ALIGNMENT_TO_*[/code] constant."
+                },
+                {
+                    "name": "INLINE_ALIGNMENT_TO_TOP",
+                    "value": 0,
+                    "description": "Aligns the position of the inline object (e.g. image, table) specified by [code]INLINE_ALIGNMENT_*_TO[/code] constant to the top of the text."
+                },
+                {
+                    "name": "INLINE_ALIGNMENT_TO_CENTER",
+                    "value": 4,
+                    "description": "Aligns the position of the inline object (e.g. image, table) specified by [code]INLINE_ALIGNMENT_*_TO[/code] constant to the center of the text."
+                },
+                {
+                    "name": "INLINE_ALIGNMENT_TO_BASELINE",
+                    "value": 8,
+                    "description": "Aligns the position of the inline object (e.g. image, table) specified by [code]INLINE_ALIGNMENT_*_TO[/code] constant to the baseline of the text."
+                },
+                {
+                    "name": "INLINE_ALIGNMENT_TO_BOTTOM",
+                    "value": 12,
+                    "description": "Aligns inline object (e.g. image, table) to the bottom of the text."
+                },
+                {
+                    "name": "INLINE_ALIGNMENT_TOP",
+                    "value": 0,
+                    "description": "Aligns top of the inline object (e.g. image, table) to the top of the text. Equivalent to [code]INLINE_ALIGNMENT_TOP_TO | INLINE_ALIGNMENT_TO_TOP[/code]."
+                },
+                {
+                    "name": "INLINE_ALIGNMENT_CENTER",
+                    "value": 5,
+                    "description": "Aligns center of the inline object (e.g. image, table) to the center of the text. Equivalent to [code]INLINE_ALIGNMENT_CENTER_TO | INLINE_ALIGNMENT_TO_CENTER[/code]."
+                },
+                {
+                    "name": "INLINE_ALIGNMENT_BOTTOM",
+                    "value": 14,
+                    "description": "Aligns bottom of the inline object (e.g. image, table) to the bottom of the text. Equivalent to [code]INLINE_ALIGNMENT_BOTTOM_TO | INLINE_ALIGNMENT_TO_BOTTOM[/code]."
+                },
+                {
+                    "name": "INLINE_ALIGNMENT_IMAGE_MASK",
+                    "value": 3,
+                    "description": "A bit mask for [code]INLINE_ALIGNMENT_*_TO[/code] alignment constants."
+                },
+                {
+                    "name": "INLINE_ALIGNMENT_TEXT_MASK",
+                    "value": 12,
+                    "description": "A bit mask for [code]INLINE_ALIGNMENT_TO_*[/code] alignment constants."
+                }
+            ]
+        },
+        {
+            "name": "EulerOrder",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "EULER_ORDER_XYZ",
+                    "value": 0,
+                    "description": "Specifies that Euler angles should be in XYZ order. When composing, the order is X, Y, Z. When decomposing, the order is reversed, first Z, then Y, and X last."
+                },
+                {
+                    "name": "EULER_ORDER_XZY",
+                    "value": 1,
+                    "description": "Specifies that Euler angles should be in XZY order. When composing, the order is X, Z, Y. When decomposing, the order is reversed, first Y, then Z, and X last."
+                },
+                {
+                    "name": "EULER_ORDER_YXZ",
+                    "value": 2,
+                    "description": "Specifies that Euler angles should be in YXZ order. When composing, the order is Y, X, Z. When decomposing, the order is reversed, first Z, then X, and Y last."
+                },
+                {
+                    "name": "EULER_ORDER_YZX",
+                    "value": 3,
+                    "description": "Specifies that Euler angles should be in YZX order. When composing, the order is Y, Z, X. When decomposing, the order is reversed, first X, then Z, and Y last."
+                },
+                {
+                    "name": "EULER_ORDER_ZXY",
+                    "value": 4,
+                    "description": "Specifies that Euler angles should be in ZXY order. When composing, the order is Z, X, Y. When decomposing, the order is reversed, first Y, then X, and Z last."
+                },
+                {
+                    "name": "EULER_ORDER_ZYX",
+                    "value": 5,
+                    "description": "Specifies that Euler angles should be in ZYX order. When composing, the order is Z, Y, X. When decomposing, the order is reversed, first X, then Y, and Z last."
+                }
+            ]
+        },
+        {
+            "name": "Key",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "KEY_NONE",
+                    "value": 0,
+                    "description": "Enum value which doesn't correspond to any key. This is used to initialize [enum Key] properties with a generic state."
+                },
+                {
+                    "name": "KEY_SPECIAL",
+                    "value": 4194304,
+                    "description": "Keycodes with this bit applied are non-printable."
+                },
+                {
+                    "name": "KEY_ESCAPE",
+                    "value": 4194305,
+                    "description": "Escape key."
+                },
+                {
+                    "name": "KEY_TAB",
+                    "value": 4194306,
+                    "description": "Tab key."
+                },
+                {
+                    "name": "KEY_BACKTAB",
+                    "value": 4194307,
+                    "description": "Shift + Tab key."
+                },
+                {
+                    "name": "KEY_BACKSPACE",
+                    "value": 4194308,
+                    "description": "Backspace key."
+                },
+                {
+                    "name": "KEY_ENTER",
+                    "value": 4194309,
+                    "description": "Return key (on the main keyboard)."
+                },
+                {
+                    "name": "KEY_KP_ENTER",
+                    "value": 4194310,
+                    "description": "Enter key on the numeric keypad."
+                },
+                {
+                    "name": "KEY_INSERT",
+                    "value": 4194311,
+                    "description": "Insert key."
+                },
+                {
+                    "name": "KEY_DELETE",
+                    "value": 4194312,
+                    "description": "Delete key."
+                },
+                {
+                    "name": "KEY_PAUSE",
+                    "value": 4194313,
+                    "description": "Pause key."
+                },
+                {
+                    "name": "KEY_PRINT",
+                    "value": 4194314,
+                    "description": "Print Screen key."
+                },
+                {
+                    "name": "KEY_SYSREQ",
+                    "value": 4194315,
+                    "description": "System Request key."
+                },
+                {
+                    "name": "KEY_CLEAR",
+                    "value": 4194316,
+                    "description": "Clear key."
+                },
+                {
+                    "name": "KEY_HOME",
+                    "value": 4194317,
+                    "description": "Home key."
+                },
+                {
+                    "name": "KEY_END",
+                    "value": 4194318,
+                    "description": "End key."
+                },
+                {
+                    "name": "KEY_LEFT",
+                    "value": 4194319,
+                    "description": "Left arrow key."
+                },
+                {
+                    "name": "KEY_UP",
+                    "value": 4194320,
+                    "description": "Up arrow key."
+                },
+                {
+                    "name": "KEY_RIGHT",
+                    "value": 4194321,
+                    "description": "Right arrow key."
+                },
+                {
+                    "name": "KEY_DOWN",
+                    "value": 4194322,
+                    "description": "Down arrow key."
+                },
+                {
+                    "name": "KEY_PAGEUP",
+                    "value": 4194323,
+                    "description": "Page Up key."
+                },
+                {
+                    "name": "KEY_PAGEDOWN",
+                    "value": 4194324,
+                    "description": "Page Down key."
+                },
+                {
+                    "name": "KEY_SHIFT",
+                    "value": 4194325,
+                    "description": "Shift key."
+                },
+                {
+                    "name": "KEY_CTRL",
+                    "value": 4194326,
+                    "description": "Control key."
+                },
+                {
+                    "name": "KEY_META",
+                    "value": 4194327,
+                    "description": "Meta key."
+                },
+                {
+                    "name": "KEY_ALT",
+                    "value": 4194328,
+                    "description": "Alt key."
+                },
+                {
+                    "name": "KEY_CAPSLOCK",
+                    "value": 4194329,
+                    "description": "Caps Lock key."
+                },
+                {
+                    "name": "KEY_NUMLOCK",
+                    "value": 4194330,
+                    "description": "Num Lock key."
+                },
+                {
+                    "name": "KEY_SCROLLLOCK",
+                    "value": 4194331,
+                    "description": "Scroll Lock key."
+                },
+                {
+                    "name": "KEY_F1",
+                    "value": 4194332,
+                    "description": "F1 key."
+                },
+                {
+                    "name": "KEY_F2",
+                    "value": 4194333,
+                    "description": "F2 key."
+                },
+                {
+                    "name": "KEY_F3",
+                    "value": 4194334,
+                    "description": "F3 key."
+                },
+                {
+                    "name": "KEY_F4",
+                    "value": 4194335,
+                    "description": "F4 key."
+                },
+                {
+                    "name": "KEY_F5",
+                    "value": 4194336,
+                    "description": "F5 key."
+                },
+                {
+                    "name": "KEY_F6",
+                    "value": 4194337,
+                    "description": "F6 key."
+                },
+                {
+                    "name": "KEY_F7",
+                    "value": 4194338,
+                    "description": "F7 key."
+                },
+                {
+                    "name": "KEY_F8",
+                    "value": 4194339,
+                    "description": "F8 key."
+                },
+                {
+                    "name": "KEY_F9",
+                    "value": 4194340,
+                    "description": "F9 key."
+                },
+                {
+                    "name": "KEY_F10",
+                    "value": 4194341,
+                    "description": "F10 key."
+                },
+                {
+                    "name": "KEY_F11",
+                    "value": 4194342,
+                    "description": "F11 key."
+                },
+                {
+                    "name": "KEY_F12",
+                    "value": 4194343,
+                    "description": "F12 key."
+                },
+                {
+                    "name": "KEY_F13",
+                    "value": 4194344,
+                    "description": "F13 key."
+                },
+                {
+                    "name": "KEY_F14",
+                    "value": 4194345,
+                    "description": "F14 key."
+                },
+                {
+                    "name": "KEY_F15",
+                    "value": 4194346,
+                    "description": "F15 key."
+                },
+                {
+                    "name": "KEY_F16",
+                    "value": 4194347,
+                    "description": "F16 key."
+                },
+                {
+                    "name": "KEY_F17",
+                    "value": 4194348,
+                    "description": "F17 key."
+                },
+                {
+                    "name": "KEY_F18",
+                    "value": 4194349,
+                    "description": "F18 key."
+                },
+                {
+                    "name": "KEY_F19",
+                    "value": 4194350,
+                    "description": "F19 key."
+                },
+                {
+                    "name": "KEY_F20",
+                    "value": 4194351,
+                    "description": "F20 key."
+                },
+                {
+                    "name": "KEY_F21",
+                    "value": 4194352,
+                    "description": "F21 key."
+                },
+                {
+                    "name": "KEY_F22",
+                    "value": 4194353,
+                    "description": "F22 key."
+                },
+                {
+                    "name": "KEY_F23",
+                    "value": 4194354,
+                    "description": "F23 key."
+                },
+                {
+                    "name": "KEY_F24",
+                    "value": 4194355,
+                    "description": "F24 key."
+                },
+                {
+                    "name": "KEY_F25",
+                    "value": 4194356,
+                    "description": "F25 key. Only supported on macOS and Linux due to a Windows limitation."
+                },
+                {
+                    "name": "KEY_F26",
+                    "value": 4194357,
+                    "description": "F26 key. Only supported on macOS and Linux due to a Windows limitation."
+                },
+                {
+                    "name": "KEY_F27",
+                    "value": 4194358,
+                    "description": "F27 key. Only supported on macOS and Linux due to a Windows limitation."
+                },
+                {
+                    "name": "KEY_F28",
+                    "value": 4194359,
+                    "description": "F28 key. Only supported on macOS and Linux due to a Windows limitation."
+                },
+                {
+                    "name": "KEY_F29",
+                    "value": 4194360,
+                    "description": "F29 key. Only supported on macOS and Linux due to a Windows limitation."
+                },
+                {
+                    "name": "KEY_F30",
+                    "value": 4194361,
+                    "description": "F30 key. Only supported on macOS and Linux due to a Windows limitation."
+                },
+                {
+                    "name": "KEY_F31",
+                    "value": 4194362,
+                    "description": "F31 key. Only supported on macOS and Linux due to a Windows limitation."
+                },
+                {
+                    "name": "KEY_F32",
+                    "value": 4194363,
+                    "description": "F32 key. Only supported on macOS and Linux due to a Windows limitation."
+                },
+                {
+                    "name": "KEY_F33",
+                    "value": 4194364,
+                    "description": "F33 key. Only supported on macOS and Linux due to a Windows limitation."
+                },
+                {
+                    "name": "KEY_F34",
+                    "value": 4194365,
+                    "description": "F34 key. Only supported on macOS and Linux due to a Windows limitation."
+                },
+                {
+                    "name": "KEY_F35",
+                    "value": 4194366,
+                    "description": "F35 key. Only supported on macOS and Linux due to a Windows limitation."
+                },
+                {
+                    "name": "KEY_KP_MULTIPLY",
+                    "value": 4194433,
+                    "description": "Multiply (*) key on the numeric keypad."
+                },
+                {
+                    "name": "KEY_KP_DIVIDE",
+                    "value": 4194434,
+                    "description": "Divide (/) key on the numeric keypad."
+                },
+                {
+                    "name": "KEY_KP_SUBTRACT",
+                    "value": 4194435,
+                    "description": "Subtract (-) key on the numeric keypad."
+                },
+                {
+                    "name": "KEY_KP_PERIOD",
+                    "value": 4194436,
+                    "description": "Period (.) key on the numeric keypad."
+                },
+                {
+                    "name": "KEY_KP_ADD",
+                    "value": 4194437,
+                    "description": "Add (+) key on the numeric keypad."
+                },
+                {
+                    "name": "KEY_KP_0",
+                    "value": 4194438,
+                    "description": "Number 0 on the numeric keypad."
+                },
+                {
+                    "name": "KEY_KP_1",
+                    "value": 4194439,
+                    "description": "Number 1 on the numeric keypad."
+                },
+                {
+                    "name": "KEY_KP_2",
+                    "value": 4194440,
+                    "description": "Number 2 on the numeric keypad."
+                },
+                {
+                    "name": "KEY_KP_3",
+                    "value": 4194441,
+                    "description": "Number 3 on the numeric keypad."
+                },
+                {
+                    "name": "KEY_KP_4",
+                    "value": 4194442,
+                    "description": "Number 4 on the numeric keypad."
+                },
+                {
+                    "name": "KEY_KP_5",
+                    "value": 4194443,
+                    "description": "Number 5 on the numeric keypad."
+                },
+                {
+                    "name": "KEY_KP_6",
+                    "value": 4194444,
+                    "description": "Number 6 on the numeric keypad."
+                },
+                {
+                    "name": "KEY_KP_7",
+                    "value": 4194445,
+                    "description": "Number 7 on the numeric keypad."
+                },
+                {
+                    "name": "KEY_KP_8",
+                    "value": 4194446,
+                    "description": "Number 8 on the numeric keypad."
+                },
+                {
+                    "name": "KEY_KP_9",
+                    "value": 4194447,
+                    "description": "Number 9 on the numeric keypad."
+                },
+                {
+                    "name": "KEY_MENU",
+                    "value": 4194370,
+                    "description": "Context menu key."
+                },
+                {
+                    "name": "KEY_HYPER",
+                    "value": 4194371,
+                    "description": "Hyper key. (On Linux/X11 only)."
+                },
+                {
+                    "name": "KEY_HELP",
+                    "value": 4194373,
+                    "description": "Help key."
+                },
+                {
+                    "name": "KEY_BACK",
+                    "value": 4194376,
+                    "description": "Back key."
+                },
+                {
+                    "name": "KEY_FORWARD",
+                    "value": 4194377,
+                    "description": "Forward key."
+                },
+                {
+                    "name": "KEY_STOP",
+                    "value": 4194378,
+                    "description": "Media stop key."
+                },
+                {
+                    "name": "KEY_REFRESH",
+                    "value": 4194379,
+                    "description": "Refresh key."
+                },
+                {
+                    "name": "KEY_VOLUMEDOWN",
+                    "value": 4194380,
+                    "description": "Volume down key."
+                },
+                {
+                    "name": "KEY_VOLUMEMUTE",
+                    "value": 4194381,
+                    "description": "Mute volume key."
+                },
+                {
+                    "name": "KEY_VOLUMEUP",
+                    "value": 4194382,
+                    "description": "Volume up key."
+                },
+                {
+                    "name": "KEY_MEDIAPLAY",
+                    "value": 4194388,
+                    "description": "Media play key."
+                },
+                {
+                    "name": "KEY_MEDIASTOP",
+                    "value": 4194389,
+                    "description": "Media stop key."
+                },
+                {
+                    "name": "KEY_MEDIAPREVIOUS",
+                    "value": 4194390,
+                    "description": "Previous song key."
+                },
+                {
+                    "name": "KEY_MEDIANEXT",
+                    "value": 4194391,
+                    "description": "Next song key."
+                },
+                {
+                    "name": "KEY_MEDIARECORD",
+                    "value": 4194392,
+                    "description": "Media record key."
+                },
+                {
+                    "name": "KEY_HOMEPAGE",
+                    "value": 4194393,
+                    "description": "Home page key."
+                },
+                {
+                    "name": "KEY_FAVORITES",
+                    "value": 4194394,
+                    "description": "Favorites key."
+                },
+                {
+                    "name": "KEY_SEARCH",
+                    "value": 4194395,
+                    "description": "Search key."
+                },
+                {
+                    "name": "KEY_STANDBY",
+                    "value": 4194396,
+                    "description": "Standby key."
+                },
+                {
+                    "name": "KEY_OPENURL",
+                    "value": 4194397,
+                    "description": "Open URL / Launch Browser key."
+                },
+                {
+                    "name": "KEY_LAUNCHMAIL",
+                    "value": 4194398,
+                    "description": "Launch Mail key."
+                },
+                {
+                    "name": "KEY_LAUNCHMEDIA",
+                    "value": 4194399,
+                    "description": "Launch Media key."
+                },
+                {
+                    "name": "KEY_LAUNCH0",
+                    "value": 4194400,
+                    "description": "Launch Shortcut 0 key."
+                },
+                {
+                    "name": "KEY_LAUNCH1",
+                    "value": 4194401,
+                    "description": "Launch Shortcut 1 key."
+                },
+                {
+                    "name": "KEY_LAUNCH2",
+                    "value": 4194402,
+                    "description": "Launch Shortcut 2 key."
+                },
+                {
+                    "name": "KEY_LAUNCH3",
+                    "value": 4194403,
+                    "description": "Launch Shortcut 3 key."
+                },
+                {
+                    "name": "KEY_LAUNCH4",
+                    "value": 4194404,
+                    "description": "Launch Shortcut 4 key."
+                },
+                {
+                    "name": "KEY_LAUNCH5",
+                    "value": 4194405,
+                    "description": "Launch Shortcut 5 key."
+                },
+                {
+                    "name": "KEY_LAUNCH6",
+                    "value": 4194406,
+                    "description": "Launch Shortcut 6 key."
+                },
+                {
+                    "name": "KEY_LAUNCH7",
+                    "value": 4194407,
+                    "description": "Launch Shortcut 7 key."
+                },
+                {
+                    "name": "KEY_LAUNCH8",
+                    "value": 4194408,
+                    "description": "Launch Shortcut 8 key."
+                },
+                {
+                    "name": "KEY_LAUNCH9",
+                    "value": 4194409,
+                    "description": "Launch Shortcut 9 key."
+                },
+                {
+                    "name": "KEY_LAUNCHA",
+                    "value": 4194410,
+                    "description": "Launch Shortcut A key."
+                },
+                {
+                    "name": "KEY_LAUNCHB",
+                    "value": 4194411,
+                    "description": "Launch Shortcut B key."
+                },
+                {
+                    "name": "KEY_LAUNCHC",
+                    "value": 4194412,
+                    "description": "Launch Shortcut C key."
+                },
+                {
+                    "name": "KEY_LAUNCHD",
+                    "value": 4194413,
+                    "description": "Launch Shortcut D key."
+                },
+                {
+                    "name": "KEY_LAUNCHE",
+                    "value": 4194414,
+                    "description": "Launch Shortcut E key."
+                },
+                {
+                    "name": "KEY_LAUNCHF",
+                    "value": 4194415,
+                    "description": "Launch Shortcut F key."
+                },
+                {
+                    "name": "KEY_GLOBE",
+                    "value": 4194416,
+                    "description": "\"Globe\" key on Mac / iPad keyboard."
+                },
+                {
+                    "name": "KEY_KEYBOARD",
+                    "value": 4194417,
+                    "description": "\"On-screen keyboard\" key on iPad keyboard."
+                },
+                {
+                    "name": "KEY_JIS_EISU",
+                    "value": 4194418,
+                    "description": "英数 key on Mac keyboard."
+                },
+                {
+                    "name": "KEY_JIS_KANA",
+                    "value": 4194419,
+                    "description": "かな key on Mac keyboard."
+                },
+                {
+                    "name": "KEY_UNKNOWN",
+                    "value": 8388607,
+                    "description": "Unknown key."
+                },
+                {
+                    "name": "KEY_SPACE",
+                    "value": 32,
+                    "description": "Space key."
+                },
+                {
+                    "name": "KEY_EXCLAM",
+                    "value": 33,
+                    "description": "Exclamation mark ([code]![/code]) key."
+                },
+                {
+                    "name": "KEY_QUOTEDBL",
+                    "value": 34,
+                    "description": "Double quotation mark ([code]\"[/code]) key."
+                },
+                {
+                    "name": "KEY_NUMBERSIGN",
+                    "value": 35,
+                    "description": "Number sign or [i]hash[/i] ([code]#[/code]) key."
+                },
+                {
+                    "name": "KEY_DOLLAR",
+                    "value": 36,
+                    "description": "Dollar sign ([code]$[/code]) key."
+                },
+                {
+                    "name": "KEY_PERCENT",
+                    "value": 37,
+                    "description": "Percent sign ([code]%[/code]) key."
+                },
+                {
+                    "name": "KEY_AMPERSAND",
+                    "value": 38,
+                    "description": "Ampersand ([code]&[/code]) key."
+                },
+                {
+                    "name": "KEY_APOSTROPHE",
+                    "value": 39,
+                    "description": "Apostrophe ([code]'[/code]) key."
+                },
+                {
+                    "name": "KEY_PARENLEFT",
+                    "value": 40,
+                    "description": "Left parenthesis ([code]([/code]) key."
+                },
+                {
+                    "name": "KEY_PARENRIGHT",
+                    "value": 41,
+                    "description": "Right parenthesis ([code])[/code]) key."
+                },
+                {
+                    "name": "KEY_ASTERISK",
+                    "value": 42,
+                    "description": "Asterisk ([code]*[/code]) key."
+                },
+                {
+                    "name": "KEY_PLUS",
+                    "value": 43,
+                    "description": "Plus ([code]+[/code]) key."
+                },
+                {
+                    "name": "KEY_COMMA",
+                    "value": 44,
+                    "description": "Comma ([code],[/code]) key."
+                },
+                {
+                    "name": "KEY_MINUS",
+                    "value": 45,
+                    "description": "Minus ([code]-[/code]) key."
+                },
+                {
+                    "name": "KEY_PERIOD",
+                    "value": 46,
+                    "description": "Period ([code].[/code]) key."
+                },
+                {
+                    "name": "KEY_SLASH",
+                    "value": 47,
+                    "description": "Slash ([code]/[/code]) key."
+                },
+                {
+                    "name": "KEY_0",
+                    "value": 48,
+                    "description": "Number 0 key."
+                },
+                {
+                    "name": "KEY_1",
+                    "value": 49,
+                    "description": "Number 1 key."
+                },
+                {
+                    "name": "KEY_2",
+                    "value": 50,
+                    "description": "Number 2 key."
+                },
+                {
+                    "name": "KEY_3",
+                    "value": 51,
+                    "description": "Number 3 key."
+                },
+                {
+                    "name": "KEY_4",
+                    "value": 52,
+                    "description": "Number 4 key."
+                },
+                {
+                    "name": "KEY_5",
+                    "value": 53,
+                    "description": "Number 5 key."
+                },
+                {
+                    "name": "KEY_6",
+                    "value": 54,
+                    "description": "Number 6 key."
+                },
+                {
+                    "name": "KEY_7",
+                    "value": 55,
+                    "description": "Number 7 key."
+                },
+                {
+                    "name": "KEY_8",
+                    "value": 56,
+                    "description": "Number 8 key."
+                },
+                {
+                    "name": "KEY_9",
+                    "value": 57,
+                    "description": "Number 9 key."
+                },
+                {
+                    "name": "KEY_COLON",
+                    "value": 58,
+                    "description": "Colon ([code]:[/code]) key."
+                },
+                {
+                    "name": "KEY_SEMICOLON",
+                    "value": 59,
+                    "description": "Semicolon ([code];[/code]) key."
+                },
+                {
+                    "name": "KEY_LESS",
+                    "value": 60,
+                    "description": "Less-than sign ([code]<[/code]) key."
+                },
+                {
+                    "name": "KEY_EQUAL",
+                    "value": 61,
+                    "description": "Equal sign ([code]=[/code]) key."
+                },
+                {
+                    "name": "KEY_GREATER",
+                    "value": 62,
+                    "description": "Greater-than sign ([code]>[/code]) key."
+                },
+                {
+                    "name": "KEY_QUESTION",
+                    "value": 63,
+                    "description": "Question mark ([code]?[/code]) key."
+                },
+                {
+                    "name": "KEY_AT",
+                    "value": 64,
+                    "description": "At sign ([code]@[/code]) key."
+                },
+                {
+                    "name": "KEY_A",
+                    "value": 65,
+                    "description": "A key."
+                },
+                {
+                    "name": "KEY_B",
+                    "value": 66,
+                    "description": "B key."
+                },
+                {
+                    "name": "KEY_C",
+                    "value": 67,
+                    "description": "C key."
+                },
+                {
+                    "name": "KEY_D",
+                    "value": 68,
+                    "description": "D key."
+                },
+                {
+                    "name": "KEY_E",
+                    "value": 69,
+                    "description": "E key."
+                },
+                {
+                    "name": "KEY_F",
+                    "value": 70,
+                    "description": "F key."
+                },
+                {
+                    "name": "KEY_G",
+                    "value": 71,
+                    "description": "G key."
+                },
+                {
+                    "name": "KEY_H",
+                    "value": 72,
+                    "description": "H key."
+                },
+                {
+                    "name": "KEY_I",
+                    "value": 73,
+                    "description": "I key."
+                },
+                {
+                    "name": "KEY_J",
+                    "value": 74,
+                    "description": "J key."
+                },
+                {
+                    "name": "KEY_K",
+                    "value": 75,
+                    "description": "K key."
+                },
+                {
+                    "name": "KEY_L",
+                    "value": 76,
+                    "description": "L key."
+                },
+                {
+                    "name": "KEY_M",
+                    "value": 77,
+                    "description": "M key."
+                },
+                {
+                    "name": "KEY_N",
+                    "value": 78,
+                    "description": "N key."
+                },
+                {
+                    "name": "KEY_O",
+                    "value": 79,
+                    "description": "O key."
+                },
+                {
+                    "name": "KEY_P",
+                    "value": 80,
+                    "description": "P key."
+                },
+                {
+                    "name": "KEY_Q",
+                    "value": 81,
+                    "description": "Q key."
+                },
+                {
+                    "name": "KEY_R",
+                    "value": 82,
+                    "description": "R key."
+                },
+                {
+                    "name": "KEY_S",
+                    "value": 83,
+                    "description": "S key."
+                },
+                {
+                    "name": "KEY_T",
+                    "value": 84,
+                    "description": "T key."
+                },
+                {
+                    "name": "KEY_U",
+                    "value": 85,
+                    "description": "U key."
+                },
+                {
+                    "name": "KEY_V",
+                    "value": 86,
+                    "description": "V key."
+                },
+                {
+                    "name": "KEY_W",
+                    "value": 87,
+                    "description": "W key."
+                },
+                {
+                    "name": "KEY_X",
+                    "value": 88,
+                    "description": "X key."
+                },
+                {
+                    "name": "KEY_Y",
+                    "value": 89,
+                    "description": "Y key."
+                },
+                {
+                    "name": "KEY_Z",
+                    "value": 90,
+                    "description": "Z key."
+                },
+                {
+                    "name": "KEY_BRACKETLEFT",
+                    "value": 91,
+                    "description": "Left bracket ([code][lb][/code]) key."
+                },
+                {
+                    "name": "KEY_BACKSLASH",
+                    "value": 92,
+                    "description": "Backslash ([code]\\[/code]) key."
+                },
+                {
+                    "name": "KEY_BRACKETRIGHT",
+                    "value": 93,
+                    "description": "Right bracket ([code][rb][/code]) key."
+                },
+                {
+                    "name": "KEY_ASCIICIRCUM",
+                    "value": 94,
+                    "description": "Caret ([code]^[/code]) key."
+                },
+                {
+                    "name": "KEY_UNDERSCORE",
+                    "value": 95,
+                    "description": "Underscore ([code]_[/code]) key."
+                },
+                {
+                    "name": "KEY_QUOTELEFT",
+                    "value": 96,
+                    "description": "Backtick ([code]`[/code]) key."
+                },
+                {
+                    "name": "KEY_BRACELEFT",
+                    "value": 123,
+                    "description": "Left brace ([code]{[/code]) key."
+                },
+                {
+                    "name": "KEY_BAR",
+                    "value": 124,
+                    "description": "Vertical bar or [i]pipe[/i] ([code]|[/code]) key."
+                },
+                {
+                    "name": "KEY_BRACERIGHT",
+                    "value": 125,
+                    "description": "Right brace ([code]}[/code]) key."
+                },
+                {
+                    "name": "KEY_ASCIITILDE",
+                    "value": 126,
+                    "description": "Tilde ([code]~[/code]) key."
+                },
+                {
+                    "name": "KEY_YEN",
+                    "value": 165,
+                    "description": "Yen symbol ([code]¥[/code]) key."
+                },
+                {
+                    "name": "KEY_SECTION",
+                    "value": 167,
+                    "description": "Section sign ([code]§[/code]) key."
+                }
+            ]
+        },
+        {
+            "name": "KeyModifierMask",
+            "is_bitfield": true,
+            "values": [
+                {
+                    "name": "KEY_CODE_MASK",
+                    "value": 8388607,
+                    "description": "Key Code mask."
+                },
+                {
+                    "name": "KEY_MODIFIER_MASK",
+                    "value": 2130706432,
+                    "description": "Modifier key mask."
+                },
+                {
+                    "name": "KEY_MASK_CMD_OR_CTRL",
+                    "value": 16777216,
+                    "description": "Automatically remapped to [constant KEY_META] on macOS and [constant KEY_CTRL] on other platforms, this mask is never set in the actual events, and should be used for key mapping only."
+                },
+                {
+                    "name": "KEY_MASK_SHIFT",
+                    "value": 33554432,
+                    "description": "Shift key mask."
+                },
+                {
+                    "name": "KEY_MASK_ALT",
+                    "value": 67108864,
+                    "description": "Alt or Option (on macOS) key mask."
+                },
+                {
+                    "name": "KEY_MASK_META",
+                    "value": 134217728,
+                    "description": "Command (on macOS) or Meta/Windows key mask."
+                },
+                {
+                    "name": "KEY_MASK_CTRL",
+                    "value": 268435456,
+                    "description": "Control key mask."
+                },
+                {
+                    "name": "KEY_MASK_KPAD",
+                    "value": 536870912,
+                    "description": "Keypad key mask."
+                },
+                {
+                    "name": "KEY_MASK_GROUP_SWITCH",
+                    "value": 1073741824,
+                    "description": "Group Switch key mask."
+                }
+            ]
+        },
+        {
+            "name": "KeyLocation",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "KEY_LOCATION_UNSPECIFIED",
+                    "value": 0,
+                    "description": "Used for keys which only appear once, or when a comparison doesn't need to differentiate the [code]LEFT[/code] and [code]RIGHT[/code] versions.\nFor example, when using [method InputEvent.is_match], an event which has [constant KEY_LOCATION_UNSPECIFIED] will match any [enum KeyLocation] on the passed event."
+                },
+                {
+                    "name": "KEY_LOCATION_LEFT",
+                    "value": 1,
+                    "description": "A key which is to the left of its twin."
+                },
+                {
+                    "name": "KEY_LOCATION_RIGHT",
+                    "value": 2,
+                    "description": "A key which is to the right of its twin."
+                }
+            ]
+        },
+        {
+            "name": "MouseButton",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "MOUSE_BUTTON_NONE",
+                    "value": 0,
+                    "description": "Enum value which doesn't correspond to any mouse button. This is used to initialize [enum MouseButton] properties with a generic state."
+                },
+                {
+                    "name": "MOUSE_BUTTON_LEFT",
+                    "value": 1,
+                    "description": "Primary mouse button, usually assigned to the left button."
+                },
+                {
+                    "name": "MOUSE_BUTTON_RIGHT",
+                    "value": 2,
+                    "description": "Secondary mouse button, usually assigned to the right button."
+                },
+                {
+                    "name": "MOUSE_BUTTON_MIDDLE",
+                    "value": 3,
+                    "description": "Middle mouse button."
+                },
+                {
+                    "name": "MOUSE_BUTTON_WHEEL_UP",
+                    "value": 4,
+                    "description": "Mouse wheel scrolling up."
+                },
+                {
+                    "name": "MOUSE_BUTTON_WHEEL_DOWN",
+                    "value": 5,
+                    "description": "Mouse wheel scrolling down."
+                },
+                {
+                    "name": "MOUSE_BUTTON_WHEEL_LEFT",
+                    "value": 6,
+                    "description": "Mouse wheel left button (only present on some mice)."
+                },
+                {
+                    "name": "MOUSE_BUTTON_WHEEL_RIGHT",
+                    "value": 7,
+                    "description": "Mouse wheel right button (only present on some mice)."
+                },
+                {
+                    "name": "MOUSE_BUTTON_XBUTTON1",
+                    "value": 8,
+                    "description": "Extra mouse button 1. This is sometimes present, usually to the sides of the mouse."
+                },
+                {
+                    "name": "MOUSE_BUTTON_XBUTTON2",
+                    "value": 9,
+                    "description": "Extra mouse button 2. This is sometimes present, usually to the sides of the mouse."
+                }
+            ]
+        },
+        {
+            "name": "MouseButtonMask",
+            "is_bitfield": true,
+            "values": [
+                {
+                    "name": "MOUSE_BUTTON_MASK_LEFT",
+                    "value": 1,
+                    "description": "Primary mouse button mask, usually for the left button."
+                },
+                {
+                    "name": "MOUSE_BUTTON_MASK_RIGHT",
+                    "value": 2,
+                    "description": "Secondary mouse button mask, usually for the right button."
+                },
+                {
+                    "name": "MOUSE_BUTTON_MASK_MIDDLE",
+                    "value": 4,
+                    "description": "Middle mouse button mask."
+                },
+                {
+                    "name": "MOUSE_BUTTON_MASK_MB_XBUTTON1",
+                    "value": 128,
+                    "description": "Extra mouse button 1 mask."
+                },
+                {
+                    "name": "MOUSE_BUTTON_MASK_MB_XBUTTON2",
+                    "value": 256,
+                    "description": "Extra mouse button 2 mask."
+                }
+            ]
+        },
+        {
+            "name": "JoyButton",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "JOY_BUTTON_INVALID",
+                    "value": -1,
+                    "description": "An invalid game controller button."
+                },
+                {
+                    "name": "JOY_BUTTON_A",
+                    "value": 0,
+                    "description": "Game controller SDL button A. Corresponds to the bottom action button: Sony Cross, Xbox A, Nintendo B."
+                },
+                {
+                    "name": "JOY_BUTTON_B",
+                    "value": 1,
+                    "description": "Game controller SDL button B. Corresponds to the right action button: Sony Circle, Xbox B, Nintendo A."
+                },
+                {
+                    "name": "JOY_BUTTON_X",
+                    "value": 2,
+                    "description": "Game controller SDL button X. Corresponds to the left action button: Sony Square, Xbox X, Nintendo Y."
+                },
+                {
+                    "name": "JOY_BUTTON_Y",
+                    "value": 3,
+                    "description": "Game controller SDL button Y. Corresponds to the top action button: Sony Triangle, Xbox Y, Nintendo X."
+                },
+                {
+                    "name": "JOY_BUTTON_BACK",
+                    "value": 4,
+                    "description": "Game controller SDL back button. Corresponds to the Sony Select, Xbox Back, Nintendo - button."
+                },
+                {
+                    "name": "JOY_BUTTON_GUIDE",
+                    "value": 5,
+                    "description": "Game controller SDL guide button. Corresponds to the Sony PS, Xbox Home button."
+                },
+                {
+                    "name": "JOY_BUTTON_START",
+                    "value": 6,
+                    "description": "Game controller SDL start button. Corresponds to the Sony Options, Xbox Menu, Nintendo + button."
+                },
+                {
+                    "name": "JOY_BUTTON_LEFT_STICK",
+                    "value": 7,
+                    "description": "Game controller SDL left stick button. Corresponds to the Sony L3, Xbox L/LS button."
+                },
+                {
+                    "name": "JOY_BUTTON_RIGHT_STICK",
+                    "value": 8,
+                    "description": "Game controller SDL right stick button. Corresponds to the Sony R3, Xbox R/RS button."
+                },
+                {
+                    "name": "JOY_BUTTON_LEFT_SHOULDER",
+                    "value": 9,
+                    "description": "Game controller SDL left shoulder button. Corresponds to the Sony L1, Xbox LB button."
+                },
+                {
+                    "name": "JOY_BUTTON_RIGHT_SHOULDER",
+                    "value": 10,
+                    "description": "Game controller SDL right shoulder button. Corresponds to the Sony R1, Xbox RB button."
+                },
+                {
+                    "name": "JOY_BUTTON_DPAD_UP",
+                    "value": 11,
+                    "description": "Game controller D-pad up button."
+                },
+                {
+                    "name": "JOY_BUTTON_DPAD_DOWN",
+                    "value": 12,
+                    "description": "Game controller D-pad down button."
+                },
+                {
+                    "name": "JOY_BUTTON_DPAD_LEFT",
+                    "value": 13,
+                    "description": "Game controller D-pad left button."
+                },
+                {
+                    "name": "JOY_BUTTON_DPAD_RIGHT",
+                    "value": 14,
+                    "description": "Game controller D-pad right button."
+                },
+                {
+                    "name": "JOY_BUTTON_MISC1",
+                    "value": 15,
+                    "description": "Game controller SDL miscellaneous button. Corresponds to Xbox share button, PS5 microphone button, Nintendo Switch capture button."
+                },
+                {
+                    "name": "JOY_BUTTON_PADDLE1",
+                    "value": 16,
+                    "description": "Game controller SDL paddle 1 button."
+                },
+                {
+                    "name": "JOY_BUTTON_PADDLE2",
+                    "value": 17,
+                    "description": "Game controller SDL paddle 2 button."
+                },
+                {
+                    "name": "JOY_BUTTON_PADDLE3",
+                    "value": 18,
+                    "description": "Game controller SDL paddle 3 button."
+                },
+                {
+                    "name": "JOY_BUTTON_PADDLE4",
+                    "value": 19,
+                    "description": "Game controller SDL paddle 4 button."
+                },
+                {
+                    "name": "JOY_BUTTON_TOUCHPAD",
+                    "value": 20,
+                    "description": "Game controller SDL touchpad button."
+                },
+                {
+                    "name": "JOY_BUTTON_SDL_MAX",
+                    "value": 21,
+                    "description": "The number of SDL game controller buttons."
+                },
+                {
+                    "name": "JOY_BUTTON_MAX",
+                    "value": 128,
+                    "description": "The maximum number of game controller buttons supported by the engine. The actual limit may be lower on specific platforms:\n- [b]Android:[/b] Up to 36 buttons.\n- [b]Linux:[/b] Up to 80 buttons.\n- [b]Windows[/b] and [b]macOS:[/b] Up to 128 buttons."
+                }
+            ]
+        },
+        {
+            "name": "JoyAxis",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "JOY_AXIS_INVALID",
+                    "value": -1,
+                    "description": "An invalid game controller axis."
+                },
+                {
+                    "name": "JOY_AXIS_LEFT_X",
+                    "value": 0,
+                    "description": "Game controller left joystick x-axis."
+                },
+                {
+                    "name": "JOY_AXIS_LEFT_Y",
+                    "value": 1,
+                    "description": "Game controller left joystick y-axis."
+                },
+                {
+                    "name": "JOY_AXIS_RIGHT_X",
+                    "value": 2,
+                    "description": "Game controller right joystick x-axis."
+                },
+                {
+                    "name": "JOY_AXIS_RIGHT_Y",
+                    "value": 3,
+                    "description": "Game controller right joystick y-axis."
+                },
+                {
+                    "name": "JOY_AXIS_TRIGGER_LEFT",
+                    "value": 4,
+                    "description": "Game controller left trigger axis."
+                },
+                {
+                    "name": "JOY_AXIS_TRIGGER_RIGHT",
+                    "value": 5,
+                    "description": "Game controller right trigger axis."
+                },
+                {
+                    "name": "JOY_AXIS_SDL_MAX",
+                    "value": 6,
+                    "description": "The number of SDL game controller axes."
+                },
+                {
+                    "name": "JOY_AXIS_MAX",
+                    "value": 10,
+                    "description": "The maximum number of game controller axes: OpenVR supports up to 5 Joysticks making a total of 10 axes."
+                }
+            ]
+        },
+        {
+            "name": "MIDIMessage",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "MIDI_MESSAGE_NONE",
+                    "value": 0,
+                    "description": "Does not correspond to any MIDI message. This is the default value of [member InputEventMIDI.message]."
+                },
+                {
+                    "name": "MIDI_MESSAGE_NOTE_OFF",
+                    "value": 8,
+                    "description": "MIDI message sent when a note is released.\n[b]Note:[/b] Not all MIDI devices send this message; some may send [constant MIDI_MESSAGE_NOTE_ON] with [member InputEventMIDI.velocity] set to [code]0[/code]."
+                },
+                {
+                    "name": "MIDI_MESSAGE_NOTE_ON",
+                    "value": 9,
+                    "description": "MIDI message sent when a note is pressed."
+                },
+                {
+                    "name": "MIDI_MESSAGE_AFTERTOUCH",
+                    "value": 10,
+                    "description": "MIDI message sent to indicate a change in pressure while a note is being pressed down, also called aftertouch."
+                },
+                {
+                    "name": "MIDI_MESSAGE_CONTROL_CHANGE",
+                    "value": 11,
+                    "description": "MIDI message sent when a controller value changes. In a MIDI device, a controller is any input that doesn't play notes. These may include sliders for volume, balance, and panning, as well as switches and pedals. See the [url=https://en.wikipedia.org/wiki/General_MIDI#Controller_events]General MIDI specification[/url] for a small list."
+                },
+                {
+                    "name": "MIDI_MESSAGE_PROGRAM_CHANGE",
+                    "value": 12,
+                    "description": "MIDI message sent when the MIDI device changes its current instrument (also called [i]program[/i] or [i]preset[/i])."
+                },
+                {
+                    "name": "MIDI_MESSAGE_CHANNEL_PRESSURE",
+                    "value": 13,
+                    "description": "MIDI message sent to indicate a change in pressure for the whole channel. Some MIDI devices may send this instead of [constant MIDI_MESSAGE_AFTERTOUCH]."
+                },
+                {
+                    "name": "MIDI_MESSAGE_PITCH_BEND",
+                    "value": 14,
+                    "description": "MIDI message sent when the value of the pitch bender changes, usually a wheel on the MIDI device."
+                },
+                {
+                    "name": "MIDI_MESSAGE_SYSTEM_EXCLUSIVE",
+                    "value": 240,
+                    "description": "MIDI system exclusive (SysEx) message. This type of message is not standardized and it's highly dependent on the MIDI device sending it.\n[b]Note:[/b] Getting this message's data from [InputEventMIDI] is not implemented."
+                },
+                {
+                    "name": "MIDI_MESSAGE_QUARTER_FRAME",
+                    "value": 241,
+                    "description": "MIDI message sent every quarter frame to keep connected MIDI devices synchronized. Related to [constant MIDI_MESSAGE_TIMING_CLOCK].\n[b]Note:[/b] Getting this message's data from [InputEventMIDI] is not implemented."
+                },
+                {
+                    "name": "MIDI_MESSAGE_SONG_POSITION_POINTER",
+                    "value": 242,
+                    "description": "MIDI message sent to jump onto a new position in the current sequence or song.\n[b]Note:[/b] Getting this message's data from [InputEventMIDI] is not implemented."
+                },
+                {
+                    "name": "MIDI_MESSAGE_SONG_SELECT",
+                    "value": 243,
+                    "description": "MIDI message sent to select a sequence or song to play.\n[b]Note:[/b] Getting this message's data from [InputEventMIDI] is not implemented."
+                },
+                {
+                    "name": "MIDI_MESSAGE_TUNE_REQUEST",
+                    "value": 246,
+                    "description": "MIDI message sent to request a tuning calibration. Used on analog synthesizers. Most modern MIDI devices do not need this message."
+                },
+                {
+                    "name": "MIDI_MESSAGE_TIMING_CLOCK",
+                    "value": 248,
+                    "description": "MIDI message sent 24 times after [constant MIDI_MESSAGE_QUARTER_FRAME], to keep connected MIDI devices synchronized."
+                },
+                {
+                    "name": "MIDI_MESSAGE_START",
+                    "value": 250,
+                    "description": "MIDI message sent to start the current sequence or song from the beginning."
+                },
+                {
+                    "name": "MIDI_MESSAGE_CONTINUE",
+                    "value": 251,
+                    "description": "MIDI message sent to resume from the point the current sequence or song was paused."
+                },
+                {
+                    "name": "MIDI_MESSAGE_STOP",
+                    "value": 252,
+                    "description": "MIDI message sent to pause the current sequence or song."
+                },
+                {
+                    "name": "MIDI_MESSAGE_ACTIVE_SENSING",
+                    "value": 254,
+                    "description": "MIDI message sent repeatedly while the MIDI device is idle, to tell the receiver that the connection is alive. Most MIDI devices do not send this message."
+                },
+                {
+                    "name": "MIDI_MESSAGE_SYSTEM_RESET",
+                    "value": 255,
+                    "description": "MIDI message sent to reset a MIDI device to its default state, as if it was just turned on. It should not be sent when the MIDI device is being turned on."
+                }
+            ]
+        },
+        {
+            "name": "Error",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "OK",
+                    "value": 0,
+                    "description": "Methods that return [enum Error] return [constant OK] when no error occurred.\nSince [constant OK] has value [code]0[/code], and all other error constants are positive integers, it can also be used in boolean checks.\n[codeblock]\nvar error = method_that_returns_error()\nif error != OK:\n\tprinterr(\"Failure!\")\n\n# Or, alternatively:\nif error:\n\tprinterr(\"Still failing!\")\n[/codeblock]\n[b]Note:[/b] Many functions do not return an error code, but will print error messages to standard output."
+                },
+                {
+                    "name": "FAILED",
+                    "value": 1,
+                    "description": "Generic error."
+                },
+                {
+                    "name": "ERR_UNAVAILABLE",
+                    "value": 2,
+                    "description": "Unavailable error."
+                },
+                {
+                    "name": "ERR_UNCONFIGURED",
+                    "value": 3,
+                    "description": "Unconfigured error."
+                },
+                {
+                    "name": "ERR_UNAUTHORIZED",
+                    "value": 4,
+                    "description": "Unauthorized error."
+                },
+                {
+                    "name": "ERR_PARAMETER_RANGE_ERROR",
+                    "value": 5,
+                    "description": "Parameter range error."
+                },
+                {
+                    "name": "ERR_OUT_OF_MEMORY",
+                    "value": 6,
+                    "description": "Out of memory (OOM) error."
+                },
+                {
+                    "name": "ERR_FILE_NOT_FOUND",
+                    "value": 7,
+                    "description": "File: Not found error."
+                },
+                {
+                    "name": "ERR_FILE_BAD_DRIVE",
+                    "value": 8,
+                    "description": "File: Bad drive error."
+                },
+                {
+                    "name": "ERR_FILE_BAD_PATH",
+                    "value": 9,
+                    "description": "File: Bad path error."
+                },
+                {
+                    "name": "ERR_FILE_NO_PERMISSION",
+                    "value": 10,
+                    "description": "File: No permission error."
+                },
+                {
+                    "name": "ERR_FILE_ALREADY_IN_USE",
+                    "value": 11,
+                    "description": "File: Already in use error."
+                },
+                {
+                    "name": "ERR_FILE_CANT_OPEN",
+                    "value": 12,
+                    "description": "File: Can't open error."
+                },
+                {
+                    "name": "ERR_FILE_CANT_WRITE",
+                    "value": 13,
+                    "description": "File: Can't write error."
+                },
+                {
+                    "name": "ERR_FILE_CANT_READ",
+                    "value": 14,
+                    "description": "File: Can't read error."
+                },
+                {
+                    "name": "ERR_FILE_UNRECOGNIZED",
+                    "value": 15,
+                    "description": "File: Unrecognized error."
+                },
+                {
+                    "name": "ERR_FILE_CORRUPT",
+                    "value": 16,
+                    "description": "File: Corrupt error."
+                },
+                {
+                    "name": "ERR_FILE_MISSING_DEPENDENCIES",
+                    "value": 17,
+                    "description": "File: Missing dependencies error."
+                },
+                {
+                    "name": "ERR_FILE_EOF",
+                    "value": 18,
+                    "description": "File: End of file (EOF) error."
+                },
+                {
+                    "name": "ERR_CANT_OPEN",
+                    "value": 19,
+                    "description": "Can't open error."
+                },
+                {
+                    "name": "ERR_CANT_CREATE",
+                    "value": 20,
+                    "description": "Can't create error."
+                },
+                {
+                    "name": "ERR_QUERY_FAILED",
+                    "value": 21,
+                    "description": "Query failed error."
+                },
+                {
+                    "name": "ERR_ALREADY_IN_USE",
+                    "value": 22,
+                    "description": "Already in use error."
+                },
+                {
+                    "name": "ERR_LOCKED",
+                    "value": 23,
+                    "description": "Locked error."
+                },
+                {
+                    "name": "ERR_TIMEOUT",
+                    "value": 24,
+                    "description": "Timeout error."
+                },
+                {
+                    "name": "ERR_CANT_CONNECT",
+                    "value": 25,
+                    "description": "Can't connect error."
+                },
+                {
+                    "name": "ERR_CANT_RESOLVE",
+                    "value": 26,
+                    "description": "Can't resolve error."
+                },
+                {
+                    "name": "ERR_CONNECTION_ERROR",
+                    "value": 27,
+                    "description": "Connection error."
+                },
+                {
+                    "name": "ERR_CANT_ACQUIRE_RESOURCE",
+                    "value": 28,
+                    "description": "Can't acquire resource error."
+                },
+                {
+                    "name": "ERR_CANT_FORK",
+                    "value": 29,
+                    "description": "Can't fork process error."
+                },
+                {
+                    "name": "ERR_INVALID_DATA",
+                    "value": 30,
+                    "description": "Invalid data error."
+                },
+                {
+                    "name": "ERR_INVALID_PARAMETER",
+                    "value": 31,
+                    "description": "Invalid parameter error."
+                },
+                {
+                    "name": "ERR_ALREADY_EXISTS",
+                    "value": 32,
+                    "description": "Already exists error."
+                },
+                {
+                    "name": "ERR_DOES_NOT_EXIST",
+                    "value": 33,
+                    "description": "Does not exist error."
+                },
+                {
+                    "name": "ERR_DATABASE_CANT_READ",
+                    "value": 34,
+                    "description": "Database: Read error."
+                },
+                {
+                    "name": "ERR_DATABASE_CANT_WRITE",
+                    "value": 35,
+                    "description": "Database: Write error."
+                },
+                {
+                    "name": "ERR_COMPILATION_FAILED",
+                    "value": 36,
+                    "description": "Compilation failed error."
+                },
+                {
+                    "name": "ERR_METHOD_NOT_FOUND",
+                    "value": 37,
+                    "description": "Method not found error."
+                },
+                {
+                    "name": "ERR_LINK_FAILED",
+                    "value": 38,
+                    "description": "Linking failed error."
+                },
+                {
+                    "name": "ERR_SCRIPT_FAILED",
+                    "value": 39,
+                    "description": "Script failed error."
+                },
+                {
+                    "name": "ERR_CYCLIC_LINK",
+                    "value": 40,
+                    "description": "Cycling link (import cycle) error."
+                },
+                {
+                    "name": "ERR_INVALID_DECLARATION",
+                    "value": 41,
+                    "description": "Invalid declaration error."
+                },
+                {
+                    "name": "ERR_DUPLICATE_SYMBOL",
+                    "value": 42,
+                    "description": "Duplicate symbol error."
+                },
+                {
+                    "name": "ERR_PARSE_ERROR",
+                    "value": 43,
+                    "description": "Parse error."
+                },
+                {
+                    "name": "ERR_BUSY",
+                    "value": 44,
+                    "description": "Busy error."
+                },
+                {
+                    "name": "ERR_SKIP",
+                    "value": 45,
+                    "description": "Skip error."
+                },
+                {
+                    "name": "ERR_HELP",
+                    "value": 46,
+                    "description": "Help error. Used internally when passing [code]--version[/code] or [code]--help[/code] as executable options."
+                },
+                {
+                    "name": "ERR_BUG",
+                    "value": 47,
+                    "description": "Bug error, caused by an implementation issue in the method.\n[b]Note:[/b] If a built-in method returns this code, please open an issue on [url=https://github.com/godotengine/godot/issues]the GitHub Issue Tracker[/url]."
+                },
+                {
+                    "name": "ERR_PRINTER_ON_FIRE",
+                    "value": 48,
+                    "description": "Printer on fire error (This is an easter egg, no built-in methods return this error code)."
+                }
+            ]
+        },
+        {
+            "name": "PropertyHint",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "PROPERTY_HINT_NONE",
+                    "value": 0,
+                    "description": "The property has no hint for the editor."
+                },
+                {
+                    "name": "PROPERTY_HINT_RANGE",
+                    "value": 1,
+                    "description": "Hints that an [int] or [float] property should be within a range specified via the hint string [code]\"min,max\"[/code] or [code]\"min,max,step\"[/code]. The hint string can optionally include [code]\"or_greater\"[/code] and/or [code]\"or_less\"[/code] to allow manual input going respectively above the max or below the min values.\n[b]Example:[/b] [code]\"-360,360,1,or_greater,or_less\"[/code].\nAdditionally, other keywords can be included: [code]\"exp\"[/code] for exponential range editing, [code]\"radians_as_degrees\"[/code] for editing radian angles in degrees (the range values are also in degrees), [code]\"degrees\"[/code] to hint at an angle, [code]\"prefer_slider\"[/code] to show the slider for integers, [code]\"hide_control\"[/code] to hide the slider or up-down arrows, and [code]\"suffix:px/s\"[/code] to display a suffix indicating the value's unit (e.g. [code]px/s[/code] for pixels per second)."
+                },
+                {
+                    "name": "PROPERTY_HINT_ENUM",
+                    "value": 2,
+                    "description": "Hints that an [int], [String], or [StringName] property is an enumerated value to pick in a list specified via a hint string.\nThe hint string is a comma separated list of names such as [code]\"Hello,Something,Else\"[/code]. Whitespace is [b]not[/b] removed from either end of a name. For integer properties, the first name in the list has value 0, the next 1, and so on. Explicit values can also be specified by appending [code]:integer[/code] to the name, e.g. [code]\"Zero,One,Three:3,Four,Six:6\"[/code]."
+                },
+                {
+                    "name": "PROPERTY_HINT_ENUM_SUGGESTION",
+                    "value": 3,
+                    "description": "Hints that a [String] or [StringName] property can be an enumerated value to pick in a list specified via a hint string such as [code]\"Hello,Something,Else\"[/code]. See [constant PROPERTY_HINT_ENUM] for details.\nUnlike [constant PROPERTY_HINT_ENUM], a property with this hint still accepts arbitrary values and can be empty. The list of values serves to suggest possible values."
+                },
+                {
+                    "name": "PROPERTY_HINT_EXP_EASING",
+                    "value": 4,
+                    "description": "Hints that a [float] property should be edited via an exponential easing function. The hint string can include [code]\"attenuation\"[/code] to flip the curve horizontally and/or [code]\"positive_only\"[/code] to exclude in/out easing and limit values to be greater than or equal to zero."
+                },
+                {
+                    "name": "PROPERTY_HINT_LINK",
+                    "value": 5,
+                    "description": "Hints that a vector property should allow its components to be linked. For example, this allows [member Vector2.x] and [member Vector2.y] to be edited together."
+                },
+                {
+                    "name": "PROPERTY_HINT_FLAGS",
+                    "value": 6,
+                    "description": "Hints that an [int] property is a bitmask with named bit flags.\nThe hint string is a comma separated list of names such as [code]\"Bit0,Bit1,Bit2,Bit3\"[/code]. Whitespace is [b]not[/b] removed from either end of a name. The first name in the list has value 1, the next 2, then 4, 8, 16 and so on. Explicit values can also be specified by appending [code]:integer[/code] to the name, e.g. [code]\"A:4,B:8,C:16\"[/code]. You can also combine several flags ([code]\"A:4,B:8,AB:12,C:16\"[/code]).\n[b]Note:[/b] A flag value must be at least [code]1[/code] and at most [code]2 ** 32 - 1[/code].\n[b]Note:[/b] Unlike [constant PROPERTY_HINT_ENUM], the previous explicit value is not taken into account. For the hint [code]\"A:16,B,C\"[/code], A is 16, B is 2, C is 4."
+                },
+                {
+                    "name": "PROPERTY_HINT_LAYERS_2D_RENDER",
+                    "value": 7,
+                    "description": "Hints that an [int] property is a bitmask using the optionally named 2D render layers."
+                },
+                {
+                    "name": "PROPERTY_HINT_LAYERS_2D_PHYSICS",
+                    "value": 8,
+                    "description": "Hints that an [int] property is a bitmask using the optionally named 2D physics layers."
+                },
+                {
+                    "name": "PROPERTY_HINT_LAYERS_2D_NAVIGATION",
+                    "value": 9,
+                    "description": "Hints that an [int] property is a bitmask using the optionally named 2D navigation layers."
+                },
+                {
+                    "name": "PROPERTY_HINT_LAYERS_3D_RENDER",
+                    "value": 10,
+                    "description": "Hints that an [int] property is a bitmask using the optionally named 3D render layers."
+                },
+                {
+                    "name": "PROPERTY_HINT_LAYERS_3D_PHYSICS",
+                    "value": 11,
+                    "description": "Hints that an [int] property is a bitmask using the optionally named 3D physics layers."
+                },
+                {
+                    "name": "PROPERTY_HINT_LAYERS_3D_NAVIGATION",
+                    "value": 12,
+                    "description": "Hints that an [int] property is a bitmask using the optionally named 3D navigation layers."
+                },
+                {
+                    "name": "PROPERTY_HINT_LAYERS_AVOIDANCE",
+                    "value": 37,
+                    "description": "Hints that an integer property is a bitmask using the optionally named avoidance layers."
+                },
+                {
+                    "name": "PROPERTY_HINT_FILE",
+                    "value": 13,
+                    "description": "Hints that a [String] property is a path to a file. Editing it will show a file dialog for picking the path. The hint string can be a set of filters with wildcards like [code]\"*.png,*.jpg\"[/code]. By default the file will be stored as UID whenever available. You can use [ResourceUID] methods to convert it back to path. For storing a raw path, use [constant PROPERTY_HINT_FILE_PATH]."
+                },
+                {
+                    "name": "PROPERTY_HINT_DIR",
+                    "value": 14,
+                    "description": "Hints that a [String] property is a path to a directory. Editing it will show a file dialog for picking the path."
+                },
+                {
+                    "name": "PROPERTY_HINT_GLOBAL_FILE",
+                    "value": 15,
+                    "description": "Hints that a [String] property is an absolute path to a file outside the project folder. Editing it will show a file dialog for picking the path. The hint string can be a set of filters with wildcards, like [code]\"*.png,*.jpg\"[/code]."
+                },
+                {
+                    "name": "PROPERTY_HINT_GLOBAL_DIR",
+                    "value": 16,
+                    "description": "Hints that a [String] property is an absolute path to a directory outside the project folder. Editing it will show a file dialog for picking the path."
+                },
+                {
+                    "name": "PROPERTY_HINT_RESOURCE_TYPE",
+                    "value": 17,
+                    "description": "Hints that a property is an instance of a [Resource]-derived type, optionally specified via the hint string (e.g. [code]\"Texture2D\"[/code]). Editing it will show a popup menu of valid resource types to instantiate."
+                },
+                {
+                    "name": "PROPERTY_HINT_MULTILINE_TEXT",
+                    "value": 18,
+                    "description": "Hints that a [String] property is text with line breaks. Editing it will show a text input field where line breaks can be typed.\nThe hint string can be set to [code]\"monospace\"[/code] to force the input field to use a monospaced font.\nIf the hint string [code]\"no_wrap\"[/code] is set, the input field will not wrap lines at boundaries, instead resorting to making the area scrollable."
+                },
+                {
+                    "name": "PROPERTY_HINT_EXPRESSION",
+                    "value": 19,
+                    "description": "Hints that a [String] property is an [Expression]."
+                },
+                {
+                    "name": "PROPERTY_HINT_PLACEHOLDER_TEXT",
+                    "value": 20,
+                    "description": "Hints that a [String] property should show a placeholder text on its input field, if empty. The hint string is the placeholder text to use."
+                },
+                {
+                    "name": "PROPERTY_HINT_COLOR_NO_ALPHA",
+                    "value": 21,
+                    "description": "Hints that a [Color] property should be edited without affecting its transparency ([member Color.a] is not editable)."
+                },
+                {
+                    "name": "PROPERTY_HINT_OBJECT_ID",
+                    "value": 22,
+                    "description": "Hints that the property's value is an object encoded as object ID, with its type specified in the hint string. Used by the debugger."
+                },
+                {
+                    "name": "PROPERTY_HINT_TYPE_STRING",
+                    "value": 23,
+                    "description": "If a property is [String], hints that the property represents a particular type (class). This allows to select a type from the create dialog. The property will store the selected type as a string.\nIf a property is [Array], hints the editor how to show elements. The [code]hint_string[/code] must encode nested types using [code]\":\"[/code] and [code]\"/\"[/code].\nIf a property is [Dictionary], hints the editor how to show elements. The [code]hint_string[/code] is the same as [Array], with a [code]\";\"[/code] separating the key and value.\n[codeblocks]\n[gdscript]\n# Array of elem_type.\nhint_string = \"%d:\" % [elem_type]\nhint_string = \"%d/%d:%s\" % [elem_type, elem_hint, elem_hint_string]\n# Two-dimensional array of elem_type (array of arrays of elem_type).\nhint_string = \"%d:%d:\" % [TYPE_ARRAY, elem_type]\nhint_string = \"%d:%d/%d:%s\" % [TYPE_ARRAY, elem_type, elem_hint, elem_hint_string]\n# Three-dimensional array of elem_type (array of arrays of arrays of elem_type).\nhint_string = \"%d:%d:%d:\" % [TYPE_ARRAY, TYPE_ARRAY, elem_type]\nhint_string = \"%d:%d:%d/%d:%s\" % [TYPE_ARRAY, TYPE_ARRAY, elem_type, elem_hint, elem_hint_string]\n[/gdscript]\n[csharp]\n// Array of elemType.\nhintString = $\"{elemType:D}:\";\nhintString = $\"{elemType:}/{elemHint:D}:{elemHintString}\";\n// Two-dimensional array of elemType (array of arrays of elemType).\nhintString = $\"{Variant.Type.Array:D}:{elemType:D}:\";\nhintString = $\"{Variant.Type.Array:D}:{elemType:D}/{elemHint:D}:{elemHintString}\";\n// Three-dimensional array of elemType (array of arrays of arrays of elemType).\nhintString = $\"{Variant.Type.Array:D}:{Variant.Type.Array:D}:{elemType:D}:\";\nhintString = $\"{Variant.Type.Array:D}:{Variant.Type.Array:D}:{elemType:D}/{elemHint:D}:{elemHintString}\";\n[/csharp]\n[/codeblocks]\n[b]Examples:[/b]\n[codeblocks]\n[gdscript]\nhint_string = \"%d:\" % [TYPE_INT] # Array of integers.\nhint_string = \"%d/%d:1,10,1\" % [TYPE_INT, PROPERTY_HINT_RANGE] # Array of integers (in range from 1 to 10).\nhint_string = \"%d/%d:Zero,One,Two\" % [TYPE_INT, PROPERTY_HINT_ENUM] # Array of integers (an enum).\nhint_string = \"%d/%d:Zero,One,Three:3,Six:6\" % [TYPE_INT, PROPERTY_HINT_ENUM] # Array of integers (an enum).\nhint_string = \"%d/%d:*.png\" % [TYPE_STRING, PROPERTY_HINT_FILE] # Array of strings (file paths).\nhint_string = \"%d/%d:Texture2D\" % [TYPE_OBJECT, PROPERTY_HINT_RESOURCE_TYPE] # Array of textures.\n\nhint_string = \"%d:%d:\" % [TYPE_ARRAY, TYPE_FLOAT] # Two-dimensional array of floats.\nhint_string = \"%d:%d/%d:\" % [TYPE_ARRAY, TYPE_STRING, PROPERTY_HINT_MULTILINE_TEXT] # Two-dimensional array of multiline strings.\nhint_string = \"%d:%d/%d:-1,1,0.1\" % [TYPE_ARRAY, TYPE_FLOAT, PROPERTY_HINT_RANGE] # Two-dimensional array of floats (in range from -1 to 1).\nhint_string = \"%d:%d/%d:Texture2D\" % [TYPE_ARRAY, TYPE_OBJECT, PROPERTY_HINT_RESOURCE_TYPE] # Two-dimensional array of textures.\n[/gdscript]\n[csharp]\nhintString = $\"{Variant.Type.Int:D}/{PropertyHint.Range:D}:1,10,1\"; // Array of integers (in range from 1 to 10).\nhintString = $\"{Variant.Type.Int:D}/{PropertyHint.Enum:D}:Zero,One,Two\"; // Array of integers (an enum).\nhintString = $\"{Variant.Type.Int:D}/{PropertyHint.Enum:D}:Zero,One,Three:3,Six:6\"; // Array of integers (an enum).\nhintString = $\"{Variant.Type.String:D}/{PropertyHint.File:D}:*.png\"; // Array of strings (file paths).\nhintString = $\"{Variant.Type.Object:D}/{PropertyHint.ResourceType:D}:Texture2D\"; // Array of textures.\n\nhintString = $\"{Variant.Type.Array:D}:{Variant.Type.Float:D}:\"; // Two-dimensional array of floats.\nhintString = $\"{Variant.Type.Array:D}:{Variant.Type.String:D}/{PropertyHint.MultilineText:D}:\"; // Two-dimensional array of multiline strings.\nhintString = $\"{Variant.Type.Array:D}:{Variant.Type.Float:D}/{PropertyHint.Range:D}:-1,1,0.1\"; // Two-dimensional array of floats (in range from -1 to 1).\nhintString = $\"{Variant.Type.Array:D}:{Variant.Type.Object:D}/{PropertyHint.ResourceType:D}:Texture2D\"; // Two-dimensional array of textures.\n[/csharp]\n[/codeblocks]\n[b]Note:[/b] The trailing colon is required for properly detecting built-in types."
+                },
+                {
+                    "name": "PROPERTY_HINT_NODE_PATH_TO_EDITED_NODE",
+                    "value": 24,
+                    "description": ""
+                },
+                {
+                    "name": "PROPERTY_HINT_OBJECT_TOO_BIG",
+                    "value": 25,
+                    "description": "Hints that an object is too big to be sent via the debugger."
+                },
+                {
+                    "name": "PROPERTY_HINT_NODE_PATH_VALID_TYPES",
+                    "value": 26,
+                    "description": "Hints that the hint string specifies valid node types for property of type [NodePath]."
+                },
+                {
+                    "name": "PROPERTY_HINT_SAVE_FILE",
+                    "value": 27,
+                    "description": "Hints that a [String] property is a path to a file. Editing it will show a file dialog for picking the path for the file to be saved at. The dialog has access to the project's directory. The hint string can be a set of filters with wildcards like [code]\"*.png,*.jpg\"[/code]. See also [member FileDialog.filters]."
+                },
+                {
+                    "name": "PROPERTY_HINT_GLOBAL_SAVE_FILE",
+                    "value": 28,
+                    "description": "Hints that a [String] property is a path to a file. Editing it will show a file dialog for picking the path for the file to be saved at. The dialog has access to the entire filesystem. The hint string can be a set of filters with wildcards like [code]\"*.png,*.jpg\"[/code]. See also [member FileDialog.filters]."
+                },
+                {
+                    "name": "PROPERTY_HINT_INT_IS_OBJECTID",
+                    "value": 29,
+                    "description": ""
+                },
+                {
+                    "name": "PROPERTY_HINT_INT_IS_POINTER",
+                    "value": 30,
+                    "description": "Hints that an [int] property is a pointer. Used by GDExtension."
+                },
+                {
+                    "name": "PROPERTY_HINT_ARRAY_TYPE",
+                    "value": 31,
+                    "description": "Hints that a property is an [Array] with the stored type specified in the hint string. The hint string contains the type of the array (e.g. [code]\"String\"[/code]).\nUse the hint string format from [constant PROPERTY_HINT_TYPE_STRING] for more control over the stored type."
+                },
+                {
+                    "name": "PROPERTY_HINT_DICTIONARY_TYPE",
+                    "value": 38,
+                    "description": "Hints that a property is a [Dictionary] with the stored types specified in the hint string. The hint string contains the key and value types separated by a semicolon (e.g. [code]\"int;String\"[/code]).\nUse the hint string format from [constant PROPERTY_HINT_TYPE_STRING] for more control over the stored types."
+                },
+                {
+                    "name": "PROPERTY_HINT_LOCALE_ID",
+                    "value": 32,
+                    "description": "Hints that a string property is a locale code. Editing it will show a locale dialog for picking language and country."
+                },
+                {
+                    "name": "PROPERTY_HINT_LOCALIZABLE_STRING",
+                    "value": 33,
+                    "description": "Hints that a dictionary property is string translation map. Dictionary keys are locale codes and, values are translated strings."
+                },
+                {
+                    "name": "PROPERTY_HINT_NODE_TYPE",
+                    "value": 34,
+                    "description": "Hints that a property is an instance of a [Node]-derived type, optionally specified via the hint string (e.g. [code]\"Node2D\"[/code]). Editing it will show a dialog for picking a node from the scene."
+                },
+                {
+                    "name": "PROPERTY_HINT_HIDE_QUATERNION_EDIT",
+                    "value": 35,
+                    "description": "Hints that a quaternion property should disable the temporary euler editor."
+                },
+                {
+                    "name": "PROPERTY_HINT_PASSWORD",
+                    "value": 36,
+                    "description": "Hints that a string property is a password, and every character is replaced with the secret character."
+                },
+                {
+                    "name": "PROPERTY_HINT_TOOL_BUTTON",
+                    "value": 39,
+                    "description": "Hints that a [Callable] property should be displayed as a clickable button. When the button is pressed, the callable is called. The hint string specifies the button text and optionally an icon from the [code]\"EditorIcons\"[/code] theme type.\n[codeblock lang=text]\n\"Click me!\" - A button with the text \"Click me!\" and the default \"Callable\" icon.\n\"Click me!,ColorRect\" - A button with the text \"Click me!\" and the \"ColorRect\" icon.\n[/codeblock]\n[b]Note:[/b] A [Callable] cannot be properly serialized and stored in a file, so it is recommended to use [constant PROPERTY_USAGE_EDITOR] instead of [constant PROPERTY_USAGE_DEFAULT]."
+                },
+                {
+                    "name": "PROPERTY_HINT_ONESHOT",
+                    "value": 40,
+                    "description": "Hints that a property will be changed on its own after setting, such as [member AudioStreamPlayer.playing] or [member GPUParticles3D.emitting]."
+                },
+                {
+                    "name": "PROPERTY_HINT_GROUP_ENABLE",
+                    "value": 42,
+                    "description": "Hints that a boolean property will enable the feature associated with the group that it occurs in. The property will be displayed as a checkbox on the group header. Only works within a group or subgroup.\nBy default, disabling the property hides all properties in the group. Use the optional hint string [code]\"checkbox_only\"[/code] to disable this behavior."
+                },
+                {
+                    "name": "PROPERTY_HINT_INPUT_NAME",
+                    "value": 43,
+                    "description": "Hints that a [String] or [StringName] property is the name of an input action. This allows the selection of any action name from the Input Map in the Project Settings. The hint string may contain two options separated by commas:\n- If it contains [code]\"show_builtin\"[/code], built-in input actions are included in the selection.\n- If it contains [code]\"loose_mode\"[/code], loose mode is enabled. This allows inserting any action name even if it's not present in the input map."
+                },
+                {
+                    "name": "PROPERTY_HINT_FILE_PATH",
+                    "value": 44,
+                    "description": "Like [constant PROPERTY_HINT_FILE], but the property is stored as a raw path, not UID. That means the reference will be broken if you move the file. Consider using [constant PROPERTY_HINT_FILE] when possible."
+                },
+                {
+                    "name": "PROPERTY_HINT_MAX",
+                    "value": 45,
+                    "description": "Represents the size of the [enum PropertyHint] enum."
+                }
+            ]
+        },
+        {
+            "name": "PropertyUsageFlags",
+            "is_bitfield": true,
+            "values": [
+                {
+                    "name": "PROPERTY_USAGE_NONE",
+                    "value": 0,
+                    "description": "The property is not stored, and does not display in the editor. This is the default for non-exported properties."
+                },
+                {
+                    "name": "PROPERTY_USAGE_STORAGE",
+                    "value": 2,
+                    "description": "The property is serialized and saved in the scene file (default for exported properties)."
+                },
+                {
+                    "name": "PROPERTY_USAGE_EDITOR",
+                    "value": 4,
+                    "description": "The property is shown in the [EditorInspector] (default for exported properties)."
+                },
+                {
+                    "name": "PROPERTY_USAGE_INTERNAL",
+                    "value": 8,
+                    "description": "The property is excluded from the class reference."
+                },
+                {
+                    "name": "PROPERTY_USAGE_CHECKABLE",
+                    "value": 16,
+                    "description": "The property can be checked in the [EditorInspector]."
+                },
+                {
+                    "name": "PROPERTY_USAGE_CHECKED",
+                    "value": 32,
+                    "description": "The property is checked in the [EditorInspector]."
+                },
+                {
+                    "name": "PROPERTY_USAGE_GROUP",
+                    "value": 64,
+                    "description": "Used to group properties together in the editor. See [EditorInspector]."
+                },
+                {
+                    "name": "PROPERTY_USAGE_CATEGORY",
+                    "value": 128,
+                    "description": "Used to categorize properties together in the editor."
+                },
+                {
+                    "name": "PROPERTY_USAGE_SUBGROUP",
+                    "value": 256,
+                    "description": "Used to group properties together in the editor in a subgroup (under a group). See [EditorInspector]."
+                },
+                {
+                    "name": "PROPERTY_USAGE_CLASS_IS_BITFIELD",
+                    "value": 512,
+                    "description": "The property is a bitfield, i.e. it contains multiple flags represented as bits."
+                },
+                {
+                    "name": "PROPERTY_USAGE_NO_INSTANCE_STATE",
+                    "value": 1024,
+                    "description": "The property does not save its state in [PackedScene]."
+                },
+                {
+                    "name": "PROPERTY_USAGE_RESTART_IF_CHANGED",
+                    "value": 2048,
+                    "description": "Editing the property prompts the user for restarting the editor."
+                },
+                {
+                    "name": "PROPERTY_USAGE_SCRIPT_VARIABLE",
+                    "value": 4096,
+                    "description": "The property is a script variable. [constant PROPERTY_USAGE_SCRIPT_VARIABLE] can be used to distinguish between exported script variables from built-in variables (which don't have this usage flag). By default, [constant PROPERTY_USAGE_SCRIPT_VARIABLE] is [b]not[/b] applied to variables that are created by overriding [method Object._get_property_list] in a script."
+                },
+                {
+                    "name": "PROPERTY_USAGE_STORE_IF_NULL",
+                    "value": 8192,
+                    "description": "The property value of type [Object] will be stored even if its value is [code]null[/code]."
+                },
+                {
+                    "name": "PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED",
+                    "value": 16384,
+                    "description": "If this property is modified, all inspector fields will be refreshed."
+                },
+                {
+                    "name": "PROPERTY_USAGE_SCRIPT_DEFAULT_VALUE",
+                    "value": 32768,
+                    "description": ""
+                },
+                {
+                    "name": "PROPERTY_USAGE_CLASS_IS_ENUM",
+                    "value": 65536,
+                    "description": "The property is a variable of enum type, i.e. it only takes named integer constants from its associated enumeration."
+                },
+                {
+                    "name": "PROPERTY_USAGE_NIL_IS_VARIANT",
+                    "value": 131072,
+                    "description": "If property has [code]nil[/code] as default value, its type will be [Variant]."
+                },
+                {
+                    "name": "PROPERTY_USAGE_ARRAY",
+                    "value": 262144,
+                    "description": "The property is the element count of a property array, i.e. a list of groups of related properties. Properties defined with this usage also need a specific [code]class_name[/code] field in the form of [code]label,prefix[/code]. The field may also include additional comma-separated options:\n- [code]page_size=N[/code]: Overrides [member EditorSettings.interface/inspector/max_array_dictionary_items_per_page] for this array.\n- [code]add_button_text=text[/code]: The text displayed by the \"Add Element\" button.\n- [code]static[/code]: The elements can't be re-arranged.\n- [code]const[/code]: New elements can't be added.\n- [code]numbered[/code]: An index will appear next to each element.\n- [code]unfoldable[/code]: The array can't be folded.\n- [code]swap_method=method_name[/code]: The method that will be called when two elements switch places. The method should take 2 [int] parameters, which will be indices of the elements being swapped.\nNote that making a full-fledged property array requires boilerplate code involving [method Object._get_property_list]."
+                },
+                {
+                    "name": "PROPERTY_USAGE_ALWAYS_DUPLICATE",
+                    "value": 524288,
+                    "description": "When duplicating a resource with [method Resource.duplicate], and this flag is set on a property of that resource, the property should always be duplicated, regardless of the [code]subresources[/code] bool parameter."
+                },
+                {
+                    "name": "PROPERTY_USAGE_NEVER_DUPLICATE",
+                    "value": 1048576,
+                    "description": "When duplicating a resource with [method Resource.duplicate], and this flag is set on a property of that resource, the property should never be duplicated, regardless of the [code]subresources[/code] bool parameter."
+                },
+                {
+                    "name": "PROPERTY_USAGE_HIGH_END_GFX",
+                    "value": 2097152,
+                    "description": "The property is only shown in the editor if modern renderers are supported (the Compatibility rendering method is excluded)."
+                },
+                {
+                    "name": "PROPERTY_USAGE_NODE_PATH_FROM_SCENE_ROOT",
+                    "value": 4194304,
+                    "description": "The [NodePath] property will always be relative to the scene's root. Mostly useful for local resources."
+                },
+                {
+                    "name": "PROPERTY_USAGE_RESOURCE_NOT_PERSISTENT",
+                    "value": 8388608,
+                    "description": "Use when a resource is created on the fly, i.e. the getter will always return a different instance. [ResourceSaver] needs this information to properly save such resources."
+                },
+                {
+                    "name": "PROPERTY_USAGE_KEYING_INCREMENTS",
+                    "value": 16777216,
+                    "description": "Inserting an animation key frame of this property will automatically increment the value, allowing to easily keyframe multiple values in a row."
+                },
+                {
+                    "name": "PROPERTY_USAGE_DEFERRED_SET_RESOURCE",
+                    "value": 33554432,
+                    "description": ""
+                },
+                {
+                    "name": "PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT",
+                    "value": 67108864,
+                    "description": "When this property is a [Resource] and base object is a [Node], a resource instance will be automatically created whenever the node is created in the editor."
+                },
+                {
+                    "name": "PROPERTY_USAGE_EDITOR_BASIC_SETTING",
+                    "value": 134217728,
+                    "description": "The property is considered a basic setting and will appear even when advanced mode is disabled. Used for project settings."
+                },
+                {
+                    "name": "PROPERTY_USAGE_READ_ONLY",
+                    "value": 268435456,
+                    "description": "The property is read-only in the [EditorInspector]."
+                },
+                {
+                    "name": "PROPERTY_USAGE_SECRET",
+                    "value": 536870912,
+                    "description": "An export preset property with this flag contains confidential information and is stored separately from the rest of the export preset configuration."
+                },
+                {
+                    "name": "PROPERTY_USAGE_DEFAULT",
+                    "value": 6,
+                    "description": "Default usage (storage and editor)."
+                },
+                {
+                    "name": "PROPERTY_USAGE_NO_EDITOR",
+                    "value": 2,
+                    "description": "Default usage but without showing the property in the editor (storage)."
+                }
+            ]
+        },
+        {
+            "name": "MethodFlags",
+            "is_bitfield": true,
+            "values": [
+                {
+                    "name": "METHOD_FLAG_NORMAL",
+                    "value": 1,
+                    "description": "Flag for a normal method."
+                },
+                {
+                    "name": "METHOD_FLAG_EDITOR",
+                    "value": 2,
+                    "description": "Flag for an editor method."
+                },
+                {
+                    "name": "METHOD_FLAG_CONST",
+                    "value": 4,
+                    "description": "Flag for a constant method."
+                },
+                {
+                    "name": "METHOD_FLAG_VIRTUAL",
+                    "value": 8,
+                    "description": "Flag for a virtual method."
+                },
+                {
+                    "name": "METHOD_FLAG_VARARG",
+                    "value": 16,
+                    "description": "Flag for a method with a variable number of arguments."
+                },
+                {
+                    "name": "METHOD_FLAG_STATIC",
+                    "value": 32,
+                    "description": "Flag for a static method."
+                },
+                {
+                    "name": "METHOD_FLAG_OBJECT_CORE",
+                    "value": 64,
+                    "description": "Used internally. Allows to not dump core virtual methods (such as [method Object._notification]) to the JSON API."
+                },
+                {
+                    "name": "METHOD_FLAG_VIRTUAL_REQUIRED",
+                    "value": 128,
+                    "description": "Flag for a virtual method that is required. In GDScript, this flag is set for abstract functions."
+                },
+                {
+                    "name": "METHOD_FLAGS_DEFAULT",
+                    "value": 1,
+                    "description": "Default method flags (normal)."
+                }
+            ]
+        },
+        {
+            "name": "Variant.Type",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "TYPE_NIL",
+                    "value": 0,
+                    "description": "Variable is [code]null[/code]."
+                },
+                {
+                    "name": "TYPE_BOOL",
+                    "value": 1,
+                    "description": "Variable is of type [bool]."
+                },
+                {
+                    "name": "TYPE_INT",
+                    "value": 2,
+                    "description": "Variable is of type [int]."
+                },
+                {
+                    "name": "TYPE_FLOAT",
+                    "value": 3,
+                    "description": "Variable is of type [float]."
+                },
+                {
+                    "name": "TYPE_STRING",
+                    "value": 4,
+                    "description": "Variable is of type [String]."
+                },
+                {
+                    "name": "TYPE_VECTOR2",
+                    "value": 5,
+                    "description": "Variable is of type [Vector2]."
+                },
+                {
+                    "name": "TYPE_VECTOR2I",
+                    "value": 6,
+                    "description": "Variable is of type [Vector2i]."
+                },
+                {
+                    "name": "TYPE_RECT2",
+                    "value": 7,
+                    "description": "Variable is of type [Rect2]."
+                },
+                {
+                    "name": "TYPE_RECT2I",
+                    "value": 8,
+                    "description": "Variable is of type [Rect2i]."
+                },
+                {
+                    "name": "TYPE_VECTOR3",
+                    "value": 9,
+                    "description": "Variable is of type [Vector3]."
+                },
+                {
+                    "name": "TYPE_VECTOR3I",
+                    "value": 10,
+                    "description": "Variable is of type [Vector3i]."
+                },
+                {
+                    "name": "TYPE_TRANSFORM2D",
+                    "value": 11,
+                    "description": "Variable is of type [Transform2D]."
+                },
+                {
+                    "name": "TYPE_VECTOR4",
+                    "value": 12,
+                    "description": "Variable is of type [Vector4]."
+                },
+                {
+                    "name": "TYPE_VECTOR4I",
+                    "value": 13,
+                    "description": "Variable is of type [Vector4i]."
+                },
+                {
+                    "name": "TYPE_PLANE",
+                    "value": 14,
+                    "description": "Variable is of type [Plane]."
+                },
+                {
+                    "name": "TYPE_QUATERNION",
+                    "value": 15,
+                    "description": "Variable is of type [Quaternion]."
+                },
+                {
+                    "name": "TYPE_AABB",
+                    "value": 16,
+                    "description": "Variable is of type [AABB]."
+                },
+                {
+                    "name": "TYPE_BASIS",
+                    "value": 17,
+                    "description": "Variable is of type [Basis]."
+                },
+                {
+                    "name": "TYPE_TRANSFORM3D",
+                    "value": 18,
+                    "description": "Variable is of type [Transform3D]."
+                },
+                {
+                    "name": "TYPE_PROJECTION",
+                    "value": 19,
+                    "description": "Variable is of type [Projection]."
+                },
+                {
+                    "name": "TYPE_COLOR",
+                    "value": 20,
+                    "description": "Variable is of type [Color]."
+                },
+                {
+                    "name": "TYPE_STRING_NAME",
+                    "value": 21,
+                    "description": "Variable is of type [StringName]."
+                },
+                {
+                    "name": "TYPE_NODE_PATH",
+                    "value": 22,
+                    "description": "Variable is of type [NodePath]."
+                },
+                {
+                    "name": "TYPE_RID",
+                    "value": 23,
+                    "description": "Variable is of type [RID]."
+                },
+                {
+                    "name": "TYPE_OBJECT",
+                    "value": 24,
+                    "description": "Variable is of type [Object]."
+                },
+                {
+                    "name": "TYPE_CALLABLE",
+                    "value": 25,
+                    "description": "Variable is of type [Callable]."
+                },
+                {
+                    "name": "TYPE_SIGNAL",
+                    "value": 26,
+                    "description": "Variable is of type [Signal]."
+                },
+                {
+                    "name": "TYPE_DICTIONARY",
+                    "value": 27,
+                    "description": "Variable is of type [Dictionary]."
+                },
+                {
+                    "name": "TYPE_ARRAY",
+                    "value": 28,
+                    "description": "Variable is of type [Array]."
+                },
+                {
+                    "name": "TYPE_PACKED_BYTE_ARRAY",
+                    "value": 29,
+                    "description": "Variable is of type [PackedByteArray]."
+                },
+                {
+                    "name": "TYPE_PACKED_INT32_ARRAY",
+                    "value": 30,
+                    "description": "Variable is of type [PackedInt32Array]."
+                },
+                {
+                    "name": "TYPE_PACKED_INT64_ARRAY",
+                    "value": 31,
+                    "description": "Variable is of type [PackedInt64Array]."
+                },
+                {
+                    "name": "TYPE_PACKED_FLOAT32_ARRAY",
+                    "value": 32,
+                    "description": "Variable is of type [PackedFloat32Array]."
+                },
+                {
+                    "name": "TYPE_PACKED_FLOAT64_ARRAY",
+                    "value": 33,
+                    "description": "Variable is of type [PackedFloat64Array]."
+                },
+                {
+                    "name": "TYPE_PACKED_STRING_ARRAY",
+                    "value": 34,
+                    "description": "Variable is of type [PackedStringArray]."
+                },
+                {
+                    "name": "TYPE_PACKED_VECTOR2_ARRAY",
+                    "value": 35,
+                    "description": "Variable is of type [PackedVector2Array]."
+                },
+                {
+                    "name": "TYPE_PACKED_VECTOR3_ARRAY",
+                    "value": 36,
+                    "description": "Variable is of type [PackedVector3Array]."
+                },
+                {
+                    "name": "TYPE_PACKED_COLOR_ARRAY",
+                    "value": 37,
+                    "description": "Variable is of type [PackedColorArray]."
+                },
+                {
+                    "name": "TYPE_PACKED_VECTOR4_ARRAY",
+                    "value": 38,
+                    "description": "Variable is of type [PackedVector4Array]."
+                },
+                {
+                    "name": "TYPE_MAX",
+                    "value": 39,
+                    "description": "Represents the size of the [enum Variant.Type] enum."
+                }
+            ]
+        },
+        {
+            "name": "Variant.Operator",
+            "is_bitfield": false,
+            "values": [
+                {
+                    "name": "OP_EQUAL",
+                    "value": 0,
+                    "description": "Equality operator ([code]==[/code])."
+                },
+                {
+                    "name": "OP_NOT_EQUAL",
+                    "value": 1,
+                    "description": "Inequality operator ([code]!=[/code])."
+                },
+                {
+                    "name": "OP_LESS",
+                    "value": 2,
+                    "description": "Less than operator ([code]<[/code])."
+                },
+                {
+                    "name": "OP_LESS_EQUAL",
+                    "value": 3,
+                    "description": "Less than or equal operator ([code]<=[/code])."
+                },
+                {
+                    "name": "OP_GREATER",
+                    "value": 4,
+                    "description": "Greater than operator ([code]>[/code])."
+                },
+                {
+                    "name": "OP_GREATER_EQUAL",
+                    "value": 5,
+                    "description": "Greater than or equal operator ([code]>=[/code])."
+                },
+                {
+                    "name": "OP_ADD",
+                    "value": 6,
+                    "description": "Addition operator ([code]+[/code])."
+                },
+                {
+                    "name": "OP_SUBTRACT",
+                    "value": 7,
+                    "description": "Subtraction operator ([code]-[/code])."
+                },
+                {
+                    "name": "OP_MULTIPLY",
+                    "value": 8,
+                    "description": "Multiplication operator ([code]*[/code])."
+                },
+                {
+                    "name": "OP_DIVIDE",
+                    "value": 9,
+                    "description": "Division operator ([code]/[/code])."
+                },
+                {
+                    "name": "OP_NEGATE",
+                    "value": 10,
+                    "description": "Unary negation operator ([code]-[/code])."
+                },
+                {
+                    "name": "OP_POSITIVE",
+                    "value": 11,
+                    "description": "Unary plus operator ([code]+[/code])."
+                },
+                {
+                    "name": "OP_MODULE",
+                    "value": 12,
+                    "description": "Remainder/modulo operator ([code]%[/code])."
+                },
+                {
+                    "name": "OP_POWER",
+                    "value": 13,
+                    "description": "Power operator ([code]**[/code])."
+                },
+                {
+                    "name": "OP_SHIFT_LEFT",
+                    "value": 14,
+                    "description": "Left shift operator ([code]<<[/code])."
+                },
+                {
+                    "name": "OP_SHIFT_RIGHT",
+                    "value": 15,
+                    "description": "Right shift operator ([code]>>[/code])."
+                },
+                {
+                    "name": "OP_BIT_AND",
+                    "value": 16,
+                    "description": "Bitwise AND operator ([code]&[/code])."
+                },
+                {
+                    "name": "OP_BIT_OR",
+                    "value": 17,
+                    "description": "Bitwise OR operator ([code]|[/code])."
+                },
+                {
+                    "name": "OP_BIT_XOR",
+                    "value": 18,
+                    "description": "Bitwise XOR operator ([code]^[/code])."
+                },
+                {
+                    "name": "OP_BIT_NEGATE",
+                    "value": 19,
+                    "description": "Bitwise NOT operator ([code]~[/code])."
+                },
+                {
+                    "name": "OP_AND",
+                    "value": 20,
+                    "description": "Logical AND operator ([code]and[/code] or [code]&&[/code])."
+                },
+                {
+                    "name": "OP_OR",
+                    "value": 21,
+                    "description": "Logical OR operator ([code]or[/code] or [code]||[/code])."
+                },
+                {
+                    "name": "OP_XOR",
+                    "value": 22,
+                    "description": "Logical XOR operator (not implemented in GDScript)."
+                },
+                {
+                    "name": "OP_NOT",
+                    "value": 23,
+                    "description": "Logical NOT operator ([code]not[/code] or [code]![/code])."
+                },
+                {
+                    "name": "OP_IN",
+                    "value": 24,
+                    "description": "Logical IN operator ([code]in[/code])."
+                },
+                {
+                    "name": "OP_MAX",
+                    "value": 25,
+                    "description": "Represents the size of the [enum Variant.Operator] enum."
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,829 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://godotengine.org/extension_api.schema.json",
+    "description": "GDExtension API schema. UNOFFICIAL",
+    "type": "object",
+    "properties": {
+        "header": {
+            "type": "object",
+            "properties": {
+                "version_major": {
+                    "type": "number"
+                },
+                "version_minor": {
+                    "type": "number"
+                },
+                "version_patch": {
+                    "type": "number"
+                },
+                "version_status": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "version_build": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "version_full_name": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "precision": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            },
+            "required": [
+                "version_major",
+                "version_minor",
+                "version_patch",
+                "version_status",
+                "version_build",
+                "version_full_name",
+                "precision"
+            ]
+        },
+        "builtin_class_sizes": {
+            "type": "array",
+            "uniqueItems": true,
+            "minItems": 1,
+            "items": {
+                "required": [
+                    "build_configuration"
+                ],
+                "properties": {
+                    "build_configuration": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "sizes": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "name",
+                                "size"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "size": {
+                                    "type": "number"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "builtin_class_member_offsets": {
+            "type": "array",
+            "uniqueItems": true,
+            "minItems": 1,
+            "items": {
+                "required": [
+                    "build_configuration"
+                ],
+                "properties": {
+                    "build_configuration": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "classes": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "name"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "members": {
+                                    "type": "array",
+                                    "uniqueItems": true,
+                                    "minItems": 1,
+                                    "items": {
+                                        "required": [
+                                            "member",
+                                            "offset",
+                                            "meta"
+                                        ],
+                                        "properties": {
+                                            "member": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            },
+                                            "offset": {
+                                                "type": "number"
+                                            },
+                                            "meta": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "global_constants": {
+            "type": "array",
+            "items": {
+                "required": [],
+                "properties": {}
+            }
+        },
+        "global_enums": {
+            "type": "array",
+            "uniqueItems": true,
+            "minItems": 1,
+            "items": {
+                "required": [
+                    "name",
+                    "is_bitfield"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "is_bitfield": {
+                        "type": "boolean"
+                    },
+                    "values": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "name",
+                                "value",
+                                "description"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "value": {
+                                    "type": "number"
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "utility_functions": {
+            "type": "array",
+            "uniqueItems": true,
+            "minItems": 1,
+            "items": {
+                "required": [
+                    "name",
+                    "return_type",
+                    "category",
+                    "is_vararg",
+                    "hash",
+                    "description"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "return_type": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "category": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "is_vararg": {
+                        "type": "boolean"
+                    },
+                    "hash": {
+                        "type": "number"
+                    },
+                    "arguments": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "name",
+                                "type"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        }
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                }
+            }
+        },
+        "builtin_classes": {
+            "type": "array",
+            "uniqueItems": true,
+            "minItems": 1,
+            "items": {
+                "required": [
+                    "name",
+                    "indexing_return_type",
+                    "is_keyed",
+                    "has_destructor",
+                    "brief_description",
+                    "description"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "indexing_return_type": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "is_keyed": {
+                        "type": "boolean"
+                    },
+                    "members": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "name",
+                                "type",
+                                "description"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        }
+                    },
+                    "constants": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "name",
+                                "type",
+                                "value",
+                                "description"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        }
+                    },
+                    "enums": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "name"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "values": {
+                                    "type": "array",
+                                    "uniqueItems": true,
+                                    "minItems": 1,
+                                    "items": {
+                                        "required": [
+                                            "name",
+                                            "value",
+                                            "description"
+                                        ],
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            },
+                                            "value": {
+                                                "type": "number"
+                                            },
+                                            "description": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "operators": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "name",
+                                "right_type",
+                                "return_type",
+                                "description"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "right_type": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "return_type": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        }
+                    },
+                    "methods": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "name",
+                                "return_type",
+                                "is_vararg",
+                                "is_const",
+                                "is_static",
+                                "hash",
+                                "description"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "return_type": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "is_vararg": {
+                                    "type": "boolean"
+                                },
+                                "is_const": {
+                                    "type": "boolean"
+                                },
+                                "is_static": {
+                                    "type": "boolean"
+                                },
+                                "hash": {
+                                    "type": "number"
+                                },
+                                "arguments": {
+                                    "type": "array",
+                                    "uniqueItems": true,
+                                    "minItems": 1,
+                                    "items": {
+                                        "required": [
+                                            "name",
+                                            "type"
+                                        ],
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            }
+                                        }
+                                    }
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        }
+                    },
+                    "constructors": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "index",
+                                "description"
+                            ],
+                            "properties": {
+                                "index": {
+                                    "type": "number"
+                                },
+                                "arguments": {
+                                    "type": "array",
+                                    "uniqueItems": true,
+                                    "minItems": 1,
+                                    "items": {
+                                        "required": [
+                                            "name",
+                                            "type"
+                                        ],
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            }
+                                        }
+                                    }
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        }
+                    },
+                    "has_destructor": {
+                        "type": "boolean"
+                    },
+                    "brief_description": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                }
+            }
+        },
+        "classes": {
+            "type": "array",
+            "uniqueItems": true,
+            "minItems": 1,
+            "items": {
+                "required": [
+                    "name",
+                    "is_refcounted",
+                    "is_instantiable",
+                    "inherits",
+                    "api_type",
+                    "brief_description",
+                    "description"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "is_refcounted": {
+                        "type": "boolean"
+                    },
+                    "is_instantiable": {
+                        "type": "boolean"
+                    },
+                    "inherits": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "api_type": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "constants": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "name",
+                                "value",
+                                "description"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "value": {
+                                    "type": "number"
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        }
+                    },
+                    "enums": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "name",
+                                "is_bitfield"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "is_bitfield": {
+                                    "type": "boolean"
+                                },
+                                "values": {
+                                    "type": "array",
+                                    "uniqueItems": true,
+                                    "minItems": 1,
+                                    "items": {
+                                        "required": [
+                                            "name",
+                                            "value",
+                                            "description"
+                                        ],
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            },
+                                            "value": {
+                                                "type": "number"
+                                            },
+                                            "description": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "methods": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "name",
+                                "is_const",
+                                "is_vararg",
+                                "is_static",
+                                "is_virtual",
+                                "hash",
+                                "description"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "is_const": {
+                                    "type": "boolean"
+                                },
+                                "is_vararg": {
+                                    "type": "boolean"
+                                },
+                                "is_static": {
+                                    "type": "boolean"
+                                },
+                                "is_virtual": {
+                                    "type": "boolean"
+                                },
+                                "hash": {
+                                    "type": "number"
+                                },
+                                "hash_compatibility": {
+                                    "type": "array",
+                                    "items": {
+                                        "required": [],
+                                        "properties": {}
+                                    }
+                                },
+                                "arguments": {
+                                    "type": "array",
+                                    "uniqueItems": true,
+                                    "minItems": 1,
+                                    "items": {
+                                        "required": [
+                                            "name",
+                                            "type",
+                                            "meta",
+                                            "default_value"
+                                        ],
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            },
+                                            "meta": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            },
+                                            "default_value": {
+                                                "type": "string",
+                                                "minLength": 1
+                                            }
+                                        }
+                                    }
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        }
+                    },
+                    "signals": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "name",
+                                "description"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        }
+                    },
+                    "properties": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "minItems": 1,
+                        "items": {
+                            "required": [
+                                "type",
+                                "name",
+                                "setter",
+                                "getter",
+                                "description"
+                            ],
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "setter": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "getter": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        }
+                    },
+                    "brief_description": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                }
+            }
+        },
+        "singletons": {
+            "type": "array",
+            "uniqueItems": true,
+            "minItems": 1,
+            "items": {
+                "required": [
+                    "name",
+                    "type"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "type": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                }
+            }
+        },
+        "native_structures": {
+            "type": "array",
+            "uniqueItems": true,
+            "minItems": 1,
+            "items": {
+                "required": [
+                    "name",
+                    "format"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "format": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                }
+            }
+        }
+    },
+    "required": [
+        "header",
+        "builtin_class_sizes",
+        "builtin_class_member_offsets",
+        "global_constants",
+        "global_enums",
+        "utility_functions",
+        "builtin_classes",
+        "classes",
+        "singletons",
+        "native_structures"
+    ],
+    "additionalProperties": false
+}
