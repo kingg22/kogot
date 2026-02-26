@@ -5,9 +5,26 @@ plugins {
     id("buildlogic.java-styles-conventions") // Don't apply styles because it's not working with jextract output
 }
 
+val extractJextract by tasks.registering(Copy::class) {
+    group = "codegen"
+    description = "Extract jextract archive"
+
+    val archive = layout.projectDirectory.file("tools/openjdk-25-jextract+2-4_linux-x64_bin.tar.gz")
+
+    // Destino final limpio
+    val outputDir = layout.buildDirectory.dir("tools")
+
+    from(tarTree(resources.gzip(archive)))
+    into(outputDir)
+
+    // Evita re-extraer si ya existe
+    outputs.dir(outputDir)
+}
+
 val jextract by tasks.registering(Exec::class) {
     group = "codegen"
     description = "Run jextract to generate bindings"
+    dependsOn(extractJextract)
 
     // Params
     val targetPackage = "io.github.kingg22.godot.internal.ffm"
@@ -24,19 +41,20 @@ val jextract by tasks.registering(Exec::class) {
     }
 
     // ⚙️ Configurables
-    val jextractBinary = layout.projectDirectory.file("tools/jextract-25/bin/jextract").asFile
+    val jextractBinary = layout.buildDirectory.file("tools/jextract-25/bin/jextract").get().asFile
     val argsFile = layout.projectDirectory.file("scripts/v4_6_1/godot_includes.txt").asFile
     val headerPath = rootProject.layout.projectDirectory.file("godot-version/v4_6_1/gdextension_interface.h").asFile
     val outputDir = layout.buildDirectory.dir("generated/jextract").get().asFile
-    require(jextractBinary.exists() && argsFile.exists() && headerPath.exists()) {
-        "jextract binary, args file, or header not found"
-    }
 
     inputs.files(argsFile, headerPath)
     outputs.dir(outputDir)
 
     // 🧹 Limpiar output previo
     doFirst {
+        require(jextractBinary.exists() && argsFile.exists() && headerPath.exists()) {
+            "jextract binary, args file, or header not found"
+        }
+
         outputDir.deleteRecursively()
         outputDir.mkdirs()
     }

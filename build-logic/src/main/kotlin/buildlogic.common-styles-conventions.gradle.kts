@@ -13,3 +13,7 @@ spotless {
         ktlint("1.8.0")
     }
 }
+
+tasks.spotlessCheck {
+    dependsOn(tasks.spotlessApply)
+}

@@ -1,2 +1,0 @@
-JAVA_VERSION="25"
-MODULES="java.base java.compiler org.openjdk.jextract"
