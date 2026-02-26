@@ -33,6 +33,11 @@ abstract class GenerateGodotTask : JavaExec() {
         classpath = sourceSets["main"].runtimeClasspath
 
         argumentProviders += GodotArgsProvider(this)
+
+        // 🧹 Limpiar output previo
+        doFirst {
+            outputDir.get().asFile.deleteRecursively()
+        }
     }
 
     override fun exec() {
