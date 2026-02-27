@@ -2,6 +2,9 @@
 # https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
 
 [versions]
+# https://github.com/apache/commons-compress/tags
+apache-commons-compress = "1.28.0"
+
 # https://github.com/google/error-prone/releases
 errorprone-core = "2.47.0"
 
@@ -39,12 +42,19 @@ spotless = "8.2.1"
 # https://github.com/palantir/palantir-java-format/releases
 palantir = "2.86.0"
 
+# https://github.com/michel-kraemer/gradle-download-task/releases
+undercouch-download = "5.7.0"
+
 [libraries]
-errorprone-core = { group = "com.google.errorprone", name = "error_prone_core", version.ref = "errorprone-core" }
 jetbrains-annotations = { group = "org.jetbrains", name = "annotations", version.ref = "jetbrains-jvm-annotations" }
-jspecify = { group = "org.jspecify", name = "jspecify", version.ref = "jspecify" }
+
 kotlinpoet = { group = "com.squareup", name = "kotlinpoet", version.ref = "kotlinpoet" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+
+# build-logic
+apache-commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "apache-commons-compress" }
+errorprone-core = { group = "com.google.errorprone", name = "error_prone_core", version.ref = "errorprone-core" }
+jspecify = { group = "org.jspecify", name = "jspecify", version.ref = "jspecify" }
 nullaway = { group = "com.uber.nullaway", name = "nullaway", version.ref = "nullaway" }
 
 # gradle plugins
@@ -52,6 +62,7 @@ erroprone-gradle = { group = "net.ltgt.errorprone", name = "net.ltgt.errorprone.
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 nullaway-gradle = { group = "net.ltgt.nullaway", name = "net.ltgt.nullaway.gradle.plugin", version.ref = "nullaway-gradle" }
 spotless-gradle = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version.ref = "spotless" }
+download-gradle = { group = "de.undercouch.download", name = "de.undercouch.download.gradle.plugin", version.ref = "undercouch-download" }
 
 # Libraries can be bundled together for easier import
 [bundles]
@@ -60,9 +71,11 @@ gradle-plugins = [
     "kotlin-gradle-plugin",
     "nullaway-gradle",
     "spotless-gradle",
+    "download-gradle",
 ]
 
 [plugins]
+download = { id = "de.undercouch.download", version.ref = "undercouch-download" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

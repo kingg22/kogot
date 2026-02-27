@@ -11,5 +11,18 @@ plugins {
 }
 
 dependencies {
+    implementation(gradleApi())
     implementation(libs.bundles.gradle.plugins)
+    implementation(libs.apache.commons.compress)
+}
+
+gradlePlugin {
+    plugins {
+        create("jextractPlugin") {
+            id = "buildlogic.jextract"
+            implementationClass = "io.github.kingg22.jextract.gradle.JextractPlugin"
+            displayName = "Jextract Gradle Plugin"
+            description = "Downloads, caches, and runs jextract to generate Java FFM bindings from C headers"
+        }
+    }
 }

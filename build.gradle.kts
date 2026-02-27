@@ -1,4 +1,5 @@
 plugins {
+    alias(libs.plugins.download) apply false
     alias(libs.plugins.error.prone) apply false
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.multiplatform) apply false

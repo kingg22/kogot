@@ -1,22 +1,36 @@
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.options.Option
 import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.the
 import org.gradle.process.CommandLineArgumentProvider
 
+@CacheableTask
 abstract class GenerateGodotTask : JavaExec() {
-    @get:[InputFile Optional Option(option = "input-interface", description = "Path to gdextension_interface.json")]
+    @get:[
+    InputFile
+    PathSensitive(PathSensitivity.ABSOLUTE)
+    Optional
+    Option(option = "input-interface", description = "Path to gdextension_interface.json")
+    ]
     abstract val inputInterface: RegularFileProperty
 
-    @get:[InputFile Optional Option(option = "input-extension", description = "Path to extension_api.json")]
+    @get:[
+    InputFile
+    PathSensitive(PathSensitivity.ABSOLUTE)
+    Optional
+    Option(option = "input-extension", description = "Path to extension_api.json")
+    ]
     abstract val inputExtension: RegularFileProperty
 
     @get:[OutputDirectory Option(option = "output", description = "Output directory")]
