@@ -23,6 +23,14 @@ class GodotClass private constructor(
     }
 
     @Serializable
+    class Signal(
+        override val name: String,
+        val arguments: List<MethodArg> = emptyList(),
+        override val description: String? = null,
+    ) : Named,
+        Documentable
+
+    @Serializable
     class ClassMethod private constructor(
         override val name: String,
         @SerialName("is_const") override val isConst: Boolean,

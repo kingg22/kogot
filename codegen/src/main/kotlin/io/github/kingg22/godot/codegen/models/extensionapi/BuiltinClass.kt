@@ -18,6 +18,31 @@ class BuiltinClass private constructor(
     override val methods: List<BuiltinMethod> = emptyList(),
     val constructors: List<Constructor> = emptyList(),
 ) : ClassDescriptor {
+
+    @Serializable
+    class BuiltinEnum private constructor(
+        override val name: String,
+        override val values: List<EnumConstant>,
+        override val description: String? = null,
+    ) : EnumDescriptor,
+        Documentable
+
+    @Serializable
+    class Operator private constructor(
+        override val name: String,
+        @SerialName("return_type") val returnType: String,
+        @SerialName("right_type") val rightType: String? = null,
+        override val description: String? = null,
+    ) : Named,
+        Documentable
+
+    @Serializable
+    class Constructor private constructor(
+        val index: Int,
+        val arguments: List<MethodArg> = emptyList(),
+        override val description: String? = null,
+    ) : Documentable
+
     @Serializable
     class BuiltinMethod private constructor(
         override val name: String,

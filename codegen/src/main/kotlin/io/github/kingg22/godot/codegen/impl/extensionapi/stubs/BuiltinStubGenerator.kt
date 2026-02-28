@@ -101,6 +101,6 @@ class BuiltinStubGenerator(
     }
 
     companion object {
-        private val MAPPED_GODOT_BUILTIN_CLASSES = setOf("int", "long", "float", "double", "bool", "nil")
+        private val MAPPED_GODOT_BUILTIN_CLASSES = setOf("int", "float", "bool", "nil")
     }
 }
