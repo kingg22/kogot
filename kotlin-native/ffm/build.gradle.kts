@@ -12,9 +12,6 @@ kotlin {
         freeCompilerArgs.addAll("-Xcontext-sensitive-resolution")
     }
 
-    // Maintain the list of targets in sync with ktor client core
-    // https://ktor.io/docs/client-supported-platforms.html
-    // https://github.com/ktorio/ktor/blob/main/build-logic/src/main/kotlin/ktorbuild/targets/KtorTargets.kt
     applyDefaultHierarchyTemplate()
 
     // linux
@@ -26,7 +23,7 @@ kotlin {
         }
         binaries {
             sharedLib {
-                baseName = "godot-kotlin"
+                baseName = "godot-kotlin-ffm"
             }
         }
     }

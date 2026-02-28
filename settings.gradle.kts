@@ -55,9 +55,11 @@ project(":jvm-ffm-runtime").projectDir = file("jvm-ffm/runtime")
 // Kotlin using Native Cinterop
 include(
     "kotlin-native-ffm",
+    "kotlin-native-api",
 )
 
 project(":kotlin-native-ffm").projectDir = file("kotlin-native/ffm")
+project(":kotlin-native-api").projectDir = file("kotlin-native/api")
 
 // codegen and processor
 include("codegen", "processor")
