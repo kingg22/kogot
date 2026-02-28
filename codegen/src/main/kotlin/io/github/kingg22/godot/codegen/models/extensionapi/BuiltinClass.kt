@@ -25,8 +25,8 @@ class BuiltinClass private constructor(
         @SerialName("is_vararg") override val isVararg: Boolean,
         @SerialName("is_const") override val isConst: Boolean,
         @SerialName("is_static") override val isStatic: Boolean,
-        override val description: String,
         override val hash: Long,
+        override val description: String? = null,
         @SerialName("hash_compatibility") override val hashCompatibility: List<Long> = emptyList(),
         override val arguments: List<MethodArg> = emptyList(),
     ) : MethodDescriptor
@@ -35,7 +35,7 @@ class BuiltinClass private constructor(
     class BuiltinClassMember private constructor(
         override val name: String,
         val type: String,
-        override val description: String,
+        override val description: String? = null,
     ) : Named,
         Documentable
 
@@ -44,6 +44,6 @@ class BuiltinClass private constructor(
         override val name: String,
         val type: String,
         override val value: String,
-        override val description: String,
+        override val description: String? = null,
     ) : ConstantDescriptor<String>
 }

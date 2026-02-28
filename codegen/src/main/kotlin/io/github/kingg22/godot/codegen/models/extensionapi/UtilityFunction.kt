@@ -10,7 +10,7 @@ class UtilityFunction(
     val category: String,
     @SerialName("is_vararg") val isVararg: Boolean,
     override val hash: Long,
-    override val description: String,
+    override val description: String? = null,
     val arguments: List<MethodArg> = emptyList(),
 ) : Hashable,
     Named,
