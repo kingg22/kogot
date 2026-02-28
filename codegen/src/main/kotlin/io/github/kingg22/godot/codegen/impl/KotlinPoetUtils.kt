@@ -111,6 +111,8 @@ fun String.renameGodotClass(): String = when (this.lowercase()) {
     "object" -> "GodotObject"
     "error" -> "GodotError"
     "string" -> "GodotString"
+    "array" -> "GodotArray"
+    "range" -> "GodotRange"
     else -> this
 }
 
