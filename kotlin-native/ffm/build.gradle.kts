@@ -19,6 +19,7 @@ kotlin {
         val main by compilations.getting
         val godot by main.cinterops.creating {
             packageName = "io.github.kingg22.godot.internal.ffm"
+            defFile(layout.projectDirectory.file("nativeInterop/cinterop/godot.def"))
             includeDirs.allHeaders(rootProject.layout.projectDirectory.file("godot-version/v4_6_1/"))
         }
         binaries {
