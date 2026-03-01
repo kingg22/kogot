@@ -35,7 +35,7 @@ class KotlinStubTypeResolver(private val packageName: String) : TypeResolver {
         var type = godotType.trim().removePrefix("const ").trim()
 
         // Strip pointer suffixes (e.g. "Object*")
-        while (type.endsWith("*")) type = type.removeSuffix("*").trim()
+        while (type.endsWith('*')) type = type.removeSuffix("*").trim()
 
         if (type.startsWith("typedarray::")) {
             val inner = resolve(type.removePrefix("typedarray::"))
@@ -47,6 +47,13 @@ class KotlinStubTypeResolver(private val packageName: String) : TypeResolver {
 
         // Strip enum:: prefix, the class name underneath is what we need
         type = type.removePrefix("enum::")
+
+        if (type.contains('.')) {
+            val parentType = type.substringBeforeLast('.')
+            val nestedType = type.substringAfterLast('.')
+            type = checkAndNormalizeTypeName(parentType).renameGodotClass() + "." +
+                checkAndNormalizeTypeName(nestedType).renameGodotClass()
+        }
 
         val normalized = checkAndNormalizeTypeName(type).renameGodotClass()
 

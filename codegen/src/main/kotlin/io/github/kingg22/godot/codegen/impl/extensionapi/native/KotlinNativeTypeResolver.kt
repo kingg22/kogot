@@ -108,7 +108,7 @@ class KotlinNativeTypeResolver(private val packageName: String) : TypeResolver {
     // ── Plain (non-pointer) type resolution ───────────────────────────────────
 
     private fun resolvePlain(type: String): TypeName {
-        val clean = type.removePrefix("const ").trim()
+        var clean = type.removePrefix("const ").trim()
             .removePrefix("enum::").trim()
             .removePrefix("bitfield::").trim()
 
@@ -117,6 +117,13 @@ class KotlinNativeTypeResolver(private val packageName: String) : TypeResolver {
             // for now map to the inner type pointer to stay ABI-accurate
             // val inner = resolve(clean.removePrefix("typedarray::"))
             return C_POINTER.parameterizedBy(ClassName(packageName, "GodotArray")).copy(nullable = true)
+        }
+
+        if (clean.contains('.')) {
+            val parentType = clean.substringBeforeLast('.')
+            val nestedType = clean.substringAfterLast('.')
+            clean = checkAndNormalizeTypeName(parentType).renameGodotClass() + "." +
+                checkAndNormalizeTypeName(nestedType).renameGodotClass()
         }
 
         val normalized = checkAndNormalizeTypeName(clean).renameGodotClass()

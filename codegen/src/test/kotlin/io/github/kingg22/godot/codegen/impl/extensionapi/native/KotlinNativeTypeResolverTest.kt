@@ -85,13 +85,14 @@ private val TYPES_EXPECTED = mapOf(
     "Object" to ClassName("", "GodotObject"), // rename: Object colisiona con java.lang.Object
     "Array" to ClassName("", "GodotArray"), // rename: Array colisiona con kotlin.Array
     "Dictionary" to ClassName("", "Dictionary"),
-    "RID" to ClassName("", "RID"),
+    "RID" to ClassName("", "Rid"),
     "Range" to ClassName("", "GodotRange"), // rename: colisiona con kotlin.ranges.IntRange etc
 
     // ── Enums / bitfields → clases generadas ─────────────────────────────────
     "enum::Error" to ClassName("", "GodotError"),
     "enum::Corner" to ClassName("", "Corner"),
     "enum::Theme.DataType" to ClassName("", listOf("Theme", "DataType")),
+    "enum::IP.WAAD" to ClassName("", listOf("Ip", "Waad")),
     "bitfield::TextServer.TextOverrunFlag" to ClassName("", listOf("TextServer", "TextOverrunFlag")),
 
     // ── Meta numeric types ────────────────────────────────────────────────────
