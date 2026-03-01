@@ -4,6 +4,8 @@ import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.Documentable
 import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.TypeSpec
 
 private val NAME_REGEX = Regex("[^A-Za-z0-9_]")
 private val K_JVM_NAME = ClassName("kotlin.jvm", "JvmName")
@@ -11,12 +13,20 @@ private val K_JVM_STATIC = ClassName("kotlin.jvm", "JvmStatic")
 val K_DEPRECATED = ClassName("kotlin", "Deprecated")
 val K_REPLACE_WITH = ClassName("kotlin", "ReplaceWith")
 val K_SUPPRESS = ClassName("kotlin", "Suppress")
+val K_AUTOCLOSEABLE = ClassName("kotlin", "AutoCloseable")
+val K_TODO = MemberName("kotlin", "TODO")
 
 internal inline fun <T> withExceptionContext(metadata: () -> String, block: () -> T): T = try {
     block()
 } catch (e: Exception) {
     throw RuntimeException(metadata(), e)
 }
+
+fun createFile(type: TypeSpec, fileName: String, packageName: String): FileSpec = FileSpec
+    .builder(packageName, fileName)
+    .commonConfiguration()
+    .addType(type)
+    .build()
 
 fun FileSpec.Builder.commonConfiguration() = apply {
     indent("    ") // use 4 spaces https://pinterest.github.io/ktlint/latest/rules/standard/#indentation
@@ -26,6 +36,8 @@ fun FileSpec.Builder.commonConfiguration() = apply {
             .builder(K_SUPPRESS)
             .addMember("%S", "ktlint")
             .addMember("%S", "detekt:all")
+            .addMember("%S", "unused")
+            .addMember("%S", "ClassName")
             .addMember("%S", "FunctionName")
             .addMember("%S", "RemoveRedundantQualifierName")
             .build(),
@@ -103,17 +115,35 @@ fun sanitizeTypeName(name: String): String {
 }
 
 /**
- * Renames Godot built-in class names that clash with core Kotlin/JVM types.
+ * Renames Godot built-in class names that clash with core Kotlin types.
  *
  * Keeping these in one place makes future additions trivial.
  */
-fun String.renameGodotClass(): String = when (this.lowercase()) {
+fun String.renameGodotClass(): String = when (val loweredStr = this.lowercase()) {
     "object" -> "GodotObject"
+
     "error" -> "GodotError"
+
     "string" -> "GodotString"
+
     "array" -> "GodotArray"
+
     "range" -> "GodotRange"
-    else -> this
+
+    // region: fix lowered name
+    "transform2d" -> "Transform2D"
+
+    "transform3d" -> "Transform3D"
+
+    // endregion
+
+    else -> {
+        if (this.all { it.isUpperCase() }) {
+            return loweredStr.replaceFirstChar(Char::uppercaseChar)
+        } else {
+            this
+        }
+    }
 }
 
 fun String.snakeCaseToCamelCase(): String {
