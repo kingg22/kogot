@@ -2,6 +2,7 @@ package io.github.kingg22.godot.codegen.impl.extensionapi
 
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 import io.github.kingg22.godot.codegen.models.extensionapi.GodotClass
+import io.github.kingg22.godot.codegen.models.extensionapi.domain.GodotVersion
 
 /**
  * Inmutable, built once from [ExtensionApi].
@@ -23,7 +24,11 @@ class Context private constructor(
      */
     private val finalClasses: Set<String>,
     private val inheritanceTree: InheritanceTree,
+    val godotVersion: GodotVersion,
 ) {
+    init {
+        println("INFO: Context created to generate for Godot: $godotVersion")
+    }
 
     // ── Type classification ───────────────────────────────────────────────────
 
@@ -79,6 +84,7 @@ class Context private constructor(
                 singletons = singletons,
                 finalClasses = finalClasses,
                 inheritanceTree = tree,
+                godotVersion = GodotVersion(api.header),
             )
         }
     }

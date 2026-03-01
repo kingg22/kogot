@@ -20,13 +20,13 @@ private const val MAX_COMPONENT_VALUE = 255
  * }
  * ```
  *
- * @param hex Full version encoded as hexadecimal with one byte (2 hex digits) per number
+ * @property hex Full version encoded as hexadecimal with one byte (2 hex digits) per number
  * (e.g., for "3.1.12" it would be 0x03010C)
- * @param status e.g. "stable", "beta", "rc1", "rc2"
- * @param build e.g. "custom_build"
- * @param hash Full Git commit hash.
- * @param timestamp Git commit date UNIX timestamp in seconds, or 0 if unavailable.
- * @param string e.g. "Godot v3.1.4.stable.official.mono"
+ * @property status e.g. "stable", "beta", "rc1", "rc2"
+ * @property build e.g. "custom_build"
+ * @property hash Full Git commit hash.
+ * @property timestamp Git commit date UNIX timestamp in seconds, or 0 if unavailable.
+ * @property string e.g. "Godot v3.1.4.stable.official.mono"
  * @see io.github.kingg22.godot.internal.ffm.GDExtensionInterfaceGetGodotVersion2
  */
 @JvmRecord

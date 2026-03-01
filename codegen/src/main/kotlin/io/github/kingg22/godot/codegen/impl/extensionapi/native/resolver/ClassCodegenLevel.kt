@@ -1,5 +1,6 @@
 package io.github.kingg22.godot.codegen.impl.extensionapi.native.resolver
 
+import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.models.extensionapi.GodotClass
 
 /**
@@ -43,7 +44,8 @@ enum class ClassCodegenLevel {
     ;
 
     companion object {
-        fun classifyCodegenLevel(className: String, apiVersion: String = "4.5"): ClassCodegenLevel? = when (className) {
+        context(context: Context)
+        fun classifyCodegenLevel(className: String): ClassCodegenLevel? = when (className) {
             // See register_core_types() in https://github.com/godotengine/godot/blob/master/core/register_core_types.cpp,
             // which is called before Core level is initialized. Only a small list is promoted to Core; carefully evaluate if more are added.
             "Object", "RefCounted", "Resource", "MainLoop", "GDExtension" -> Core
@@ -83,23 +85,21 @@ enum class ClassCodegenLevel {
             // Work around wrong classification in https://github.com/godotengine/godot/issues/86206.
             // https://github.com/godotengine/godot/issues/103867
             "OpenXRInteractionProfileEditorBase", "OpenXRInteractionProfileEditor", "OpenXRBindingModifierEditor" -> {
-                if (isBeforeApi(apiVersion, "4.5")) Editor else null
+                if (context.godotVersion.isBefore(4, 5)) Editor else null
             }
 
             // https://github.com/godotengine/godot/issues/86206
             "ResourceImporterOggVorbis", "ResourceImporterMP3" -> {
-                if (isBeforeApi(apiVersion, "4.3")) Editor else null
+                if (context.godotVersion.isBefore(4, 3)) Editor else null
             }
 
             else -> null
         }
 
-        // TODO replace with context and proper version
-        private fun isBeforeApi(current: String, target: String): Boolean = current < target
-
         /**
          * Logic for determining the API level of a given class.
          */
+        context(_: Context)
         fun getApiLevel(godotClass: GodotClass): ClassCodegenLevel {
             // NOTE: We have to use a whitelist of known classes because Godot doesn't separate these out
             // beyond "editor" and "core" and some classes are also mis-classified in the JSON depending on the Godot version.
