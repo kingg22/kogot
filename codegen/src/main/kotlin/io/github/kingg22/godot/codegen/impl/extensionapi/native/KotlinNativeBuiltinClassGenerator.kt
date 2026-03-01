@@ -215,7 +215,7 @@ class KotlinNativeBuiltinClassGenerator(
         // ── Enums (generated externally, but nested types are added here if present) ──
         // Enums are handled by a separate EnumGenerator and linked externally.
         for (enum in builtinClass.enums) {
-            val enumTypeSpec = enums.generateSpec(enum)
+            val enumTypeSpec = enums.generate(enum)
             classBuilder.addType(enumTypeSpec)
         }
 

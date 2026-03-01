@@ -3,6 +3,7 @@ package io.github.kingg22.godot.codegen.impl.extensionapi.stubs
 import io.github.kingg22.godot.codegen.impl.extensionapi.CodeImplGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
+import io.github.kingg22.godot.codegen.impl.extensionapi.shared.VariantGenerator
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 import java.nio.file.Path
 
@@ -19,7 +20,7 @@ class KotlinStubGenerator(override val typeResolver: TypeResolver, packageName: 
     private val builtinGen = BuiltinStubGenerator(packageName, typeResolver, enumGen)
     private val nativeGen = NativeStructureStubGenerator(packageName)
     private val utilityGen = UtilityFunctionStubGenerator(packageName, typeResolver)
-    private val variantGen = VariantStubGenerator(packageName, enumGen, typeResolver)
+    private val variantGen = VariantGenerator(packageName, enumGen, typeResolver)
 
     init {
         println("WARNING: Kotlin stub generator doesn't generate functional bodies, all throw TODO()")

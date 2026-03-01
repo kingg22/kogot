@@ -57,7 +57,7 @@ class BuiltinStubGenerator(
                 typeBuilder.addType(companionBuilder.build())
             }
 
-            cls.enums.map { enumGen.generateSpec(it) }.forEach { typeBuilder.addType(it) }
+            cls.enums.map { enumGen.generate(it) }.forEach { typeBuilder.addType(it) }
 
             FileSpec
                 .builder(packageName, className)

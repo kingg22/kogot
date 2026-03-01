@@ -6,6 +6,7 @@ import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import io.github.kingg22.godot.codegen.impl.commonConfiguration
+import io.github.kingg22.godot.codegen.impl.extensionapi.shared.EnumGenerator
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.sanitizeTypeName
 import io.github.kingg22.godot.codegen.models.extensionapi.EnumDescriptor
@@ -13,10 +14,10 @@ import io.github.kingg22.godot.codegen.models.extensionapi.EnumDescriptor
 /**
  * Generates a Kotlin `enum class` from a Godot [io.github.kingg22.godot.codegen.models.extensionapi.EnumDescriptor].
  */
-class EnumStubGenerator(private val packageName: String) {
+class EnumStubGenerator(private val packageName: String) : EnumGenerator {
 
     fun generateFile(enumDef: EnumDescriptor): FileSpec {
-        val spec = generateSpec(enumDef)
+        val spec = generate(enumDef)
         return FileSpec
             .builder(packageName, enumDef.name.renameGodotClass())
             .commonConfiguration()
@@ -24,8 +25,8 @@ class EnumStubGenerator(private val packageName: String) {
             .build()
     }
 
-    fun generateSpec(enumDef: EnumDescriptor): TypeSpec {
-        val typeBuilder = TypeSpec.enumBuilder(enumDef.name.renameGodotClass())
+    override fun generate(enum: EnumDescriptor): TypeSpec {
+        val typeBuilder = TypeSpec.enumBuilder(enum.name.renameGodotClass())
             .primaryConstructor(
                 FunSpec
                     .constructorBuilder()
@@ -39,7 +40,7 @@ class EnumStubGenerator(private val packageName: String) {
                     .build(),
             )
 
-        enumDef.values.forEach { value ->
+        enum.values.forEach { value ->
             typeBuilder.addEnumConstant(
                 sanitizeTypeName(value.name),
                 TypeSpec
