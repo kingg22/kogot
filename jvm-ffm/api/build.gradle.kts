@@ -1,6 +1,7 @@
 plugins {
     id("buildlogic.kotlin-library-conventions")
     id("buildlogic.kotlin-styles-conventions")
+    id("buildlogic.godot-codegen")
 }
 
 kotlin {
@@ -9,21 +10,12 @@ kotlin {
     }
 }
 
-val codegenProject = evaluationDependsOn(":" + projects.codegen.name)
-val generateApi = codegenProject.tasks.named<GenerateGodotTask>("generateGodotExtensionApi")
+val generateApi = tasks.generateGodotExtensionApi
 
 generateApi.configure {
-    outputDir.set(layout.buildDirectory.dir("generated/sources/godotApi"))
-}
-
-sourceSets {
-    main {
-        kotlin.srcDir(generateApi.map { it.outputs.files })
-    }
-}
-
-tasks.compileKotlin {
-    dependsOn(generateApi)
+    // backendName.set("jvm_ffm")
+    // temporal use stubs
+    backendName.set("stubs")
 }
 
 tasks.spotlessKotlin {

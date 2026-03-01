@@ -1,6 +1,7 @@
 plugins {
     id("buildlogic.kotlin-multiplatform-conventions")
     id("buildlogic.kotlin-styles-conventions")
+    id("buildlogic.godot-codegen")
 }
 
 kotlin {
@@ -16,4 +17,8 @@ kotlin {
             }
         }
     }
+}
+
+tasks.generateGodotExtensionApi.configure {
+    backendName.set("kotlin_native")
 }

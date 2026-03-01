@@ -42,6 +42,7 @@ abstract class GenerateGodotTask : JavaExec() {
     init {
         group = "codegen"
         description = "Generate Godot Extension API wrappers"
+        mainClass.set("io.github.kingg22.godot.codegen.GenerateGodotApiKt")
         argumentProviders += GodotArgsProvider()
     }
 
