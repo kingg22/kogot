@@ -15,7 +15,7 @@ import io.github.kingg22.godot.codegen.impl.addKdocForBitfield
 import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
-import io.github.kingg22.godot.codegen.impl.extensionapi.stubs.EnumStubGenerator
+import io.github.kingg22.godot.codegen.impl.extensionapi.shared.EnumGenerator
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
@@ -37,10 +37,9 @@ import io.github.kingg22.godot.codegen.utils.filterValuesNotNull
  * [KotlinNativeBuiltinClassGenerator.SKIPPED_TYPES] — these are handled via typealiases or extension functions elsewhere.
  */
 class KotlinNativeBuiltinClassGenerator(
-    packageName: String,
     private val typeResolver: TypeResolver,
+    private val enums: EnumGenerator,
     private val body: BodyGenerator = BodyGenerator(),
-    private val enums: EnumStubGenerator = EnumStubGenerator(packageName),
 ) {
     companion object {
         /**
@@ -225,7 +224,7 @@ class KotlinNativeBuiltinClassGenerator(
         // ── Enums (generated externally, but nested types are added here if present) ──
         // Enums are handled by a separate EnumGenerator and linked externally.
         for (enum in builtinClass.enums) {
-            val enumTypeSpec = enums.generate(enum)
+            val enumTypeSpec = enums.generateSpec(enum)
             classBuilder.addType(enumTypeSpec)
         }
 

@@ -80,7 +80,7 @@ class VariantGenerator(private val enumGen: EnumGenerator, private val typeResol
             typeBuilder.addTypes(
                 nestedEnums.map {
                     withExceptionContext({ "Error generating nested enum '${it.name}'" }) {
-                        enumGen.generate(it.copy(name = it.name.substringAfterLast(".")))
+                        enumGen.generateSpec(it.copy(name = it.name.substringAfterLast(".")))
                     }
                 },
             )

@@ -59,7 +59,7 @@ class ClassStubGenerator(private val packageName: String, private val typeResolv
                 typeBuilder.typeSpecs.addFirst(companionBuilder.build())
             }
 
-            cls.enums.map { EnumStubGenerator(packageName).generate(it) }
+            cls.enums.map { EnumStubGenerator(packageName).generateSpec(it) }
                 .forEach { typeBuilder.addType(it) }
 
             FileSpec.Companion.builder(packageName, className)
