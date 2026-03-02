@@ -2,6 +2,7 @@ package io.github.kingg22.godot.codegen.impl.extensionapi.native
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import io.github.kingg22.godot.codegen.impl.extensionapi.stubs.StubsPackageRegistry
 import io.github.kingg22.godot.codegen.models.extensionapi.TypeMetaHolder
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -11,13 +12,16 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.function.Executable
 
 class KotlinNativeTypeResolverTest {
-    private val resolver = KotlinNativeTypeResolver("")
+    private val resolver = KotlinNativeTypeResolver()
+    private val packageRegistry = StubsPackageRegistry("")
 
     @Test
     fun `when each type is passed to resolve, then returns expected type`() {
         assertAll(
             TYPES_EXPECTED.map { (godotType, expected) ->
-                val resolved = resolver.resolve(godotType)
+                val resolved = context(packageRegistry) {
+                    resolver.resolveOf(godotType)
+                }
 
                 Executable { assertEquals(expected, resolved) }
             },
@@ -28,7 +32,9 @@ class KotlinNativeTypeResolverTest {
     fun `when 'required' is passed to resolve, then throws`() {
         // Si llega al resolver como tipo raw, debe lanzar excepción.
         val exception = assertThrows<IllegalStateException> {
-            resolver.resolve("required")
+            context(packageRegistry) {
+                resolver.resolveOf("required")
+            }
         }
 
         assertTrue(exception.message?.startsWith("Unexpected 'required' type") == true)
@@ -43,7 +49,9 @@ class KotlinNativeTypeResolverTest {
             override val meta: String = "required"
         }
 
-        val resolved = resolver.resolve(tested)
+        val resolved = context(packageRegistry) {
+            resolver.resolveOf(tested)
+        }
         assertEquals(ClassName("", "GodotString"), resolved)
     }
 
@@ -56,7 +64,9 @@ class KotlinNativeTypeResolverTest {
             override val meta: String? = null
         }
 
-        val resolved = resolver.resolve(tested)
+        val resolved = context(packageRegistry) {
+            resolver.resolveOf(tested)
+        }
         assertEquals(ClassName("", "GodotString"), resolved)
     }
 }

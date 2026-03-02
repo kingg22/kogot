@@ -3,6 +3,8 @@ package io.github.kingg22.godot.codegen.impl.extensionapi.native
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.kingg22.godot.codegen.impl.checkAndNormalizeTypeName
+import io.github.kingg22.godot.codegen.impl.extensionapi.Context
+import io.github.kingg22.godot.codegen.impl.extensionapi.PackageRegistry
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.sanitizeTypeName
@@ -40,19 +42,20 @@ import io.github.kingg22.godot.codegen.models.extensionapi.TypeMetaHolder
  * | intptr_t                  | Long                                      |
  * | uintptr_t                 | ULong                                     |
  */
-class KotlinNativeTypeResolver(private val packageName: String) : TypeResolver {
-
-    override fun resolve(holder: TypeMetaHolder): TypeName {
+class KotlinNativeTypeResolver : TypeResolver {
+    context(_: PackageRegistry)
+    fun resolveOf(holder: TypeMetaHolder): TypeName {
         // meta hint: use it to pick a more precise primitive
         // e.g. meta = "int32" on a Variant int → Int instead of Long
-        if (holder.meta != null && !holder.isRequired()) {
+        if (!holder.isRequired()) {
             runCatching { resolveWithMeta(holder.type, holder.meta!!) }
                 .onSuccess { return it }
         }
-        return resolve(holder.type)
+        return resolveOf(holder.type)
     }
 
-    override fun resolve(godotType: String): TypeName {
+    context(_: PackageRegistry)
+    fun resolveOf(godotType: String): TypeName {
         val stripped = godotType.trim().removePrefix("const ").trim()
 
         // Pointer type: ends with * after stripping const
@@ -63,8 +66,19 @@ class KotlinNativeTypeResolver(private val packageName: String) : TypeResolver {
         return resolvePlain(stripped)
     }
 
+    context(context: Context)
+    override fun resolve(holder: TypeMetaHolder): TypeName = context(context) {
+        resolveOf(holder)
+    }
+
+    context(context: Context)
+    override fun resolve(godotType: String): TypeName = context(context) {
+        resolveOf(godotType)
+    }
+
     // ── Pointer resolution ────────────────────────────────────────────────────
 
+    context(_: PackageRegistry)
     private fun resolvePointer(type: String): TypeName {
         // Strip one level of pointer
         val inner = type.removeSuffix("*").trim().removePrefix("const ").trim()
@@ -107,6 +121,7 @@ class KotlinNativeTypeResolver(private val packageName: String) : TypeResolver {
 
     // ── Plain (non-pointer) type resolution ───────────────────────────────────
 
+    context(context: PackageRegistry)
     private fun resolvePlain(type: String): TypeName {
         var clean = type.removePrefix("const ").trim()
             .removePrefix("enum::").trim()
@@ -115,8 +130,9 @@ class KotlinNativeTypeResolver(private val packageName: String) : TypeResolver {
         if (clean.startsWith("typedarray::")) {
             // typedarray in native → CPointer<GodotArray> or similar;
             // for now map to the inner type pointer to stay ABI-accurate
-            // val inner = resolve(clean.removePrefix("typedarray::"))
-            return C_POINTER.parameterizedBy(ClassName(packageName, "GodotArray")).copy(nullable = true)
+            // val inner = resolveOf(clean.removePrefix("typedarray::"))
+            val godotArrayClass = context.classNameForOrDefault("Array", "GodotArray")
+            return C_POINTER.parameterizedBy(godotArrayClass).copy(nullable = true)
         }
 
         if (clean.contains('.')) {
@@ -161,15 +177,15 @@ class KotlinNativeTypeResolver(private val packageName: String) : TypeResolver {
             "double" -> DOUBLE
 
             // String → generated GodotString wrapper
-            "string" -> ClassName(packageName, "GodotString")
+            "string" -> context.classNameForOrDefault("String")
 
             "required" -> error("Unexpected 'required' type: $type")
 
             // Everything else → generated class in the target package
-            else -> ClassName(
-                packageName,
-                normalized.split(".").map { sanitizeTypeName(it) },
-            )
+            else -> {
+                val normalizedList = normalized.split(".").map { sanitizeTypeName(it) }.toTypedArray()
+                context.classNameForOrDefault(normalized, *normalizedList)
+            }
         }
     }
 
@@ -179,6 +195,7 @@ class KotlinNativeTypeResolver(private val packageName: String) : TypeResolver {
      * Uses Godot's `meta` hint to pick a more precise Kotlin primitive.
      * Only called when meta is non-null and the type is not marked required.
      */
+    context(_: PackageRegistry)
     private fun resolveWithMeta(baseType: String, meta: String): TypeName = when (meta.lowercase()) {
         "int8" -> BYTE
         "int16" -> SHORT
@@ -192,7 +209,7 @@ class KotlinNativeTypeResolver(private val packageName: String) : TypeResolver {
         "double" -> DOUBLE
         "char16" -> U_SHORT
         "char32" -> U_INT
-        else -> resolve(baseType) // unknown meta → fall back
+        else -> resolveOf(baseType) // unknown meta → fall back
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -266,12 +283,12 @@ class KotlinNativeTypeResolver(private val packageName: String) : TypeResolver {
             "char", "int8_t", "int8",
             "short", "int16_t", "int16",
             "int", "int32_t", "int32",
-            "long long", "int64_t", "int64", "long", "intptr_t", "gdextensionint",
-            "uchar", "unsigned char", "uint8_t", "uint8", "gdextensionbool",
+            "long long", "int64_t", "int64", "long", "intptr_t",
+            "uchar", "unsigned char", "uint8_t", "uint8",
             "unsigned short", "ushort", "uint16_t", "uint16", "char16_t",
             "unsigned int", "uint", "uint32_t", "uint32", "char32_t",
             "unsigned long long", "ulong", "uint64_t", "uint64",
-            "uintptr_t", "size_t", "gdobjectinstanceid",
+            "uintptr_t", "size_t",
             "float", "double",
         )
     }
