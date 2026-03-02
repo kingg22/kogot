@@ -1,6 +1,7 @@
 package io.github.kingg22.godot.codegen.impl.extensionapi.native
 
 import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.KModifier
@@ -11,6 +12,7 @@ import com.squareup.kotlinpoet.UNIT
 import io.github.kingg22.godot.codegen.impl.K_AUTOCLOSEABLE
 import io.github.kingg22.godot.codegen.impl.K_TODO
 import io.github.kingg22.godot.codegen.impl.addKdocForBitfield
+import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.stubs.EnumStubGenerator
@@ -35,7 +37,7 @@ import io.github.kingg22.godot.codegen.utils.filterValuesNotNull
  * [KotlinNativeBuiltinClassGenerator.SKIPPED_TYPES] — these are handled via typealiases or extension functions elsewhere.
  */
 class KotlinNativeBuiltinClassGenerator(
-    private val packageName: String,
+    packageName: String,
     private val typeResolver: TypeResolver,
     private val body: BodyGenerator = BodyGenerator(),
     private val enums: EnumStubGenerator = EnumStubGenerator(packageName),
@@ -103,6 +105,14 @@ class KotlinNativeBuiltinClassGenerator(
          * We generate compareTo only once even if <, <=, >, >= all appear.
          */
         private val COMPARE_OPERATORS = setOf("<", "<=", ">", ">=")
+    }
+
+    /** Generates the [FileSpec] for [builtinClass], or null if it belongs to [KotlinNativeBuiltinClassGenerator.SKIPPED_TYPES]. */
+    context(context: Context)
+    fun generateFile(builtinClass: BuiltinClass): FileSpec? {
+        val spec = generate(builtinClass) ?: return null
+        val godotName = builtinClass.name
+        return createFile(spec, spec.name!!, context.packageForOrDefault(godotName))
     }
 
     /** Generates the [TypeSpec] for [builtinClass], or null if it belongs to [KotlinNativeBuiltinClassGenerator.SKIPPED_TYPES]. */
