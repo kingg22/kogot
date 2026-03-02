@@ -15,7 +15,6 @@ import io.github.kingg22.godot.codegen.impl.addKdocForBitfield
 import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
-import io.github.kingg22.godot.codegen.impl.extensionapi.shared.EnumGenerator
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
@@ -38,7 +37,6 @@ import io.github.kingg22.godot.codegen.utils.filterValuesNotNull
  */
 class NativeBuiltinClassGenerator(
     private val typeResolver: TypeResolver,
-    private val enums: EnumGenerator,
     private val body: BodyGenerator = BodyGenerator(),
 ) {
     companion object {
