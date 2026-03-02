@@ -101,9 +101,9 @@ private val TYPES_EXPECTED = mapOf(
     // ── Enums / bitfields → clases generadas ─────────────────────────────────
     "enum::Error" to ClassName("", "GodotError"),
     "enum::Corner" to ClassName("", "Corner"),
-    "enum::Theme.DataType" to ClassName("", listOf("Theme", "DataType")),
-    "enum::IP.WAAD" to ClassName("", listOf("Ip", "Waad")),
-    "bitfield::TextServer.TextOverrunFlag" to ClassName("", listOf("TextServer", "TextOverrunFlag")),
+    "enum::Theme.DataType" to ClassName("", "ThemeDataType"),
+    "enum::IP.WAAD" to ClassName("", "IpWaad"),
+    "bitfield::TextServerTextOverrunFlag" to ClassName("", "TextServerTextOverrunFlag"),
 
     // ── Meta numeric types ────────────────────────────────────────────────────
     "int64" to LONG,

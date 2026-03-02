@@ -123,7 +123,7 @@ class KotlinNativeTypeResolver : TypeResolver {
 
     context(context: PackageRegistry)
     private fun resolvePlain(type: String): TypeName {
-        var clean = type.removePrefix("const ").trim()
+        val clean = type.removePrefix("const ").trim()
             .removePrefix("enum::").trim()
             .removePrefix("bitfield::").trim()
 
@@ -135,6 +135,7 @@ class KotlinNativeTypeResolver : TypeResolver {
             return C_POINTER.parameterizedBy(godotArrayClass).copy(nullable = true)
         }
 
+        // Nested classes handler in native is top level
         if (clean.contains('.')) {
             val parentType = clean.substringBeforeLast('.')
             val nestedType = clean.substringAfterLast('.')
