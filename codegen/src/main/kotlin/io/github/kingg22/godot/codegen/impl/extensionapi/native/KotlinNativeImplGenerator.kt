@@ -1,21 +1,22 @@
 package io.github.kingg22.godot.codegen.impl.extensionapi.native
 
-import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.extensionapi.CodeImplGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.shared.VariantGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.stubs.EnumStubGenerator
+import io.github.kingg22.godot.codegen.impl.extensionapi.stubs.UtilityFunctionStubGenerator
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 import java.nio.file.Path
 
 /** Generates Kotlin Native implementation bodies (cinterop / GDExtension bindings). */
-class KotlinNativeImplGenerator(override val typeResolver: TypeResolver, private val packageName: String) :
+class KotlinNativeImplGenerator(override val typeResolver: TypeResolver, packageName: String) :
     CodeImplGenerator.ImplGenerator {
     private val builtinClassGenerator = KotlinNativeBuiltinClassGenerator(packageName, typeResolver)
-    private val variant = VariantGenerator(packageName, EnumStubGenerator(packageName), typeResolver)
+    private val variant = VariantGenerator(EnumStubGenerator(packageName), typeResolver)
+    private val utils = UtilityFunctionStubGenerator(packageName, typeResolver)
 
-    context(_: Context)
+    context(context: Context)
     override fun generate(api: ExtensionApi, outputDir: Path): Sequence<Path> = sequence {
         if (api.globalConstants.isNotEmpty()) {
             System.err.println(
@@ -36,9 +37,13 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver, private
         yield(variant.generate(nestedEnums).writeTo(outputDir))
 
         val builtinClassesPaths = api.builtinClasses.asSequence()
-            .mapNotNull { builtinClassGenerator.generate(it) }
-            .map { createFile(it, it.name!!, packageName).writeTo(outputDir) }
+            .mapNotNull { builtinClassGenerator.generateFile(it) }
+            .map { it.writeTo(outputDir) }
 
         yieldAll(builtinClassesPaths)
+
+        val utilityFunctionsPaths = utils.generate(api.utilityFunctions).map { it.writeTo(outputDir) }
+
+        yieldAll(utilityFunctionsPaths)
     }
 }
