@@ -20,7 +20,7 @@ val generateGodotTask = tasks.register<GenerateGodotTask>("generateGodotExtensio
 
     outputDir.convention(layout.buildDirectory.dir("generated/sources/godotApi"))
 
-    packageName.convention("io.github.kingg22.godot.api")
+    packageName.convention("io.github.kingg22.godot")
 }
 
 // ---------- KOTLIN JVM ----------
