@@ -20,7 +20,7 @@ import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
  * - Accidental JVM overrides (wait → await, toString → toGodotString)
  * - KDoc for bitfield return types
  */
-class MethodStubGenerator(private val packageName: String, private val typeResolver: TypeResolver) {
+class MethodStubGenerator(private val typeResolver: TypeResolver) {
     context(_: Context)
     fun generate(
         name: String,
@@ -38,7 +38,7 @@ class MethodStubGenerator(private val packageName: String, private val typeResol
             .returns(returnType)
             .addKdocForBitfield(returnTypeString, "@return")
             .addStatement("TODO()")
-            .applyAccidentalOverrideFix(safeName, returnType, packageName)
+            .applyAccidentalOverrideFix(safeName, returnType)
             .apply { if (isOpen) addModifiers(KModifier.OPEN) }
     }
 
@@ -65,27 +65,28 @@ class MethodStubGenerator(private val packageName: String, private val typeResol
      *
      * Additional clashes can be added here as they are discovered.
      */
-    private fun FunSpec.Builder.applyAccidentalOverrideFix(
-        funName: String,
-        returnType: TypeName,
-        packageName: String,
-    ): FunSpec.Builder = when (funName) {
-        "wait" if returnType == UNIT -> {
-            println("INFO: renaming wait() → await() to avoid JVM Object clash")
-            build().toBuilder("await")
-                .addKdoc(
-                    "Generated Note: Original name was `wait`, renamed to avoid JVM [java.lang.Object] conflict.",
-                )
-        }
+    context(context: Context)
+    private fun FunSpec.Builder.applyAccidentalOverrideFix(funName: String, returnType: TypeName): FunSpec.Builder =
+        when (funName) {
+            "wait" if returnType == UNIT -> {
+                println("INFO: renaming wait() → await() to avoid JVM Object clash")
+                build().toBuilder("await")
+                    .addKdoc(
+                        "Generated Note: Original name was `wait`, renamed to avoid JVM [java.lang.Object] conflict.",
+                    )
+            }
 
-        "toString" if returnType == ClassName(packageName, "GodotString") -> {
-            println("INFO: renaming toString() → toGodotString() to avoid Any clash")
-            build().toBuilder("toGodotString")
-                .addKdoc(
-                    "Generated Note: Original name was `toString`, renamed to avoid [Any] / [java.lang.Object] conflict.",
-                )
-        }
+            "toString" if returnType == ClassName(
+                context.packageForOrDefault("String", "GodotString"),
+                "GodotString",
+            ) -> {
+                println("INFO: renaming toString() → toGodotString() to avoid Any clash")
+                build().toBuilder("toGodotString")
+                    .addKdoc(
+                        "Generated Note: Original name was `toString`, renamed to avoid [Any] / [java.lang.Object] conflict.",
+                    )
+            }
 
-        else -> this
-    }
+            else -> this
+        }
 }

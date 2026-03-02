@@ -18,7 +18,7 @@ class BuiltinStubGenerator(
     private val typeResolver: TypeResolver,
     private val enumGen: EnumStubGenerator,
 ) {
-    private val methodGen = MethodStubGenerator(packageName, typeResolver)
+    private val methodGen = MethodStubGenerator(typeResolver)
 
     context(_: Context)
     fun generate(cls: BuiltinClass): FileSpec? {

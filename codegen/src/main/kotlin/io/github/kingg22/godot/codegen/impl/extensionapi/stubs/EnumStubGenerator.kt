@@ -6,7 +6,6 @@ import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import io.github.kingg22.godot.codegen.impl.createFile
-import io.github.kingg22.godot.codegen.impl.extensionapi.shared.EnumGenerator
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.sanitizeTypeName
 import io.github.kingg22.godot.codegen.models.extensionapi.EnumDescriptor
@@ -14,13 +13,13 @@ import io.github.kingg22.godot.codegen.models.extensionapi.EnumDescriptor
 /**
  * Generates a Kotlin `enum class` from a Godot [io.github.kingg22.godot.codegen.models.extensionapi.EnumDescriptor].
  */
-class EnumStubGenerator(private val packageName: String) : EnumGenerator {
-    override fun generateFile(descriptor: EnumDescriptor): FileSpec {
+class EnumStubGenerator(private val packageName: String) {
+    fun generateFile(descriptor: EnumDescriptor): FileSpec {
         val spec = generateSpec(descriptor)
         return createFile(spec, descriptor.name.renameGodotClass(), packageName)
     }
 
-    override fun generateSpec(descriptor: EnumDescriptor): TypeSpec {
+    fun generateSpec(descriptor: EnumDescriptor): TypeSpec {
         val typeBuilder = TypeSpec.enumBuilder(descriptor.name.renameGodotClass())
             .primaryConstructor(
                 FunSpec

@@ -1,4 +1,4 @@
-package io.github.kingg22.godot.codegen.impl.extensionapi.shared
+package io.github.kingg22.godot.codegen.impl.extensionapi.stubs
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
@@ -15,7 +15,7 @@ import io.github.kingg22.godot.codegen.impl.withExceptionContext
 import io.github.kingg22.godot.codegen.models.extensionapi.EnumDescriptor
 
 /** Generates the sealed `Variant` class with nested enums from Godot's `Variant.*` global enums. */
-class VariantGenerator(private val enumGen: EnumGenerator, private val typeResolver: TypeResolver) {
+class VariantStubGenerator(private val enumGen: EnumStubGenerator, private val typeResolver: TypeResolver) {
     context(context: Context)
     fun generateSpec(nestedEnums: List<EnumDescriptor>): TypeSpec {
         val variantTypes = nestedEnums.find { it.name == "Variant.Type" }

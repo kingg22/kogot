@@ -14,7 +14,7 @@ import io.github.kingg22.godot.codegen.models.extensionapi.GodotClass
  * Generates an `open class` or singleton `object`-style class for a Godot engine class.
  */
 class ClassStubGenerator(private val packageName: String, private val typeResolver: TypeResolver) {
-    private val methodGen = MethodStubGenerator(packageName, typeResolver)
+    private val methodGen = MethodStubGenerator(typeResolver)
 
     context(context: Context)
     fun generate(cls: GodotClass): FileSpec {

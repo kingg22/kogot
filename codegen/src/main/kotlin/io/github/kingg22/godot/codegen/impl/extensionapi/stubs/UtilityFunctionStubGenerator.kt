@@ -14,8 +14,10 @@ import io.github.kingg22.godot.codegen.models.extensionapi.UtilityFunction
 /**
  * Generates the `GD` object containing Godot utility functions.
  */
-class UtilityFunctionStubGenerator(private val packageName: String, private val typeResolver: TypeResolver) {
-    private val methodGen = MethodStubGenerator(packageName, typeResolver)
+class UtilityFunctionStubGenerator(
+    private val typeResolver: TypeResolver,
+    private val methodGen: MethodStubGenerator = MethodStubGenerator(typeResolver),
+) {
 
     context(context: Context)
     fun generate(functions: List<UtilityFunction>): List<FileSpec> = withExceptionContext({
