@@ -1,6 +1,16 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
+
 plugins {
     id("buildlogic.kotlin-multiplatform-conventions")
     id("buildlogic.kotlin-styles-conventions")
+}
+
+val isRelease = hasProperty("releaseMode") || hasProperty("release") || System.getenv("CI") != null
+
+val listOfNativeBuildType = if (isRelease) {
+    listOf(NativeBuildType.DEBUG, NativeBuildType.RELEASE)
+} else {
+    listOf(NativeBuildType.DEBUG)
 }
 
 kotlin {
@@ -23,7 +33,7 @@ kotlin {
             includeDirs.allHeaders(rootProject.layout.projectDirectory.file("godot-version/v4_6_1/"))
         }
         binaries {
-            sharedLib {
+            sharedLib(buildTypes = listOfNativeBuildType) {
                 baseName = "godot-kotlin-ffm"
             }
         }
