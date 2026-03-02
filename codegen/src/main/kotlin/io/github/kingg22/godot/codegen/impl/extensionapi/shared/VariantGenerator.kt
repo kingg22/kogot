@@ -15,17 +15,13 @@ import io.github.kingg22.godot.codegen.impl.withExceptionContext
 import io.github.kingg22.godot.codegen.models.extensionapi.EnumDescriptor
 
 /** Generates the sealed `Variant` class with nested enums from Godot's `Variant.*` global enums. */
-class VariantGenerator(
-    private val packageName: String,
-    private val enumGen: EnumGenerator,
-    private val typeResolver: TypeResolver,
-) {
-    context(_: Context)
-    fun generate(nestedEnums: List<EnumDescriptor>): FileSpec {
+class VariantGenerator(private val enumGen: EnumGenerator, private val typeResolver: TypeResolver) {
+    context(context: Context)
+    fun generateSpec(nestedEnums: List<EnumDescriptor>): TypeSpec {
         val variantTypes = nestedEnums.find { it.name == "Variant.Type" }
 
         return withExceptionContext({ "Generating Variant class, nested enums count: ${nestedEnums.size}" }) {
-            val variantClassName = ClassName(packageName, "Variant")
+            val variantClassName = ClassName(context.packageForOrDefault("Variant"), "Variant")
 
             val typeBuilder = TypeSpec
                 .classBuilder(variantClassName)
@@ -50,7 +46,7 @@ class VariantGenerator(
                 }
 
                 // Tipo del value: convierte UPPER_SNAKE → PascalCase para que el resolver lo encuentre
-                // "PACKED_BYTE_ARRAY" → "PackedByteArray" → typeResolver.resolve() → ClassName("", "PackedByteArray")
+                // "PACKED_BYTE_ARRAY" → "PackedByteArray" → typeResolver.resolveOf() → ClassName("", "PackedByteArray")
                 val godotTypeName = subclassName
                     .lowercase()
                     .snakeCaseToCamelCase()
@@ -88,12 +84,14 @@ class VariantGenerator(
                     }
                 },
             )
-
-            FileSpec
-                .builder(packageName, "Variant")
-                .commonConfiguration()
-                .addType(typeBuilder.build())
-                .build()
+            typeBuilder.build()
         }
     }
+
+    context(context: Context)
+    fun generate(nestedEnums: List<EnumDescriptor>): FileSpec = FileSpec
+        .builder(context.packageForOrDefault("Variant"), "Variant")
+        .commonConfiguration()
+        .addType(generateSpec(nestedEnums))
+        .build()
 }
