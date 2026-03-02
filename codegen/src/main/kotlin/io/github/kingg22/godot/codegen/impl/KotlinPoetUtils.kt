@@ -94,7 +94,12 @@ fun safeIdentifier(name: String): String {
     val trimmed = name.trim()
     if (trimmed.isBlank()) return "_"
     val sanitized = trimmed.replace(NAME_REGEX, "_")
-    val fixed = if (sanitized.first().isDigit()) "_$sanitized" else sanitized
+    val fixed = if (sanitized.first().isDigit()) {
+        println("WARNING: Sanitizing identifier: $name, start with digit: $sanitized")
+        "_$sanitized"
+    } else {
+        sanitized
+    }
     val camelCase = fixed.snakeCaseToCamelCase()
     return if (isKotlinKeyword(camelCase)) "`$camelCase`" else camelCase
 }
@@ -109,8 +114,18 @@ fun sanitizeTypeName(name: String): String {
     val trimmed = name.trim()
     check(trimmed.isNotBlank()) { "Type name cannot be blank, '$name' given" }
     val sanitized = trimmed.replace(NAME_REGEX, "_")
-    val fixed = if (sanitized.first().isDigit()) "_$sanitized" else sanitized
-    return if (isKotlinKeyword(fixed)) "${fixed}_" else fixed
+    val fixed = if (sanitized.first().isDigit()) {
+        println("WARNING: Sanitizing type name: $name, start with digit: $sanitized")
+        "_$sanitized"
+    } else {
+        sanitized
+    }
+    return if (isKotlinKeyword(fixed)) {
+        println("WARNING: Sanitizing type name: $name, is Kotlin keyword: $fixed")
+        "${fixed}_"
+    } else {
+        fixed
+    }
 }
 
 /**
@@ -167,9 +182,6 @@ fun String.snakeCaseToCamelCase(): String {
         }
     }
 }
-
-private val LOWER_CASE_REGEX = Regex("([a-z])([A-Z])")
-private val UPPER_CASE_REGEX = Regex("([A-Z])([A-Z][a-z])")
 
 /**
  * Extensión de String para convertir formatos CamelCase o PascalCase
