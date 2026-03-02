@@ -4,7 +4,6 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.kingg22.godot.codegen.impl.checkAndNormalizeTypeName
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
-import io.github.kingg22.godot.codegen.impl.extensionapi.PackageRegistry
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.sanitizeTypeName
@@ -43,7 +42,7 @@ import io.github.kingg22.godot.codegen.models.extensionapi.TypeMetaHolder
  * | uintptr_t                 | ULong                                     |
  */
 class KotlinNativeTypeResolver : TypeResolver {
-    context(_: PackageRegistry)
+    context(_: Context)
     fun resolveOf(holder: TypeMetaHolder): TypeName {
         // meta hint: use it to pick a more precise primitive
         // e.g. meta = "int32" on a Variant int → Int instead of Long
@@ -54,7 +53,7 @@ class KotlinNativeTypeResolver : TypeResolver {
         return resolveOf(holder.type)
     }
 
-    context(_: PackageRegistry)
+    context(_: Context)
     fun resolveOf(godotType: String): TypeName {
         val stripped = godotType.trim().removePrefix("const ").trim()
 
@@ -78,7 +77,7 @@ class KotlinNativeTypeResolver : TypeResolver {
 
     // ── Pointer resolution ────────────────────────────────────────────────────
 
-    context(_: PackageRegistry)
+    context(_: Context)
     private fun resolvePointer(type: String): TypeName {
         // Strip one level of pointer
         val inner = type.removeSuffix("*").trim().removePrefix("const ").trim()
@@ -121,7 +120,7 @@ class KotlinNativeTypeResolver : TypeResolver {
 
     // ── Plain (non-pointer) type resolution ───────────────────────────────────
 
-    context(context: PackageRegistry)
+    context(context: Context)
     private fun resolvePlain(type: String): TypeName {
         val clean = type.removePrefix("const ").trim()
             .removePrefix("enum::").trim()
@@ -144,6 +143,13 @@ class KotlinNativeTypeResolver : TypeResolver {
             val rawQualified = "$parentRaw.$nestedRaw"
             val parentName = sanitizeTypeName(parentRaw.renameGodotClass())
             val nestedName = sanitizeTypeName(nestedRaw.renameGodotClass())
+
+            // Cases like: Vector2i is a specialized of Vector2, so we need to check if the parent is a Godot class
+            if (parentName.endsWith('i') && context.isGodotType(parentName.dropLast(1))) {
+                val baseParentName = parentName.dropLast(1)
+                return context.classNameForOrDefault(rawQualified, baseParentName + nestedName)
+            }
+
             val topLevelName = parentName + nestedName
             return context.classNameForOrDefault(rawQualified, topLevelName)
         }
@@ -201,7 +207,7 @@ class KotlinNativeTypeResolver : TypeResolver {
      * Uses Godot's `meta` hint to pick a more precise Kotlin primitive.
      * Only called when meta is non-null and the type is not marked required.
      */
-    context(_: PackageRegistry)
+    context(_: Context)
     private fun resolveWithMeta(baseType: String, meta: String): TypeName = when (meta.lowercase()) {
         "int8" -> BYTE
         "int16" -> SHORT

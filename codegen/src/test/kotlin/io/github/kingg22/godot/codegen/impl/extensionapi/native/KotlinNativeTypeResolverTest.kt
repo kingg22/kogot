@@ -2,7 +2,7 @@ package io.github.kingg22.godot.codegen.impl.extensionapi.native
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import io.github.kingg22.godot.codegen.impl.extensionapi.stubs.StubsPackageRegistry
+import io.github.kingg22.godot.codegen.impl.extensionapi.EmptyContext
 import io.github.kingg22.godot.codegen.models.extensionapi.TypeMetaHolder
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -13,13 +13,13 @@ import org.junit.jupiter.api.function.Executable
 
 class KotlinNativeTypeResolverTest {
     private val resolver = KotlinNativeTypeResolver()
-    private val packageRegistry = StubsPackageRegistry("")
+    private val testContext = EmptyContext()
 
     @Test
     fun `when each type is passed to resolve, then returns expected type`() {
         assertAll(
             TYPES_EXPECTED.map { (godotType, expected) ->
-                val resolved = context(packageRegistry) {
+                val resolved = context(testContext) {
                     resolver.resolveOf(godotType)
                 }
 
@@ -32,7 +32,7 @@ class KotlinNativeTypeResolverTest {
     fun `when 'required' is passed to resolve, then throws`() {
         // Si llega al resolver como tipo raw, debe lanzar excepción.
         val exception = assertThrows<IllegalStateException> {
-            context(packageRegistry) {
+            context(testContext) {
                 resolver.resolveOf("required")
             }
         }
@@ -49,7 +49,7 @@ class KotlinNativeTypeResolverTest {
             override val meta: String = "required"
         }
 
-        val resolved = context(packageRegistry) {
+        val resolved = context(testContext) {
             resolver.resolveOf(tested)
         }
         assertEquals(ClassName("", "GodotString"), resolved)
@@ -64,7 +64,7 @@ class KotlinNativeTypeResolverTest {
             override val meta: String? = null
         }
 
-        val resolved = context(packageRegistry) {
+        val resolved = context(testContext) {
             resolver.resolveOf(tested)
         }
         assertEquals(ClassName("", "GodotString"), resolved)

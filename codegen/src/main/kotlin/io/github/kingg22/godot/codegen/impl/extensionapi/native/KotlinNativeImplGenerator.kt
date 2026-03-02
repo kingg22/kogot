@@ -54,7 +54,15 @@ class KotlinNativeImplGenerator(
         // Builtin nested enums → top-level ParentEnum
         val builtinEnumPaths = api.builtinClasses.asSequence()
             .flatMap { builtinClass ->
-                builtinClass.enums.asSequence().map { enum ->
+                builtinClass.enums.asSequence().mapNotNull { enum ->
+                    if (builtinClass.name.endsWith('i') &&
+                        api.builtinClasses.any { it.name == builtinClass.name.dropLast(1) }
+                    ) {
+                        println(
+                            "WARNING: Skipping nested enum '${enum.name}' for builtin class '${builtinClass.name}' because it's a specialized class.",
+                        )
+                        return@mapNotNull null
+                    }
                     enum.copy(name = "${builtinClass.name}.${enum.name}")
                 }
             }
