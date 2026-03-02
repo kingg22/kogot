@@ -4,6 +4,7 @@ import com.squareup.kotlinpoet.ClassName
 import io.github.kingg22.godot.codegen.impl.extensionapi.InheritanceTree
 import io.github.kingg22.godot.codegen.impl.extensionapi.PackageRegistry
 import io.github.kingg22.godot.codegen.impl.extensionapi.PackageRegistryFactory
+import io.github.kingg22.godot.codegen.impl.renameGodotClass
 
 /**
  * Maps every Godot type name to the Kotlin package where it will be generated.
@@ -48,13 +49,23 @@ class NativePackageRegistry internal constructor(private val typeToPackage: Map<
             fun isSingleton(name: String) = name in context.singletons
 
             val map = mutableMapOf<String, String>()
+            fun renameQualified(name: String): String {
+                if (!name.contains('.')) return name.renameGodotClass()
+                return name.split('.').joinToString(".") { it.renameGodotClass() }
+            }
+
+            fun register(name: String, pkg: String) {
+                map[name] = pkg
+                val renamed = renameQualified(name)
+                if (renamed != name) map[renamed] = pkg
+            }
 
             // Builtins
             // Variant is injected manually in Context but not in builtinClasses
-            map["Variant"] = "$rootPackage.api.builtin"
+            register("Variant", "$rootPackage.api.builtin")
 
             context.builtinTypes.forEach { cls ->
-                map[cls] = "$rootPackage.api.builtin"
+                register(cls, "$rootPackage.api.builtin")
             }
 
             // Engine classes
@@ -65,28 +76,33 @@ class NativePackageRegistry internal constructor(private val typeToPackage: Map<
                     // los 79 confiables
                     apiType == "editor" -> "$rootPackage.api.editor"
 
+                    // FIXME: this is a hack, but it works for now. Remove when classes are generated
+                    // Kotlin/Native only exposes GodotObject in the root package.
+                    name == "Object" -> "$rootPackage.api"
+
                     else -> {
                         val sub = resolveCoreSubpackage(name, context.inheritanceTree)
                         val subPack = sub?.let { ".$sub" }.orEmpty()
                         "$rootPackage.api.core$subPack"
                     }
                 }
-                map[name] = pkg
+                register(name, pkg)
             }
 
             context.nestedEnumsTypes.forEach { (cls, enum) ->
-                map["$cls.$enum"] = map[cls]
+                val pkg = map[cls]
                     ?: error("Class $cls for nested enum $enum not found in PackageRegistry build: $map")
+                register("$cls.$enum", pkg)
             }
 
             // Global enums
             context.globalEnumsTypes.forEach { enum ->
-                map[enum] = "$rootPackage.api.global"
+                register(enum, "$rootPackage.api.global")
             }
 
             // Native structures — manual impl, but types must be resolvable
             context.nativeStructureTypes.forEach { ns ->
-                map[ns] = "$rootPackage.api.native"
+                register(ns, "$rootPackage.api.native")
             }
 
             // Utility functions → no types per se, but category packages

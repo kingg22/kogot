@@ -138,13 +138,19 @@ class KotlinNativeTypeResolver : TypeResolver {
         if (clean.contains('.')) {
             val parentType = clean.substringBeforeLast('.')
             val nestedType = clean.substringAfterLast('.')
-            clean = checkAndNormalizeTypeName(parentType).renameGodotClass() + "." +
-                checkAndNormalizeTypeName(nestedType).renameGodotClass()
+            val parentRaw = checkAndNormalizeTypeName(parentType)
+            val nestedRaw = checkAndNormalizeTypeName(nestedType)
+            val rawQualified = "$parentRaw.$nestedRaw"
+            val kotlinNames = arrayOf(
+                sanitizeTypeName(parentRaw.renameGodotClass()),
+                sanitizeTypeName(nestedRaw.renameGodotClass()),
+            )
+            return context.classNameForOrDefault(rawQualified, *kotlinNames)
         }
 
-        val normalized = checkAndNormalizeTypeName(clean).renameGodotClass()
+        val raw = checkAndNormalizeTypeName(clean)
 
-        return when (normalized.lowercase()) {
+        return when (raw.lowercase()) {
             // void
             "void" -> UNIT
 
@@ -183,8 +189,8 @@ class KotlinNativeTypeResolver : TypeResolver {
 
             // Everything else → generated class in the target package
             else -> {
-                val normalizedList = normalized.split(".").map { sanitizeTypeName(it) }.toTypedArray()
-                context.classNameForOrDefault(normalized, *normalizedList)
+                val kotlinName = sanitizeTypeName(raw.renameGodotClass())
+                context.classNameForOrDefault(raw, kotlinName)
             }
         }
     }
