@@ -3,6 +3,7 @@ package io.github.kingg22.godot.codegen.impl.extensionapi.native
 import io.github.kingg22.godot.codegen.impl.extensionapi.CodeImplGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeBuiltinClassGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.shared.EnumGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.shared.VariantGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.stubs.EnumStubGenerator
@@ -15,8 +16,8 @@ class KotlinNativeImplGenerator(
     override val typeResolver: TypeResolver,
     packageName: String,
     private val enum: EnumGenerator = EnumStubGenerator(packageName),
-    private val builtinClassGenerator: KotlinNativeBuiltinClassGenerator =
-        KotlinNativeBuiltinClassGenerator(typeResolver, enum),
+    private val builtinClassGenerator: NativeBuiltinClassGenerator =
+        NativeBuiltinClassGenerator(typeResolver, enum),
     private val variant: VariantGenerator = VariantGenerator(enum, typeResolver),
     private val utils: UtilityFunctionStubGenerator =
         UtilityFunctionStubGenerator(packageName, typeResolver),

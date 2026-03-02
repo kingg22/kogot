@@ -1,4 +1,4 @@
-package io.github.kingg22.godot.codegen.impl.extensionapi.native
+package io.github.kingg22.godot.codegen.impl.extensionapi.native.generators
 
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
@@ -34,9 +34,9 @@ import io.github.kingg22.godot.codegen.utils.filterValuesNotNull
  * Body generation is delegated to [BodyGenerator].
  *
  * Types that are NOT generated as classes (primitives/nil):
- * [KotlinNativeBuiltinClassGenerator.SKIPPED_TYPES] — these are handled via typealiases or extension functions elsewhere.
+ * [NativeBuiltinClassGenerator.SKIPPED_TYPES] — these are handled via typealiases or extension functions elsewhere.
  */
-class KotlinNativeBuiltinClassGenerator(
+class NativeBuiltinClassGenerator(
     private val typeResolver: TypeResolver,
     private val enums: EnumGenerator,
     private val body: BodyGenerator = BodyGenerator(),
@@ -106,7 +106,7 @@ class KotlinNativeBuiltinClassGenerator(
         private val COMPARE_OPERATORS = setOf("<", "<=", ">", ">=")
     }
 
-    /** Generates the [FileSpec] for [builtinClass], or null if it belongs to [KotlinNativeBuiltinClassGenerator.SKIPPED_TYPES]. */
+    /** Generates the [com.squareup.kotlinpoet.FileSpec] for [builtinClass], or null if it belongs to [NativeBuiltinClassGenerator.SKIPPED_TYPES]. */
     context(context: Context)
     fun generateFile(builtinClass: BuiltinClass): FileSpec? {
         val spec = generate(builtinClass) ?: return null
@@ -114,7 +114,7 @@ class KotlinNativeBuiltinClassGenerator(
         return createFile(spec, spec.name!!, context.packageForOrDefault(godotName))
     }
 
-    /** Generates the [TypeSpec] for [builtinClass], or null if it belongs to [KotlinNativeBuiltinClassGenerator.SKIPPED_TYPES]. */
+    /** Generates the [com.squareup.kotlinpoet.TypeSpec] for [builtinClass], or null if it belongs to [NativeBuiltinClassGenerator.SKIPPED_TYPES]. */
     context(_: Context)
     fun generate(builtinClass: BuiltinClass): TypeSpec? {
         if (builtinClass.name.lowercase() in SKIPPED_TYPES) return null
@@ -423,10 +423,6 @@ class KotlinNativeBuiltinClassGenerator(
      */
     class BodyGenerator {
         fun todoBody(): CodeBlock = CodeBlock.of("%M()", K_TODO)
-
-        fun constGetter(value: String): FunSpec = FunSpec.getterBuilder()
-            .addCode("return %L", value)
-            .build()
 
         fun todoGetter(): FunSpec = FunSpec.getterBuilder()
             .addCode(todoBody())
