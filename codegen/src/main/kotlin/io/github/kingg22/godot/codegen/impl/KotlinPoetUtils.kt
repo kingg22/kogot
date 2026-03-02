@@ -119,7 +119,7 @@ fun sanitizeTypeName(name: String): String {
  */
 fun String.godotTypeNeedsRename(): Boolean = when (this.lowercase()) {
     "object", "error", "string", "array", "range" -> true
-    else -> this.all { it.isUpperCase() }
+    else -> this.endsWith("2d") || this.endsWith("3d") || this.all { it.isUpperCase() }
 }
 
 /**
