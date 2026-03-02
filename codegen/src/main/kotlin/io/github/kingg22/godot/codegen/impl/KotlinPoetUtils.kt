@@ -36,7 +36,6 @@ fun FileSpec.Builder.commonConfiguration() = apply {
             .builder(K_SUPPRESS)
             .addMember("%S", "ktlint")
             .addMember("%S", "detekt:all")
-            .addMember("%S", "unused")
             .addMember("%S", "ClassName")
             .addMember("%S", "FunctionName")
             .addMember("%S", "RemoveRedundantQualifierName")
@@ -115,33 +114,48 @@ fun sanitizeTypeName(name: String): String {
 }
 
 /**
- * Renames Godot built-in class names that clash with core Kotlin types.
- *
- * Keeping these in one place makes future additions trivial.
+ * Comprueba rápidamente si una clase de Godot necesita ser renombrada
+ * para evitar colisiones con tipos de Kotlin.
  */
-fun String.renameGodotClass(): String = when (val loweredStr = this.lowercase()) {
-    "object" -> "GodotObject"
+fun String.godotTypeNeedsRename(): Boolean = when (this.lowercase()) {
+    "object", "error", "string", "array", "range" -> true
+    else -> this.all { it.isUpperCase() }
+}
 
-    "error" -> "GodotError"
+/**
+ * Renombra clases de Godot que colisionan con tipos de Kotlin.
+ * Realiza un chequeo rápido previo.
+ */
+fun String.renameGodotClass(): String {
+    if (!this.godotTypeNeedsRename()) return this
 
-    "string" -> "GodotString"
+    return when (val loweredStr = this.lowercase()) {
+        "object" -> "GodotObject"
 
-    "array" -> "GodotArray"
+        "error" -> "GodotError"
 
-    "range" -> "GodotRange"
+        "string" -> "GodotString"
 
-    // region: fix lowered name
-    "transform2d" -> "Transform2D"
+        "array" -> "GodotArray"
 
-    "transform3d" -> "Transform3D"
+        "range" -> "GodotRange"
 
-    // endregion
+        else -> {
+            when {
+                loweredStr.endsWith("2d") -> {
+                    val basic = loweredStr.removeSuffix("2d").replaceFirstChar(Char::uppercaseChar)
+                    "${basic}2D"
+                }
 
-    else -> {
-        if (this.all { it.isUpperCase() }) {
-            return loweredStr.replaceFirstChar(Char::uppercaseChar)
-        } else {
-            this
+                loweredStr.endsWith("3d") -> {
+                    val basic = loweredStr.removeSuffix("3d").replaceFirstChar(Char::uppercaseChar)
+                    "${basic}3D"
+                }
+
+                this.all { it.isUpperCase() } -> loweredStr.replaceFirstChar(Char::uppercaseChar)
+
+                else -> this
+            }
         }
     }
 }
