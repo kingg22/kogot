@@ -114,48 +114,35 @@ fun sanitizeTypeName(name: String): String {
 }
 
 /**
- * Comprueba rápidamente si una clase de Godot necesita ser renombrada
- * para evitar colisiones con tipos de Kotlin.
- */
-fun String.godotTypeNeedsRename(): Boolean = when (this.lowercase()) {
-    "object", "error", "string", "array", "range" -> true
-    else -> this.endsWith("2d") || this.endsWith("3d") || this.all { it.isUpperCase() }
-}
-
-/**
  * Renombra clases de Godot que colisionan con tipos de Kotlin.
  * Realiza un chequeo rápido previo.
  */
-fun String.renameGodotClass(): String {
-    if (!this.godotTypeNeedsRename()) return this
+fun String.renameGodotClass(): String = when (val loweredStr = this.lowercase()) {
+    "object" -> "GodotObject"
 
-    return when (val loweredStr = this.lowercase()) {
-        "object" -> "GodotObject"
+    "error" -> "GodotError"
 
-        "error" -> "GodotError"
+    "string" -> "GodotString"
 
-        "string" -> "GodotString"
+    "array" -> "GodotArray"
 
-        "array" -> "GodotArray"
+    "range" -> "GodotRange"
 
-        "range" -> "GodotRange"
-
-        else -> {
-            when {
-                loweredStr.endsWith("2d") -> {
-                    val basic = loweredStr.removeSuffix("2d").replaceFirstChar(Char::uppercaseChar)
-                    "${basic}2D"
-                }
-
-                loweredStr.endsWith("3d") -> {
-                    val basic = loweredStr.removeSuffix("3d").replaceFirstChar(Char::uppercaseChar)
-                    "${basic}3D"
-                }
-
-                this.all { it.isUpperCase() } -> loweredStr.replaceFirstChar(Char::uppercaseChar)
-
-                else -> this
+    else -> {
+        when {
+            loweredStr.endsWith("2d") -> {
+                val basic = loweredStr.removeSuffix("2d").replaceFirstChar(Char::uppercaseChar)
+                "${basic}2D"
             }
+
+            loweredStr.endsWith("3d") -> {
+                val basic = loweredStr.removeSuffix("3d").replaceFirstChar(Char::uppercaseChar)
+                "${basic}3D"
+            }
+
+            this.all { it.isUpperCase() } -> loweredStr.replaceFirstChar(Char::uppercaseChar)
+
+            else -> this.replaceFirstChar(Char::uppercaseChar)
         }
     }
 }
