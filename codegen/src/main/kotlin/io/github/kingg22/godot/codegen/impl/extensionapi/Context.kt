@@ -21,12 +21,13 @@ class Context(
     private val inheritanceTree: InheritanceTree,
     val godotVersion: GodotVersion,
     packageRegistry: PackageRegistry,
+    val precision: String,
 ) : PackageRegistry by packageRegistry {
     init {
         println("INFO: Context created to generate for Godot: $godotVersion")
     }
 
-    constructor(incompleteContext: IncompleteContext, packageRegistry: PackageRegistry) : this(
+    constructor(incompleteContext: IncompleteContext, packageRegistry: PackageRegistry, precision: String) : this(
         builtinTypes = incompleteContext.builtinTypes,
         singletons = incompleteContext.singletons,
         classes = incompleteContext.classesAndApiType.map { it.first }.toSet(),
@@ -35,6 +36,7 @@ class Context(
         inheritanceTree = incompleteContext.inheritanceTree,
         godotVersion = incompleteContext.godotVersion,
         packageRegistry = packageRegistry,
+        precision = precision,
     )
 
     // ── Type classification ───────────────────────────────────────────────────
@@ -68,6 +70,8 @@ class Context(
 
     /** @return `true` if [godotName] is a specialized class (e.g. `Vector2i` is specialized of `Vector2`) and the base exists */
     fun isSpecializedClass(godotName: String): Boolean = godotName.endsWith('i') && isGodotType(godotName.dropLast(1))
+
+    val isDoublePrecision: Boolean get() = precision == "double"
 
     // ── Hierarchy ─────────────────────────────────────────────────────────────
 
@@ -109,7 +113,7 @@ class Context(
         ): Context {
             val incompleteContext = buildFromApi(api)
             val packageRegistry = packageRegistryFactory(rootPackage, incompleteContext)
-            return Context(incompleteContext, packageRegistry)
+            return Context(incompleteContext, packageRegistry, api.header.precision)
         }
 
         private fun buildFromApi(api: ExtensionApi): IncompleteContext {

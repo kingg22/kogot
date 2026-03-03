@@ -11,5 +11,11 @@ class Header(
     @SerialName("version_status") val versionStatus: String,
     @SerialName("version_build") val versionBuild: String,
     @SerialName("version_full_name") val versionFullName: String,
-    val precision: String? = null,
-)
+    val precision: String,
+) {
+    init {
+        check(precision == "single" || precision == "double") {
+            "Detected precision '$precision', but only single and double are supported."
+        }
+    }
+}

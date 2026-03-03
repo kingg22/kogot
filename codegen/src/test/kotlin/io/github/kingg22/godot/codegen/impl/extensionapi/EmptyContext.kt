@@ -18,4 +18,5 @@ fun EmptyContext(
     inheritanceTree = tree,
     godotVersion = version,
     packageRegistry = packageRegistry,
+    precision = "single",
 )
