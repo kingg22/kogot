@@ -76,10 +76,6 @@ class NativePackageRegistry internal constructor(private val typeToPackage: Map<
                     // los 79 confiables
                     apiType == "editor" -> "$rootPackage.api.editor"
 
-                    // FIXME: this is a hack, but it works for now. Remove when classes are generated
-                    // Kotlin/Native only exposes GodotObject in the root package.
-                    name == "Object" -> "$rootPackage.api"
-
                     else -> {
                         val sub = resolveCoreSubpackage(name, context.inheritanceTree)
                         val subPack = sub?.let { ".$sub" }.orEmpty()
