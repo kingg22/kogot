@@ -4,11 +4,13 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.CodeImplGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.BodyGenerator
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.KNativeStructureGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeBuiltinClassGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeEnumGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeMethodGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeVariantGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.stubs.UtilityFunctionStubGenerator
+import io.github.kingg22.godot.codegen.models.extensionapi.EnumDescriptor
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 import java.nio.file.Path
 
@@ -19,6 +21,7 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
     private val builtinClassGenerator = NativeBuiltinClassGenerator(typeResolver, bodyGenerator, methodGenerator)
     private val enumGen = NativeEnumGenerator()
     private val variant = NativeVariantGenerator(typeResolver)
+    private val nativeStructure = KNativeStructureGenerator(typeResolver, bodyGenerator)
     private val utils = UtilityFunctionStubGenerator(typeResolver)
 
     context(context: Context)
@@ -57,23 +60,49 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
         val builtinEnumPaths = api.builtinClasses.asSequence()
             .flatMap { builtinClass ->
                 builtinClass.enums.asSequence().mapNotNull { enum ->
-                    if (builtinClass.name.endsWith('i') &&
-                        api.builtinClasses.any { it.name == builtinClass.name.dropLast(1) }
-                    ) {
-                        println(
-                            "WARNING: Skipping nested enum '${enum.name}' for builtin class '${builtinClass.name}' because it's a specialized class.",
-                        )
-                        return@mapNotNull null
-                    }
-                    enum.copy(name = "${builtinClass.name}.${enum.name}")
+                    filterNestedEnums(enum, builtinClass.name, api.classes.map { it.name })
                 }
             }
             .map { enumGen.generateFile(it).writeTo(outputDir) }
 
         yieldAll(builtinEnumPaths)
 
+        // FIXME when BodyGenerator is implemented, change to own implementation and remove usage of stubs
         val utilityFunctionsPaths = utils.generate(api.utilityFunctions).map { it.writeTo(outputDir) }
 
         yieldAll(utilityFunctionsPaths)
+
+        // val godotClassesPaths = api.classes.asSequence()
+
+        val engineClassEnumPaths = api.classes.asSequence()
+            .flatMap { engineClass ->
+                engineClass.enums.asSequence().mapNotNull { enum ->
+                    filterNestedEnums(enum, engineClass.name, api.classes.map { it.name })
+                }
+            }
+            .map { enumGen.generateFile(it).writeTo(outputDir) }
+
+        yieldAll(engineClassEnumPaths)
+
+        val nativeStructuresPaths = api.nativeStructures.asSequence()
+            .map { nativeStructure.generateFile(it).writeTo(outputDir) }
+
+        yieldAll(nativeStructuresPaths)
+    }
+
+    private fun filterNestedEnums(
+        enum: EnumDescriptor,
+        parentClassName: String,
+        classesNames: List<String>,
+    ): EnumDescriptor? {
+        if (parentClassName.endsWith('i') &&
+            classesNames.any { it == parentClassName.dropLast(1) }
+        ) {
+            println(
+                "INFO: Skipping nested enum '${enum.name}' for class '$parentClassName' because it's a specialized class.",
+            )
+            return null
+        }
+        return enum.copy(name = "$parentClassName.${enum.name}")
     }
 }
