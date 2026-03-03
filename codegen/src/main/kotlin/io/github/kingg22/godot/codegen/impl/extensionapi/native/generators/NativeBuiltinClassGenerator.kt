@@ -177,7 +177,7 @@ class NativeBuiltinClassGenerator(
         val (staticMethods, instanceMethods) = builtinClass.methods.partition { it.isStatic }
 
         instanceMethods.forEach { method ->
-            var methodSpec = generateMethod(method)
+            var methodSpec = methodGen.buildMethod(method)
             if (builtinClass.isKeyed && (method.name == "get" || method.name == "set")) {
                 methodSpec = methodSpec.toBuilder().addModifiers(KModifier.OPERATOR).build()
             }
@@ -208,7 +208,7 @@ class NativeBuiltinClassGenerator(
 
         // Static methods
         staticMethods.forEach { method ->
-            companionBuilder.addFunction(generateMethod(method))
+            companionBuilder.addFunction(methodGen.buildMethod(method))
         }
 
         if (companionHasContent) {
@@ -348,16 +348,6 @@ class NativeBuiltinClassGenerator(
 
         return builder.build()
     }
-
-    // ── Method generation ─────────────────────────────────────────────────────
-
-    context(_: Context)
-    private fun generateMethod(method: BuiltinClass.BuiltinMethod): FunSpec = methodGen.buildMethod(
-        name = method.name,
-        returnType = method.returnType,
-        isVararg = method.isVararg,
-        arguments = method.arguments,
-    )
 
     // Helpers
     private fun isOperatorMethod(method: BuiltinClass.BuiltinMethod): Boolean = method.arguments.size <= 1
