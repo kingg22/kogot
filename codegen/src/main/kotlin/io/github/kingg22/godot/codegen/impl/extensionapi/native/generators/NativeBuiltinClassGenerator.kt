@@ -117,12 +117,11 @@ class NativeBuiltinClassGenerator(
         val kotlinName = builtinClass.name.renameGodotClass()
         val classBuilder = TypeSpec.classBuilder(kotlinName)
 
-        /* KDOC
-        val kdoc = buildKdoc(
-            description = listOfNotNull(builtinClass.briefDescription, builtinClass.description),
-        )
-        if (kdoc.isNotBlank()) classBuilder.addKdoc(kdoc)
-         */
+        // KDOC
+        val kdoc = builtinClass.description?.takeIf { it.isNotBlank() }
+        if (!kdoc.isNullOrBlank()) {
+            classBuilder.addKdoc("%S", kdoc.replace("*/", "").replace("/*", ""))
+        }
 
         // Indexable builtins implement operator get/set; keyed ones implement Map-like access.
 
@@ -142,11 +141,17 @@ class NativeBuiltinClassGenerator(
         // FIXME needs to be mutable?
         builtinClass.members.forEach { member ->
             val memberType = typeResolver.resolve(member.type)
+
             val propBuilder = PropertySpec
                 .builder(safeIdentifier(member.name), memberType)
                 .mutable(true)
-            // member.description?.takeIf { it.isNotBlank() }?.let { propBuilder.addKdoc(it) }
+
+            member.description?.takeIf { it.isNotBlank() }?.let {
+                propBuilder.addKdoc("%S", it.replace("*/", "").replace("/*", ""))
+            }
+
             propBuilder.getter(body.todoGetter())
+
             propBuilder.setter(
                 FunSpec
                     .setterBuilder()
@@ -154,6 +159,7 @@ class NativeBuiltinClassGenerator(
                     .addCode(body.todoBody())
                     .build(),
             )
+
             classBuilder.addProperty(propBuilder.build())
         }
 
@@ -163,11 +169,16 @@ class NativeBuiltinClassGenerator(
         // Index 0 is always the no-arg constructor.
         builtinClass.constructors.forEach { ctor ->
             val ctorBuilder = FunSpec.constructorBuilder()
-            // ctor.description?.takeIf { it.isNotBlank() }?.let { ctorBuilder.addKdoc(it) }
+
+            ctor.description?.takeIf {
+                it.isNotBlank()
+            }?.let { ctorBuilder.addKdoc("%S", it.replace("*/", "").replace("/*", "")) }
+
             ctor.arguments.forEach { arg ->
                 ctorBuilder.addParameter(methodGen.buildParameter(arg))
             }
             ctorBuilder.addCode(body.todoBody())
+
             classBuilder.addFunction(ctorBuilder.build())
         }
 
@@ -200,7 +211,9 @@ class NativeBuiltinClassGenerator(
         builtinClass.constants.forEach { constant ->
             val constType = typeResolver.resolve(constant.type)
             val propBuilder = PropertySpec.builder(constant.name, constType)
-            // constant.description?.takeIf { it.isNotBlank() }?.let { propBuilder.addKdoc(it) }
+            constant.description?.takeIf { it.isNotBlank() }?.let {
+                propBuilder.addKdoc("%S", it.replace("/*", "").replace("*/", ""))
+            }
             // Value is provided as a Godot expression string (e.g. "Vector2(0, 0)").
             // For now we use TODO() getter; impl layer will replace with actual value.
             propBuilder.getter(body.todoGetter())
@@ -240,7 +253,7 @@ class NativeBuiltinClassGenerator(
                 // compareTo covers <, <=, >, >= — generate once, first occurrence wins
                 symbol in COMPARE_OPERATORS -> {
                     if (!compareToGenerated) {
-                        result += buildCompareToOperator(builtinClass, op.returnType)
+                        result += buildCompareToOperator(builtinClass)
                         compareToGenerated = true
                     }
                 }
@@ -287,26 +300,15 @@ class NativeBuiltinClassGenerator(
             }.returns(returnTypeName)
             .addCode(body.todoBody())
 
-        // description?.takeIf { it.isNotBlank() }?.let { builder.addKdoc(it) }
+        description?.takeIf { it.isNotBlank() }?.let {
+            builder.addKdoc("%S", it.replace("*/", "").replace("/*", ""))
+        }
         builder.addKdocForBitfield(returnType)
 
         if (rightType != null) {
             val rightTypeName = typeResolver.resolve(rightType)
             builder.addParameter("other", rightTypeName)
         }
-
-        /*
-        equals must override Any.equals
-        if (name == "equals") {
-            builder
-                .addModifiers(KModifier.OVERRIDE)
-                .addParameter(
-                    ParameterSpec
-                        .builder("other", ANY.copy(nullable = true))
-                        .build(),
-                )
-        }
-         */
 
         return builder.build()
     }
@@ -316,7 +318,7 @@ class NativeBuiltinClassGenerator(
      * Kotlin derives <, <=, >, >= from a single compareTo.
      */
     context(_: Context)
-    private fun buildCompareToOperator(builtinClass: BuiltinClass, returnType: String): FunSpec {
+    private fun buildCompareToOperator(builtinClass: BuiltinClass): FunSpec {
         val selfType = typeResolver.resolve(builtinClass.name)
         return FunSpec
             .builder("compareTo")
@@ -343,7 +345,9 @@ class NativeBuiltinClassGenerator(
             .returns(returnTypeName)
             .addCode(body.todoBody())
 
-        // op.description?.takeIf { it.isNotBlank() }?.let { builder.addKdoc(it) }
+        op.description?.takeIf { it.isNotBlank() }?.let {
+            builder.addKdoc("%S", it.replace("*/", "").replace("/*", ""))
+        }
         builder.addKdoc("\nGodot operator: `%L`", op.name)
 
         if (op.rightType != null) {
