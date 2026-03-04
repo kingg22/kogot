@@ -231,7 +231,7 @@ class NativeBuiltinClassGenerator(
 
         builtinClass.enums.forEach { enum ->
             if (context.isSpecializedClass(enum.name)) return@forEach
-            classBuilder.addType(enumGenerator.generateSpec(enum))
+            classBuilder.addType(enumGenerator.generateSpec(enum, builtinClass.name))
         }
 
         return classBuilder.build()

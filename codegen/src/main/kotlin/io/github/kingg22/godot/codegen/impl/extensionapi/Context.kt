@@ -18,7 +18,6 @@ class Context(
     private val singletons: Set<String>,
     private val classes: Set<String>,
     private val globalEnumsTypes: Set<String>,
-    private val nestedEnumsTypes: Set<Pair<String, String>>,
     private val inheritanceTree: InheritanceTree,
     private val enumConstantResolver: EnumConstantResolver,
     val godotVersion: GodotVersion,
@@ -34,7 +33,6 @@ class Context(
         singletons = incompleteContext.singletons,
         classes = incompleteContext.classesAndApiType.map { it.first }.toSet(),
         globalEnumsTypes = incompleteContext.globalEnumsTypes,
-        nestedEnumsTypes = incompleteContext.nestedEnumsTypes,
         inheritanceTree = incompleteContext.inheritanceTree,
         enumConstantResolver = incompleteContext.enumConstantResolver,
         godotVersion = incompleteContext.godotVersion,
@@ -48,33 +46,8 @@ class Context(
     fun isSingleton(godotName: String): Boolean = godotName in singletons
     fun isSingleton(godotClass: GodotClass): Boolean = godotClass.name in singletons
 
-    fun isGodotType(godotName: String): Boolean =
-        isBuiltin(godotName) || isSingleton(godotName) || godotName in classes || godotName in globalEnumsTypes ||
-            godotName in nestedEnumsTypes.map { it.first }
-
-    fun isNestedEnum(godotName: String): Boolean = nestedEnumsTypes.any {
-        it.second == godotName || "${it.first}${it.second}" == godotName
-    }
-
-    fun getNestedEnumName(godotName: String): String {
-        check(isNestedEnum(godotName)) { "Not a nested enum: $godotName" }
-        return nestedEnumsTypes.first { it.second == godotName || "${it.first}${it.second}" == godotName }.second
-    }
-
-    fun getNestedEnumParent(godotName: String): String {
-        check(isNestedEnum(godotName)) { "Not a nested enum: $godotName" }
-        return nestedEnumsTypes.first { it.second == godotName || "${it.first}${it.second}" == godotName }.first
-    }
-
-    fun getNestedEnumParentOrNull(godotName: String): String? {
-        if (!isNestedEnum(godotName)) return null
-        return nestedEnumsTypes.first { it.second == godotName || "${it.first}${it.second}" == godotName }.first
-    }
-
-    fun getNestedEnumPair(godotName: String): Pair<String, String> {
-        check(isNestedEnum(godotName)) { "Not a nested enum: $godotName" }
-        return nestedEnumsTypes.first { it.second == godotName || "${it.first}${it.second}" == godotName }
-    }
+    fun isGodotType(godotName: String) = isBuiltin(godotName) || isSingleton(godotName) ||
+        godotName in classes || godotName in globalEnumsTypes
 
     /** @return `true` if [godotName] is a specialized class (e.g. `Vector2i` is specialized of `Vector2`) and the base exists */
     fun isSpecializedClass(godotName: String): Boolean = godotName.endsWith('i') && isGodotType(godotName.dropLast(1))

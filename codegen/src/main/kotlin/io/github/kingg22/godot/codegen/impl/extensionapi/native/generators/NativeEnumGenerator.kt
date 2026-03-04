@@ -19,13 +19,13 @@ import io.github.kingg22.godot.codegen.models.extensionapi.EnumDescriptor
 class NativeEnumGenerator {
 
     context(context: Context)
-    fun generateFile(descriptor: EnumDescriptor): FileSpec {
-        val spec = generateSpec(descriptor)
+    fun generateFile(descriptor: EnumDescriptor, parentClassName: String? = null): FileSpec {
+        val spec = generateSpec(descriptor, parentClassName)
         return createFile(spec, spec.name!!, packageFor(descriptor.name))
     }
 
     context(context: Context)
-    fun generateSpec(descriptor: EnumDescriptor): TypeSpec {
+    fun generateSpec(descriptor: EnumDescriptor, parentClassName: String? = null): TypeSpec {
         withExceptionContext({ "Generating enum '${descriptor.name}', values count: ${descriptor.values.size}" }) {
             val enumName = enumTypeName(descriptor.name)
 
@@ -45,9 +45,7 @@ class NativeEnumGenerator {
                 )
             descriptor.description?.takeIf { it.isNotBlank() }?.let { typeBuilder.addKdoc("%S", it) }
 
-            val parentClass = context.getNestedEnumParentOrNull(descriptor.name)
-
-            val constants = context.getConstantEnumNamesFor(parentClass, descriptor.name)
+            val constants = context.getConstantEnumNamesFor(parentClassName, descriptor.name)
 
             descriptor.values.zip(constants) { enumConstant, entryName ->
                 withExceptionContext({ "Error generating enum constant '${enumConstant.name}' as $entryName" }) {
@@ -56,7 +54,7 @@ class NativeEnumGenerator {
                         TypeSpec
                             .anonymousClassBuilder()
                             .addSuperclassConstructorParameter("%L", enumConstant.value)
-                            .apply { enumConstant.description?.let { addKdoc("%S", it) } }
+                            .apply { enumConstant.description?.takeIf { it.isNotBlank() }?.let { addKdoc("%S", it) } }
                             .build(),
                     )
                 }
