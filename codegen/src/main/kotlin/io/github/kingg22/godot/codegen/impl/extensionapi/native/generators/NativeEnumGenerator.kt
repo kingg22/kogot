@@ -7,7 +7,6 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
-import io.github.kingg22.godot.codegen.impl.extensionapi.native.resolver.EnumeratorShortener
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.sanitizeTypeName
 import io.github.kingg22.godot.codegen.impl.withExceptionContext
@@ -46,14 +45,9 @@ class NativeEnumGenerator {
                 )
             descriptor.description?.takeIf { it.isNotBlank() }?.let { typeBuilder.addKdoc("%S", it) }
 
-            val isNested = context.isNestedEnum(descriptor.name)
-            val parentClass = if (isNested) context.getNestedEnumParent(descriptor.name) else null
+            val parentClass = context.getNestedEnumParentOrNull(descriptor.name)
 
-            val constants = EnumeratorShortener.shortenEnumeratorNames(
-                parentClass,
-                descriptor.name,
-                descriptor.values.map { it.name },
-            )
+            val constants = context.getConstantEnumNamesFor(parentClass, descriptor.name)
 
             descriptor.values.zip(constants) { enumConstant, entryName ->
                 withExceptionContext({ "Error generating enum constant '${enumConstant.name}' as $entryName" }) {
