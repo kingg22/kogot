@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 
 plugins {
@@ -21,6 +22,11 @@ kotlin {
             "kotlinx.cinterop.ExperimentalForeignApi",
             "kotlin.experimental.ExperimentalNativeApi",
         )
+    }
+
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    dependencies {
+        api(libs.jetbrains.annotations)
     }
 
     // linux
