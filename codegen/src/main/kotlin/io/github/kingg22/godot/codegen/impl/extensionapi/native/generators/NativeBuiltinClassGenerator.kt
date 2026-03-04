@@ -34,6 +34,7 @@ class NativeBuiltinClassGenerator(
     private val typeResolver: TypeResolver,
     private val body: BodyGenerator,
     private val methodGen: NativeMethodGenerator,
+    private val enumGenerator: NativeEnumGenerator,
 ) {
     companion object {
         /**
@@ -109,7 +110,7 @@ class NativeBuiltinClassGenerator(
     }
 
     /** Generates the [com.squareup.kotlinpoet.TypeSpec] for [builtinClass], or null if it belongs to [NativeBuiltinClassGenerator.SKIPPED_TYPES]. */
-    context(_: Context)
+    context(context: Context)
     fun generate(builtinClass: BuiltinClass): TypeSpec? {
         if (builtinClass.name.lowercase() in SKIPPED_TYPES) return null
 
@@ -213,6 +214,11 @@ class NativeBuiltinClassGenerator(
 
         if (companionHasContent) {
             classBuilder.addType(companionBuilder.build())
+        }
+
+        builtinClass.enums.forEach { enum ->
+            if (context.isSpecializedClass(enum.name)) return@forEach
+            classBuilder.addType(enumGenerator.generateSpec(enum))
         }
 
         return classBuilder.build()
