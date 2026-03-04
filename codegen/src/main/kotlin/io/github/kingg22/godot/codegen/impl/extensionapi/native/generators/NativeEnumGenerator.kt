@@ -43,7 +43,16 @@ class NativeEnumGenerator {
                         .initializer("value")
                         .build(),
                 )
+
             descriptor.description?.takeIf { it.isNotBlank() }?.let { typeBuilder.addKdoc("%S", it) }
+
+            typeBuilder.experimentalApiAnnotation(
+                if (parentClassName != null) {
+                    "$parentClassName.${descriptor.name}"
+                } else {
+                    descriptor.name
+                },
+            )
 
             val constants = context.getConstantEnumNamesFor(parentClassName, descriptor.name)
 

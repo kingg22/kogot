@@ -25,6 +25,8 @@ class KNativeStructureGenerator(private val typeResolver: TypeResolver, private 
     fun generateSpec(ns: NativeStructure): TypeSpec {
         val typeBuilder = TypeSpec.classBuilder(sanitizeTypeName(ns.name.renameGodotClass()))
 
+        typeBuilder.experimentalApiAnnotation(ns.name)
+
         NativeStructureParser
             .parseFormat(ns.format)
             .forEach { field ->

@@ -36,6 +36,7 @@ class NativeUtilityFunctionGenerator(
                         returnType = returnType,
                         arguments = fn.arguments,
                         methodKdoc = fn.description?.plus("\nCategory: ${fn.category}") ?: "Category: ${fn.category}",
+                        className = "GD",
                     )
                     gdTypeSpec.addFunction(funSpec)
                 }

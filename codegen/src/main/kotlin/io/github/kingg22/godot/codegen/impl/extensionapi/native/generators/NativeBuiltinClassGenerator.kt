@@ -116,6 +116,7 @@ class NativeBuiltinClassGenerator(
 
         val kotlinName = builtinClass.name.renameGodotClass()
         val classBuilder = TypeSpec.classBuilder(kotlinName)
+            .experimentalApiAnnotation(builtinClass.name)
 
         // KDOC
         val kdoc = builtinClass.description?.takeIf { it.isNotBlank() }
@@ -145,6 +146,7 @@ class NativeBuiltinClassGenerator(
             val propBuilder = PropertySpec
                 .builder(safeIdentifier(member.name), memberType)
                 .mutable(true)
+                .experimentalApiAnnotation(builtinClass.name, member.name)
 
             member.description?.takeIf { it.isNotBlank() }?.let {
                 propBuilder.addKdoc("%S", it.replace("*/", "").replace("/*", ""))
@@ -189,7 +191,7 @@ class NativeBuiltinClassGenerator(
         val (staticMethods, instanceMethods) = builtinClass.methods.partition { it.isStatic }
 
         instanceMethods.forEach { method ->
-            var methodSpec = methodGen.buildMethod(method)
+            var methodSpec = methodGen.buildMethod(method, builtinClass.name)
             if (builtinClass.isKeyed && (method.name == "get" || method.name == "set")) {
                 methodSpec = methodSpec.toBuilder().addModifiers(KModifier.OPERATOR).build()
             }
@@ -210,10 +212,14 @@ class NativeBuiltinClassGenerator(
         // Constants
         builtinClass.constants.forEach { constant ->
             val constType = typeResolver.resolve(constant.type)
+
             val propBuilder = PropertySpec.builder(constant.name, constType)
+                .experimentalApiAnnotation(builtinClass.name, constant.name)
+
             constant.description?.takeIf { it.isNotBlank() }?.let {
                 propBuilder.addKdoc("%S", it.replace("/*", "").replace("*/", ""))
             }
+
             // Value is provided as a Godot expression string (e.g. "Vector2(0, 0)").
             // For now we use TODO() getter; impl layer will replace with actual value.
             propBuilder.getter(body.todoGetter())
@@ -222,7 +228,7 @@ class NativeBuiltinClassGenerator(
 
         // Static methods
         staticMethods.forEach { method ->
-            companionBuilder.addFunction(methodGen.buildMethod(method))
+            companionBuilder.addFunction(methodGen.buildMethod(method, builtinClass.name))
         }
 
         if (companionHasContent) {
@@ -276,7 +282,7 @@ class NativeBuiltinClassGenerator(
                     println(
                         "WARNING: Unknown operator found ${builtinClass.name}.${op.name}(${op.rightType.orEmpty()}): ${op.returnType}",
                     )
-                    result += buildFallbackOperatorMethod(op)
+                    result += buildFallbackOperatorMethod(op, builtinClass.name)
                 }
             }
         }
@@ -337,13 +343,14 @@ class NativeBuiltinClassGenerator(
      * Binary ops become `infix fun`, unary ops become regular funs.
      */
     context(_: Context)
-    private fun buildFallbackOperatorMethod(op: BuiltinClass.Operator): FunSpec {
+    private fun buildFallbackOperatorMethod(op: BuiltinClass.Operator, className: String): FunSpec {
         val safeName = safeIdentifier(op.name) // .replace(" ", "_")
         val returnTypeName = typeResolver.resolve(op.returnType)
         val builder = FunSpec
             .builder(safeName)
             .returns(returnTypeName)
             .addCode(body.todoBody())
+            .experimentalApiAnnotation(className, op.name)
 
         op.description?.takeIf { it.isNotBlank() }?.let {
             builder.addKdoc("%S", it.replace("*/", "").replace("/*", ""))

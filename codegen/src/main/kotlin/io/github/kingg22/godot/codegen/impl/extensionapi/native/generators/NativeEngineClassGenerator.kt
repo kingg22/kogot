@@ -54,7 +54,7 @@ class NativeEngineClassGenerator(
             // Métodos standalone (no forman parte de una property)
             standaloneMethods.forEach {
                 val modifiers = Array(if (it.isVirtual) 1 else 0) { KModifier.OPEN }
-                classBuilder.addFunction(methodGen.buildMethod(it, *modifiers))
+                classBuilder.addFunction(methodGen.buildMethod(it, cls.name, *modifiers))
             }
 
             // Companion Object para Statics y Singleton Instance
@@ -64,20 +64,21 @@ class NativeEngineClassGenerator(
                 companionBuilder.addSingletonInstance(className)
             }
 
-            cls.constants.forEach { enumConstant ->
-                withExceptionContext({ "Error generating class constant '${enumConstant.name}'" }) {
+            cls.constants.forEach { constant ->
+                withExceptionContext({ "Error generating class constant '${constant.name}'" }) {
                     companionBuilder.addProperty(
                         PropertySpec
-                            .builder(enumConstant.name, LONG, KModifier.CONST)
-                            .initializer("%L", enumConstant.value)
-                            .apply { enumConstant.description?.let { addKdoc("%S", it) } }
+                            .builder(constant.name, LONG, KModifier.CONST)
+                            .initializer("%L", constant.value)
+                            .apply { constant.description?.let { addKdoc("%S", it) } }
+                            .experimentalApiAnnotation(cls.name, constant.name)
                             .build(),
                     )
                 }
             }
 
             staticMethods.forEach {
-                companionBuilder.addFunction(methodGen.buildMethod(it))
+                companionBuilder.addFunction(methodGen.buildMethod(it, cls.name))
             }
 
             if (isSingleton || cls.constants.isNotEmpty() || staticMethods.isNotEmpty()) {
@@ -108,7 +109,7 @@ class NativeEngineClassGenerator(
 
         cls.properties.forEach { property ->
             withExceptionContext({ "Error generating property '${property.name}'" }) {
-                val propertySpec = synthesizeProperty(property, methods)
+                val propertySpec = synthesizeProperty(property, methods, cls.name)
                 classBuilder.addProperty(propertySpec)
 
                 // Marcar getter/setter como usados solo si son properties standalone (sin delegación a methods)
@@ -126,6 +127,7 @@ class NativeEngineClassGenerator(
     private fun synthesizeProperty(
         property: GodotClass.ClassProperty,
         methods: List<GodotClass.ClassMethod>,
+        className: String,
     ): PropertySpec {
         val safeName = safeIdentifier(property.name)
 
@@ -140,7 +142,7 @@ class NativeEngineClassGenerator(
         if (getterMethod == null || (property.setter != null && setterMethod == null)) {
             // FIXME: enable with logger.debug/verbose
             // println("INFO: Fallback generation for property $className.${property.name}")
-            return generateProperty(property, getterMethod, setterMethod)
+            return generateProperty(property, className, getterMethod, setterMethod)
         }
 
         val returnValue = getterMethod.returnValue ?: error("Getter '${property.getter}' has no return type")
@@ -151,6 +153,7 @@ class NativeEngineClassGenerator(
         val propBuilder = PropertySpec
             .builder(safeName, propertyType)
             .mutable(property.setter != null)
+            .experimentalApiAnnotation(className, property.name)
 
         property.description?.takeIf { it.isNotBlank() }?.let {
             propBuilder.addKdoc("%S", it.replace("*/", "").replace("/*", ""))
@@ -173,7 +176,8 @@ class NativeEngineClassGenerator(
             )
 
             propBuilder.getter(
-                FunSpec.getterBuilder()
+                FunSpec
+                    .getterBuilder()
                     .addStatement("return %N(%L)", safeIdentifier(property.getter), enumConstant)
                     .build(),
             )
@@ -190,14 +194,16 @@ class NativeEngineClassGenerator(
                 )
 
                 propBuilder.setter(
-                    FunSpec.setterBuilder()
+                    FunSpec
+                        .setterBuilder()
                         .addParameter("value", propertyType)
                         .addStatement("%N(%L, value)", safeIdentifier(property.setter), enumConstant)
                         .build(),
                 )
             } else {
                 propBuilder.setter(
-                    FunSpec.setterBuilder()
+                    FunSpec
+                        .setterBuilder()
                         .addParameter("value", propertyType)
                         .addCode(body.todoBody())
                         .build(),
@@ -252,10 +258,11 @@ class NativeEngineClassGenerator(
     context(_: Context)
     private fun generateProperty(
         property: GodotClass.ClassProperty,
+        className: String,
         getter: GodotClass.ClassMethod?,
         setter: GodotClass.ClassMethod?,
     ): PropertySpec {
-        if (property.type.contains(",")) error("Multi-type properties are not supported by generate property yet")
+        if (property.type.contains(',')) error("Multi-type properties are not supported by generate property yet")
 
         val memberType = if (getter != null && getter.returnValue != null) {
             typeResolver.resolve(getter.returnValue)
@@ -266,6 +273,7 @@ class NativeEngineClassGenerator(
         val propBuilder = PropertySpec
             .builder(safeIdentifier(property.name), memberType)
             .mutable(property.setter != null)
+            .experimentalApiAnnotation(className, property.name)
 
         // KDoc: descripción de la property
         property.description?.takeIf { it.isNotBlank() }?.let {
@@ -311,6 +319,7 @@ class NativeEngineClassGenerator(
     context(_: Context)
     private fun buildBaseClass(cls: GodotClass, className: ClassName, isSingleton: Boolean): TypeSpec.Builder {
         val builder = TypeSpec.classBuilder(className)
+            .experimentalApiAnnotation(cls.name)
         val constructorSpec = FunSpec.constructorBuilder()
 
         // Modificadores de clase
