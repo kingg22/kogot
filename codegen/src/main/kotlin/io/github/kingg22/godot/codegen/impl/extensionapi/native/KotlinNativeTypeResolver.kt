@@ -306,7 +306,15 @@ class KotlinNativeTypeResolver : TypeResolver {
         val FLOAT_VAR = ClassName("kotlinx.cinterop", "FloatVar")
         val DOUBLE_VAR = ClassName("kotlinx.cinterop", "DoubleVar")
 
-        private val PRIMITIVE_TYPES = setOf(
+        val PRIMITIVE_NUMERIC_TYPES = setOf(
+            "int8_t", "int8",
+            "short", "int16_t", "int16",
+            "int", "int32_t", "int32",
+            "long long", "int64_t", "int64", "long", "intptr_t",
+            "float", "double",
+        )
+
+        private val PRIMITIVE_TYPES = PRIMITIVE_NUMERIC_TYPES + setOf(
             "char", "int8_t", "int8",
             "short", "int16_t", "int16",
             "int", "int32_t", "int32",
@@ -316,7 +324,6 @@ class KotlinNativeTypeResolver : TypeResolver {
             "unsigned int", "uint", "uint32_t", "uint32", "char32_t",
             "unsigned long long", "ulong", "uint64_t", "uint64",
             "uintptr_t", "size_t",
-            "float", "double",
         )
     }
 }
