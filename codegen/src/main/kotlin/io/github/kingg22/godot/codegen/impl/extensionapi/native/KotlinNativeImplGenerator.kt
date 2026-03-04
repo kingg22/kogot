@@ -9,8 +9,8 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.Nativ
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeEngineClassGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeEnumGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeMethodGenerator
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeUtilityFunctionGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeVariantGenerator
-import io.github.kingg22.godot.codegen.impl.extensionapi.stubs.UtilityFunctionStubGenerator
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 import java.nio.file.Path
 
@@ -23,7 +23,7 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
     private val engineClass = NativeEngineClassGenerator(typeResolver, bodyGenerator, methodGenerator, enumGen)
     private val variant = NativeVariantGenerator(typeResolver, enumGen)
     private val nativeStructure = KNativeStructureGenerator(typeResolver, bodyGenerator)
-    private val utils = UtilityFunctionStubGenerator(typeResolver)
+    private val utils = NativeUtilityFunctionGenerator(typeResolver, methodGenerator)
 
     context(context: Context)
     override fun generate(api: ExtensionApi, outputDir: Path): Sequence<Path> = sequence {
@@ -53,10 +53,9 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
 
         yieldAll(builtinClassesPaths)
 
-        // FIXME when BodyGenerator is implemented, change to own implementation and remove usage of stubs
-        val utilityFunctionsPaths = utils.generate(api.utilityFunctions).map { it.writeTo(outputDir) }
+        val utilityFunctionsPaths = utils.generateFile(api.utilityFunctions).writeTo(outputDir)
 
-        yieldAll(utilityFunctionsPaths)
+        yield(utilityFunctionsPaths)
 
         val godotClassesPaths = api.classes.asSequence().map { engineClass.generateFile(it).writeTo(outputDir) }
 
