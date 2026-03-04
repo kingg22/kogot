@@ -42,19 +42,25 @@ import io.github.kingg22.godot.codegen.models.extensionapi.TypeMetaHolder
  * | uintptr_t                 | ULong                                     |
  */
 class KotlinNativeTypeResolver : TypeResolver {
+
     context(_: Context)
-    fun resolveOf(holder: TypeMetaHolder): TypeName {
+    override fun resolve(holder: TypeMetaHolder): TypeName {
         // meta hint: use it to pick a more precise primitive
         // e.g. meta = "int32" on a Variant int → Int instead of Long
-        if (!holder.isRequired()) {
+        if (holder.meta != null && !holder.isRequired()) {
             runCatching { resolveWithMeta(holder.type, holder.meta!!) }
+                .onFailure {
+                    println(
+                        "ERROR: failed to resolve type with meta: ${holder.type} (${holder.meta}).\n${it.stackTraceToString()}",
+                    )
+                }
                 .onSuccess { return it }
         }
-        return resolveOf(holder.type)
+        return resolve(holder.type)
     }
 
     context(_: Context)
-    fun resolveOf(godotType: String): TypeName {
+    override fun resolve(godotType: String): TypeName {
         val stripped = godotType.trim().removePrefix("const ").trim()
 
         // Pointer type: ends with * after stripping const
@@ -63,16 +69,6 @@ class KotlinNativeTypeResolver : TypeResolver {
         }
 
         return resolvePlain(stripped)
-    }
-
-    context(context: Context)
-    override fun resolve(holder: TypeMetaHolder): TypeName = context(context) {
-        resolveOf(holder)
-    }
-
-    context(context: Context)
-    override fun resolve(godotType: String): TypeName = context(context) {
-        resolveOf(godotType)
     }
 
     // ── Pointer resolution ────────────────────────────────────────────────────
@@ -84,24 +80,30 @@ class KotlinNativeTypeResolver : TypeResolver {
 
         return when {
             // void* or opaque handles → COpaquePointer
-            inner == "void" || isOpaqueHandle(inner) -> COPAQUE_POINTER.copy(nullable = true)
+            inner == "void" || isOpaqueHandle(inner) -> COPAQUE_POINTER
 
             // Multi-level pointers (e.g. Object**) → CPointer<CPointerVar<T>>
             inner.endsWith("*") -> {
+                /*
                 val innerType = resolvePointer(inner)
-                C_POINTER.parameterizedBy(toCPointerVarOf(innerType)).copy(nullable = true)
+                C_POINTER.parameterizedBy(toCPointerVarOf(innerType))
+                 */
+                COPAQUE_POINTER
             }
 
             // Primitive pointer → CPointer<XVar> (e.g. int* → CPointer<IntVar>)
             isPrimitive(inner) -> {
                 val varType = primitiveToVarType(inner)
-                C_POINTER.parameterizedBy(varType).copy(nullable = true)
+                C_POINTER.parameterizedBy(varType)
             }
 
             // Known generated class → CPointer<GeneratedClass>
             else -> {
+                /*
                 val innerTypeName = resolvePlain(inner)
                 C_POINTER.parameterizedBy(innerTypeName).copy(nullable = true)
+                 */
+                COPAQUE_POINTER
             }
         }
     }
@@ -127,11 +129,20 @@ class KotlinNativeTypeResolver : TypeResolver {
             .removePrefix("bitfield::").trim()
 
         if (clean.startsWith("typedarray::")) {
+            /*
             // typedarray in native → CPointer<GodotArray> or similar;
             // for now map to the inner type pointer to stay ABI-accurate
             // val inner = resolveOf(clean.removePrefix("typedarray::"))
             val godotArrayClass = context.classNameForOrDefault("Array", "GodotArray")
             return C_POINTER.parameterizedBy(godotArrayClass).copy(nullable = true)
+             */
+            return context.classNameForOrDefault("Array", "GodotArray")
+        }
+
+        if (clean.startsWith("typeddictionary")) {
+            // Currently is not supported a typeddict
+            // for now map as Dictorionary
+            return context.classNameForOrDefault("Dictionary")
         }
 
         // Nested classes handler in native is top level
@@ -147,11 +158,11 @@ class KotlinNativeTypeResolver : TypeResolver {
             // Cases like: Vector2i is a specialized of Vector2, so we need to check if the parent is a Godot class
             if (parentName.endsWith('i') && context.isGodotType(parentName.dropLast(1))) {
                 val baseParentName = parentName.dropLast(1)
-                return context.classNameForOrDefault(rawQualified, baseParentName + nestedName)
+                val qualifiedBase = "$baseParentName$nestedName"
+                return context.classNameForOrDefault(qualifiedBase, baseParentName, nestedName)
             }
 
-            val topLevelName = parentName + nestedName
-            return context.classNameForOrDefault(rawQualified, topLevelName)
+            return context.classNameForOrDefault(rawQualified, parentName, nestedName)
         }
 
         val raw = checkAndNormalizeTypeName(clean)
@@ -224,7 +235,7 @@ class KotlinNativeTypeResolver : TypeResolver {
         "double" -> DOUBLE
         "char16" -> U_SHORT
         "char32" -> U_INT
-        else -> resolveOf(baseType) // unknown meta → fall back
+        else -> resolve(baseType) // unknown meta → fall back
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

@@ -20,7 +20,7 @@ class KotlinNativeTypeResolverTest {
         assertAll(
             TYPES_EXPECTED.map { (godotType, expected) ->
                 val resolved = context(testContext) {
-                    resolver.resolveOf(godotType)
+                    resolver.resolve(godotType)
                 }
 
                 Executable { assertEquals(expected, resolved) }
@@ -33,7 +33,7 @@ class KotlinNativeTypeResolverTest {
         // Si llega al resolver como tipo raw, debe lanzar excepción.
         val exception = assertThrows<IllegalStateException> {
             context(testContext) {
-                resolver.resolveOf("required")
+                resolver.resolve("required")
             }
         }
 
@@ -50,7 +50,7 @@ class KotlinNativeTypeResolverTest {
         }
 
         val resolved = context(testContext) {
-            resolver.resolveOf(tested)
+            resolver.resolve(tested)
         }
         assertEquals(ClassName("", "GodotString"), resolved)
     }
@@ -65,7 +65,7 @@ class KotlinNativeTypeResolverTest {
         }
 
         val resolved = context(testContext) {
-            resolver.resolveOf(tested)
+            resolver.resolve(tested)
         }
         assertEquals(ClassName("", "GodotString"), resolved)
     }
