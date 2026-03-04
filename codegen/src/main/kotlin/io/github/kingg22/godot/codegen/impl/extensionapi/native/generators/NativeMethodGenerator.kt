@@ -54,7 +54,7 @@ class NativeMethodGenerator(private val typeResolver: TypeResolver, private val 
                 if (!methodKdoc.isNullOrEmpty()) {
                     addKdoc("%S", methodKdoc.replace("/*", "").replace("*/", ""))
                 }
-                if (name != kotlinName) addKdoc("Original name: `%L`", name)
+                if (name != kotlinName) addKdoc("\nOriginal name: `%L`", name)
             }.fixAccidentalOverride(name, returnType)
 
         // Fixed args always come first
