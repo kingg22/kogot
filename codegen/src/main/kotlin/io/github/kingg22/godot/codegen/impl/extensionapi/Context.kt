@@ -50,22 +50,22 @@ class Context(
             godotName in nestedEnumsTypes.map { it.first }
 
     fun isNestedEnum(godotName: String): Boolean = nestedEnumsTypes.any {
-        "${it.first}${it.second}" == godotName || it.second == godotName
+        it.second == godotName || "${it.first}${it.second}" == godotName
     }
 
     fun getNestedEnumName(godotName: String): String {
         check(isNestedEnum(godotName)) { "Not a nested enum: $godotName" }
-        return nestedEnumsTypes.first { "${it.first}${it.second}" == godotName || it.second == godotName }.second
+        return nestedEnumsTypes.first { it.second == godotName || "${it.first}${it.second}" == godotName }.second
     }
 
     fun getNestedEnumParent(godotName: String): String {
         check(isNestedEnum(godotName)) { "Not a nested enum: $godotName" }
-        return nestedEnumsTypes.first { "${it.first}${it.second}" == godotName || it.second == godotName }.first
+        return nestedEnumsTypes.first { it.second == godotName || "${it.first}${it.second}" == godotName }.first
     }
 
     fun getNestedEnumPair(godotName: String): Pair<String, String> {
         check(isNestedEnum(godotName)) { "Not a nested enum: $godotName" }
-        return nestedEnumsTypes.first { "${it.first}${it.second}" == godotName || it.second == godotName }
+        return nestedEnumsTypes.first { it.second == godotName || "${it.first}${it.second}" == godotName }
     }
 
     /** @return `true` if [godotName] is a specialized class (e.g. `Vector2i` is specialized of `Vector2`) and the base exists */
@@ -132,6 +132,9 @@ class Context(
 
             api.builtinClasses.forEach { builtin ->
                 builtinTypes += builtin.name
+                builtin.enums.forEach { nestedEnum ->
+                    nestedEnumsTypes += builtin.name to nestedEnum.name
+                }
             }
 
             api.nativeStructures.forEach { ns ->
@@ -139,7 +142,12 @@ class Context(
             }
 
             api.globalEnums.forEach { enum ->
-                globalEnumsTypes += enum.name
+                val enumName = enum.name
+                if (enumName.contains(".")) {
+                    nestedEnumsTypes += enumName.substringBefore('.') to enumName.substringAfter('.')
+                } else {
+                    globalEnumsTypes += enumName
+                }
             }
 
             api.classes.forEach { cls ->
