@@ -6,11 +6,11 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.BodyGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.KNativeStructureGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeBuiltinClassGenerator
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeEngineClassGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeEnumGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeMethodGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeVariantGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.stubs.UtilityFunctionStubGenerator
-import io.github.kingg22.godot.codegen.models.extensionapi.EnumDescriptor
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 import java.nio.file.Path
 
@@ -18,9 +18,10 @@ import java.nio.file.Path
 class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeImplGenerator.ImplGenerator {
     private val bodyGenerator = BodyGenerator()
     private val methodGenerator = NativeMethodGenerator(typeResolver, bodyGenerator)
-    private val builtinClassGenerator = NativeBuiltinClassGenerator(typeResolver, bodyGenerator, methodGenerator)
     private val enumGen = NativeEnumGenerator()
-    private val variant = NativeVariantGenerator(typeResolver)
+    private val builtinClass = NativeBuiltinClassGenerator(typeResolver, bodyGenerator, methodGenerator, enumGen)
+    private val engineClass = NativeEngineClassGenerator(typeResolver, bodyGenerator, methodGenerator, enumGen)
+    private val variant = NativeVariantGenerator(typeResolver, enumGen)
     private val nativeStructure = KNativeStructureGenerator(typeResolver, bodyGenerator)
     private val utils = UtilityFunctionStubGenerator(typeResolver)
 
@@ -43,66 +44,28 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
         val globalEnumsPaths = globalEnums.map { enumGen.generateFile(it).writeTo(outputDir) }
         yieldAll(globalEnumsPaths)
 
-        // Nested enums are emitted top-level for Kotlin/Native.
-        val nestedEnumsPaths = nestedEnums.map { enumGen.generateFile(it).writeTo(outputDir) }
-        yieldAll(nestedEnumsPaths)
-
         // Builtin missing: Variant
-        yield(variant.generateFile(nestedEnums.find { it.name == "Variant.Type" }).writeTo(outputDir))
+        yield(variant.generateFile(nestedEnums).writeTo(outputDir))
 
         val builtinClassesPaths = api.builtinClasses.asSequence()
-            .mapNotNull { builtinClassGenerator.generateFile(it) }
+            .mapNotNull { builtinClass.generateFile(it) }
             .map { it.writeTo(outputDir) }
 
         yieldAll(builtinClassesPaths)
-
-        // Builtin nested enums → top-level ParentEnum
-        val builtinEnumPaths = api.builtinClasses.asSequence()
-            .flatMap { builtinClass ->
-                builtinClass.enums.asSequence().mapNotNull { enum ->
-                    filterNestedEnums(enum, builtinClass.name, api.classes.map { it.name })
-                }
-            }
-            .map { enumGen.generateFile(it).writeTo(outputDir) }
-
-        yieldAll(builtinEnumPaths)
 
         // FIXME when BodyGenerator is implemented, change to own implementation and remove usage of stubs
         val utilityFunctionsPaths = utils.generate(api.utilityFunctions).map { it.writeTo(outputDir) }
 
         yieldAll(utilityFunctionsPaths)
 
-        // val godotClassesPaths = api.classes.asSequence()
+        val godotClassesPaths = api.classes.asSequence().map { engineClass.generateFile(it).writeTo(outputDir) }
 
-        val engineClassEnumPaths = api.classes.asSequence()
-            .flatMap { engineClass ->
-                engineClass.enums.asSequence().mapNotNull { enum ->
-                    filterNestedEnums(enum, engineClass.name, api.classes.map { it.name })
-                }
-            }
-            .map { enumGen.generateFile(it).writeTo(outputDir) }
+        yieldAll(godotClassesPaths)
 
-        yieldAll(engineClassEnumPaths)
-
-        val nativeStructuresPaths = api.nativeStructures.asSequence()
-            .map { nativeStructure.generateFile(it).writeTo(outputDir) }
+        val nativeStructuresPaths = api.nativeStructures.asSequence().map {
+            nativeStructure.generateFile(it).writeTo(outputDir)
+        }
 
         yieldAll(nativeStructuresPaths)
-    }
-
-    private fun filterNestedEnums(
-        enum: EnumDescriptor,
-        parentClassName: String,
-        classesNames: List<String>,
-    ): EnumDescriptor? {
-        if (parentClassName.endsWith('i') &&
-            classesNames.any { it == parentClassName.dropLast(1) }
-        ) {
-            println(
-                "INFO: Skipping nested enum '${enum.name}' for class '$parentClassName' because it's a specialized class.",
-            )
-            return null
-        }
-        return enum.copy(name = "$parentClassName.${enum.name}")
     }
 }
