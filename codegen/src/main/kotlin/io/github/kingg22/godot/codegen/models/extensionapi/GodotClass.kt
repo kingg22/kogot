@@ -49,9 +49,9 @@ class GodotClass private constructor(
     class ClassProperty private constructor(
         override val name: String,
         val type: String,
-        override val description: String? = null,
+        val getter: String,
         val setter: String? = null,
-        val getter: String? = null,
+        override val description: String? = null,
         val index: Int? = null,
     ) : Named,
         Documentable
