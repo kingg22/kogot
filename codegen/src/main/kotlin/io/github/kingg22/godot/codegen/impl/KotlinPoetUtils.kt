@@ -144,20 +144,10 @@ fun String.renameGodotClass(): String = when (val loweredStr = this.lowercase())
     "range" -> "GodotRange"
 
     else -> {
-        when {
-            loweredStr.endsWith("2d") -> {
-                val basic = loweredStr.removeSuffix("2d").replaceFirstChar(Char::uppercaseChar)
-                "${basic}2D"
-            }
-
-            loweredStr.endsWith("3d") -> {
-                val basic = loweredStr.removeSuffix("3d").replaceFirstChar(Char::uppercaseChar)
-                "${basic}3D"
-            }
-
-            this.all { it.isUpperCase() } -> loweredStr.replaceFirstChar(Char::uppercaseChar)
-
-            else -> this.replaceFirstChar(Char::uppercaseChar)
+        if (this.all { it.isUpperCase() }) {
+            loweredStr.replaceFirstChar(Char::uppercaseChar)
+        } else {
+            this
         }
     }
 }
@@ -205,6 +195,18 @@ fun String.toScreamingSnakeCase(): String {
         // 5. Limpiar posibles guiones bajos duplicados (por si el input ya tenía algunos)
         .replace("__+".toRegex(), "_")
 }
+
+fun String.screamingToPascalCase(): String = this
+    .substringAfter("TYPE_")
+    .split("_")
+    .joinToString("") { part ->
+        val str = part.lowercase().replaceFirstChar { it.uppercase() }
+        when {
+            str.endsWith("2d") -> str.dropLast(2) + "2D"
+            str.endsWith("3d") -> str.dropLast(2) + "3D"
+            else -> str
+        }
+    }
 
 // ── Kotlin keyword list ───────────────────────────────────────────────────────
 

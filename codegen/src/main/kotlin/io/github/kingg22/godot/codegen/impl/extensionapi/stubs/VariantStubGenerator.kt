@@ -10,7 +10,7 @@ import io.github.kingg22.godot.codegen.impl.commonConfiguration
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
-import io.github.kingg22.godot.codegen.impl.snakeCaseToCamelCase
+import io.github.kingg22.godot.codegen.impl.screamingToPascalCase
 import io.github.kingg22.godot.codegen.impl.withExceptionContext
 import io.github.kingg22.godot.codegen.models.extensionapi.EnumDescriptor
 
@@ -47,10 +47,7 @@ class VariantStubGenerator(private val enumGen: EnumStubGenerator, private val t
 
                 // Tipo del value: convierte UPPER_SNAKE → PascalCase para que el resolver lo encuentre
                 // "PACKED_BYTE_ARRAY" → "PackedByteArray" → typeResolver.resolveOf() → ClassName("", "PackedByteArray")
-                val godotTypeName = subclassName
-                    .lowercase()
-                    .snakeCaseToCamelCase()
-                    .replaceFirstChar { it.uppercaseChar() } // "PackedByteArray"
+                val godotTypeName = subclassName.screamingToPascalCase()
 
                 // puede renombrar: "GodotString", "GodotObject", etc.
                 val valueType = typeResolver.resolve(godotTypeName.renameGodotClass())
