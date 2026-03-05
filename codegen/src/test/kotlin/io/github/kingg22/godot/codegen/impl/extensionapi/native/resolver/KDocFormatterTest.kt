@@ -91,7 +91,7 @@ class KDocFormatterTest {
     @Test
     fun `handles nested classes`() {
         val input = "Uses [Node2D.PositionMode] for alignment."
-        val expected = "Uses [PositionMode][Node2D.PositionMode] for alignment."
+        val expected = "Uses [PositionMode][Node2D.PositionMode]\n for alignment."
         context(context) {
             assertEquals(expected, KDocFormatter.format(input))
         }

@@ -103,7 +103,7 @@ private val TYPES_EXPECTED = mapOf(
     "enum::Corner" to ClassName("", "Corner"),
     "enum::Theme.DataType" to ClassName("", "Theme", "DataType"),
     "enum::IP.WAAD" to ClassName("", "Ip", "Waad"),
-    "bitfield::TextServerTextOverrunFlag" to ClassName("", "TextServerTextOverrunFlag"),
+    "bitfield::TextServerTextOverrunFlag" to LONG, // TODO generate bitfield/enum mask value class typed enum
 
     // ── Meta numeric types ────────────────────────────────────────────────────
     "int64" to LONG,
