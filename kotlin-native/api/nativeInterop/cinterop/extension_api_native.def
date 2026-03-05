@@ -1,0 +1,2 @@
+headers = extension_api_native.h
+headerFilter = extension_api_native.h

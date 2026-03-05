@@ -31,8 +31,16 @@ kotlin {
         api(libs.jetbrains.annotations)
     }
 
+    applyDefaultHierarchyTemplate()
+
     // linux
     linuxX64 {
+        val main by compilations.getting
+        val godotNativeStructures by main.cinterops.creating {
+            packageName = "io.github.kingg22.godot.api.native"
+            defFile(layout.projectDirectory.file("nativeInterop/cinterop/extension_api_native.def"))
+            includeDirs.allHeaders(layout.projectDirectory.dir("nativeInterop/cinterop"))
+        }
         binaries {
             sharedLib(buildTypes = listOfNativeBuildType) {
                 baseName = "godot-kotlin-api"
