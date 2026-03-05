@@ -54,7 +54,7 @@ class NativeVariantGenerator(private val typeResolver: TypeResolver, private val
                             TypeSpec
                                 .objectBuilder("NIL")
                                 .superclass(variantClassName)
-                                .apply { variantType.description?.let { addKdoc(it) } }
+                                .addKdocIfPresent(variantType)
                                 .build(),
                         )
                         return@forEach
@@ -79,10 +79,10 @@ class NativeVariantGenerator(private val typeResolver: TypeResolver, private val
                                 .initializer("value")
                                 .build(),
                         )
+                        .addKdocIfPresent(variantType)
+                        .build()
 
-                    variantType.description?.let { variantTypeSpec.addKdoc(it) }
-
-                    typeBuilder.addType(variantTypeSpec.build())
+                    typeBuilder.addType(variantTypeSpec)
                 }
             }
 

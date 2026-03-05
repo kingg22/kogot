@@ -43,16 +43,14 @@ class NativeEnumGenerator {
                         .initializer("value")
                         .build(),
                 )
-
-            descriptor.description?.takeIf { it.isNotBlank() }?.let { typeBuilder.addKdoc("%S", it) }
-
-            typeBuilder.experimentalApiAnnotation(
-                if (parentClassName != null) {
-                    "$parentClassName.${descriptor.name}"
-                } else {
-                    descriptor.name
-                },
-            )
+                .addKdocIfPresent(descriptor)
+                .experimentalApiAnnotation(
+                    if (parentClassName != null) {
+                        "$parentClassName.${descriptor.name}"
+                    } else {
+                        descriptor.name
+                    },
+                )
 
             val constants = context.getConstantEnumNamesFor(parentClassName, descriptor.name)
 
@@ -63,7 +61,7 @@ class NativeEnumGenerator {
                         TypeSpec
                             .anonymousClassBuilder()
                             .addSuperclassConstructorParameter("%L", enumConstant.value)
-                            .apply { enumConstant.description?.takeIf { it.isNotBlank() }?.let { addKdoc("%S", it) } }
+                            .addKdocIfPresent(enumConstant)
                             .build(),
                     )
                 }

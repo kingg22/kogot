@@ -70,7 +70,7 @@ class NativeEngineClassGenerator(
                         PropertySpec
                             .builder(constant.name, LONG, KModifier.CONST)
                             .initializer("%L", constant.value)
-                            .apply { constant.description?.let { addKdoc("%S", it) } }
+                            .addKdocIfPresent(constant)
                             .experimentalApiAnnotation(cls.name, constant.name)
                             .build(),
                     )
@@ -154,13 +154,10 @@ class NativeEngineClassGenerator(
             .builder(safeName, propertyType)
             .mutable(property.setter != null)
             .experimentalApiAnnotation(className, property.name)
-
-        property.description?.takeIf { it.isNotBlank() }?.let {
-            propBuilder.addKdoc("%S", it.replace("*/", "").replace("/*", ""))
-        }
+            .addKdocIfPresent(property)
 
         if (property.name != safeName) {
-            propBuilder.addKdoc("\n\nOriginal name: %S", property.name)
+            propBuilder.addKdoc("\n\nOriginal name: `%S`", property.name)
         }
 
         if (property.type.contains(",")) {
@@ -280,14 +277,10 @@ class NativeEngineClassGenerator(
             .builder(kotlinName, memberType)
             .mutable(property.setter != null)
             .experimentalApiAnnotation(className, property.name)
-
-        // KDoc: descripción de la property
-        property.description?.takeIf { it.isNotBlank() }?.let {
-            propBuilder.addKdoc("%S", it.replace("*/", "").replace("/*", ""))
-        }
+            .addKdocIfPresent(property)
 
         if (property.name != kotlinName) {
-            propBuilder.addKdoc("\n\nOriginal name: %S", property.name)
+            propBuilder.addKdoc("\n\nOriginal name: `%S`", property.name)
         }
 
         propBuilder.getter(
@@ -356,13 +349,9 @@ class NativeEngineClassGenerator(
             builder.superclass(typeResolver.resolve(superClassType))
         }
 
-        builder.primaryConstructor(constructorSpec.build())
-
-        cls.description?.takeIf { it.isNotBlank() }?.let {
-            builder.addKdoc("%S", it.replace("*/", "").replace("/*", ""))
-        }
-
         return builder
+            .primaryConstructor(constructorSpec.build())
+            .addKdocIfPresent(cls)
     }
 
     /** @receiver Companion Builder */

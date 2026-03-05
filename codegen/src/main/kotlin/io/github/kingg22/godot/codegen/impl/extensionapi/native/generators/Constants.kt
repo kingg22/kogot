@@ -4,6 +4,9 @@ import com.squareup.kotlinpoet.Annotatable
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.resolver.KDocFormatter
+import io.github.kingg22.godot.codegen.models.extensionapi.Documentable
+import com.squareup.kotlinpoet.Documentable as KDocumentable
 
 val API_STATUS_NON_EXTENSIBLE = ClassName("org.jetbrains.annotations", "ApiStatus", "NonExtendable")
 
@@ -22,3 +25,15 @@ fun <T : Annotatable.Builder<T>> T.experimentalApiAnnotation(className: String, 
     }
     return this
 }
+
+context(_: Context)
+fun <T : KDocumentable.Builder<T>> T.addKdocIfPresent(description: String?): T {
+    if (description.isNullOrBlank()) return this
+    val formattedDoc = KDocFormatter.format(description)!!
+    addKdoc("%L", formattedDoc)
+    return this
+}
+
+context(_: Context)
+fun <T : KDocumentable.Builder<T>> T.addKdocIfPresent(documentable: Documentable): T =
+    addKdocIfPresent(documentable.description)

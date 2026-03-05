@@ -117,12 +117,7 @@ class NativeBuiltinClassGenerator(
         val kotlinName = builtinClass.name.renameGodotClass()
         val classBuilder = TypeSpec.classBuilder(kotlinName)
             .experimentalApiAnnotation(builtinClass.name)
-
-        // KDOC
-        val kdoc = builtinClass.description?.takeIf { it.isNotBlank() }
-        if (!kdoc.isNullOrBlank()) {
-            classBuilder.addKdoc("%S", kdoc.replace("*/", "").replace("/*", ""))
-        }
+            .addKdocIfPresent(builtinClass)
 
         // Indexable builtins implement operator get/set; keyed ones implement Map-like access.
 
@@ -147,10 +142,7 @@ class NativeBuiltinClassGenerator(
                 .builder(safeIdentifier(member.name), memberType)
                 .mutable(true)
                 .experimentalApiAnnotation(builtinClass.name, member.name)
-
-            member.description?.takeIf { it.isNotBlank() }?.let {
-                propBuilder.addKdoc("%S", it.replace("*/", "").replace("/*", ""))
-            }
+                .addKdocIfPresent(member)
 
             propBuilder.getter(body.todoGetter())
 
@@ -170,15 +162,14 @@ class NativeBuiltinClassGenerator(
         // No primary constructor is ever generated for builtins.
         // Index 0 is always the no-arg constructor.
         builtinClass.constructors.forEach { ctor ->
-            val ctorBuilder = FunSpec.constructorBuilder()
-
-            ctor.description?.takeIf {
-                it.isNotBlank()
-            }?.let { ctorBuilder.addKdoc("%S", it.replace("*/", "").replace("/*", "")) }
+            val ctorBuilder = FunSpec
+                .constructorBuilder()
+                .addKdocIfPresent(ctor)
 
             ctor.arguments.forEach { arg ->
                 ctorBuilder.addParameter(methodGen.buildParameter(arg))
             }
+
             ctorBuilder.addCode(body.todoBody())
 
             classBuilder.addFunction(ctorBuilder.build())
@@ -218,10 +209,7 @@ class NativeBuiltinClassGenerator(
 
             val propBuilder = PropertySpec.builder(constant.name, constType)
                 .experimentalApiAnnotation(builtinClass.name, constant.name)
-
-            constant.description?.takeIf { it.isNotBlank() }?.let {
-                propBuilder.addKdoc("%S", it.replace("/*", "").replace("*/", ""))
-            }
+                .addKdocIfPresent(constant)
 
             // Value is provided as a Godot expression string (e.g. "Vector2(0, 0)").
             // For now we use TODO() getter; impl layer will replace with actual value.
@@ -308,11 +296,8 @@ class NativeBuiltinClassGenerator(
                 if (name != "equals") addModifiers(KModifier.OPERATOR)
             }.returns(returnTypeName)
             .addCode(body.todoBody())
-
-        description?.takeIf { it.isNotBlank() }?.let {
-            builder.addKdoc("%S", it.replace("*/", "").replace("/*", ""))
-        }
-        builder.addKdocForBitfield(returnType)
+            .addKdocIfPresent(description)
+            .addKdocForBitfield(returnType)
 
         if (rightType != null) {
             val rightTypeName = typeResolver.resolve(rightType)
@@ -354,11 +339,8 @@ class NativeBuiltinClassGenerator(
             .returns(returnTypeName)
             .addCode(body.todoBody())
             .experimentalApiAnnotation(className, op.name)
-
-        op.description?.takeIf { it.isNotBlank() }?.let {
-            builder.addKdoc("%S", it.replace("*/", "").replace("/*", ""))
-        }
-        builder.addKdoc("\nGodot operator: `%L`", op.name)
+            .addKdocIfPresent(op)
+            .addKdoc("\nGodot operator: `%L`", op.name)
 
         if (op.rightType != null) {
             val rightTypeName = typeResolver.resolve(op.rightType)

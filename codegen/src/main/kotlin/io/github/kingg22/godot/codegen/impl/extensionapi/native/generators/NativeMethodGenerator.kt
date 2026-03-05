@@ -7,7 +7,6 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.UNIT
 import io.github.kingg22.godot.codegen.impl.addKdocForBitfield
-import io.github.kingg22.godot.codegen.impl.buildKdoc
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
@@ -53,16 +52,9 @@ class NativeMethodGenerator(private val typeResolver: TypeResolver, private val 
             .addModifiers(extraModifiers)
             .returns(returnType)
             .addCode(body.todoBody())
-            .apply {
-                val kdoc = buildKdoc(
-                    listOfNotNull(
-                        methodKdoc?.replace("/*", "")?.replace("*/", ""),
-                        "Original name: `$name`",
-                        originalReturnType?.let { "Original return type: `$it`" },
-                    ),
-                )
-                if (kdoc.isNotBlank()) addKdoc("%L", kdoc)
-            }.fixAccidentalOverride(name, returnType)
+            .addKdocIfPresent(methodKdoc)
+            .apply { if (originalReturnType != null) addKdoc("\nOriginal return type: `%L`", originalReturnType) }
+            .fixAccidentalOverride(name, returnType)
             .experimentalApiAnnotation(className, name)
 
         // Fixed args always come first
@@ -118,7 +110,7 @@ class NativeMethodGenerator(private val typeResolver: TypeResolver, private val 
                 return build()
                     .toBuilder("toGodotString")
                     .addKdoc(
-                        "Generated Note: Original name was `toString`, renamed to avoid conflict with [Any.toString].",
+                        "\n\nGenerated Note: Original name was `toString`, renamed to avoid conflict with [Any.toString].",
                     )
             }
 
@@ -138,8 +130,7 @@ class NativeMethodGenerator(private val typeResolver: TypeResolver, private val 
         val kotlinName = safeIdentifier(arg.name)
         val paramBuilder = ParameterSpec
             .builder(kotlinName, type)
-            .addKdocForBitfield(arg.type)
-        if (arg.name != kotlinName) paramBuilder.addKdoc("\nOriginal name: `%L`", arg.name)
+        if (arg.name != kotlinName) paramBuilder.addKdoc("Original name: `%S`", arg.name)
         paramBuilder.addKdoc(
             "\nOriginal type: `%L`, meta type: `%L`",
             arg.type,
@@ -150,7 +141,9 @@ class NativeMethodGenerator(private val typeResolver: TypeResolver, private val 
             paramBuilder.addKdoc("\nDefault value: `%L`", value)
             paramBuilder.defaultValue(body.todoDefaultValueParam())
         }
-        return paramBuilder.build()
+        return paramBuilder
+            .addKdocForBitfield(arg.type)
+            .build()
     }
 
     context(_: Context)
