@@ -377,7 +377,7 @@ object KDocFormatter {
 
             if (kotlinClassName != null) {
                 // Incluir la clase en la documentación
-                "[$className.$kotlinName][$kotlinClassName.$kotlinName]"
+                "[$className.$kotlinName][$kotlinClassName.$kotlinName]\n"
             } else {
                 "[$kotlinName]"
             }
@@ -393,7 +393,7 @@ object KDocFormatter {
             val kotlinPropertyName = safeIdentifier(memberName)
 
             if (kotlinClassName != null) {
-                "[$className.$kotlinPropertyName][${kotlinClassName.canonicalName}.$kotlinPropertyName]"
+                "[$className.$kotlinPropertyName][${kotlinClassName.canonicalName}.$kotlinPropertyName]\n"
             } else {
                 "[$kotlinPropertyName]"
             }
@@ -445,7 +445,7 @@ object KDocFormatter {
                 if (kotlinName.contains('.')) {
                     // Show a simple name and full qualified link
                     val simpleName = kotlinName.substringAfterLast('.')
-                    "[$simpleName][$kotlinName]"
+                    "[$simpleName][$kotlinName]\n"
                 } else {
                     "[$kotlinName]"
                 }
