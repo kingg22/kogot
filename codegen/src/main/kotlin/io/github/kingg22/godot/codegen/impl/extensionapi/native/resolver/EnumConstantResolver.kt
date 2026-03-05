@@ -40,6 +40,8 @@ class EnumConstantResolver(private val enumsByParent: Map<String, Map<String, Ma
     companion object {
         private const val GLOBAL = "__GLOBAL__"
 
+        fun empty() = EnumConstantResolver(emptyMap())
+
         fun build(api: ExtensionApi): EnumConstantResolver {
             val map = mutableMapOf<String, MutableMap<String, MutableMap<Long, String>>>()
 

@@ -1,5 +1,6 @@
 package io.github.kingg22.godot.codegen.impl.extensionapi
 
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.resolver.EnumConstantResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.stubs.StubsPackageRegistry
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.GodotVersion
 
@@ -14,7 +15,8 @@ fun EmptyContext(
     singletons = emptySet(),
     classes = emptySet(),
     globalEnumsTypes = emptySet(),
-    nestedEnumsTypes = emptySet(),
+    enumConstantResolver = EnumConstantResolver.empty(),
+    experimentalTypesRegistry = ExperimentalTypesRegistry.empty,
     inheritanceTree = tree,
     godotVersion = version,
     packageRegistry = packageRegistry,

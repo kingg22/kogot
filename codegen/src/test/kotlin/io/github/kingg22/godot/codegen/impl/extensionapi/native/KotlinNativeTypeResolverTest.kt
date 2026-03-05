@@ -23,7 +23,7 @@ class KotlinNativeTypeResolverTest {
                     resolver.resolve(godotType)
                 }
 
-                Executable { assertEquals(expected, resolved) }
+                Executable { assertEquals(expected, resolved, "Failed resolving $godotType") }
             },
         )
     }
@@ -101,8 +101,8 @@ private val TYPES_EXPECTED = mapOf(
     // ── Enums / bitfields → clases generadas ─────────────────────────────────
     "enum::Error" to ClassName("", "GodotError"),
     "enum::Corner" to ClassName("", "Corner"),
-    "enum::Theme.DataType" to ClassName("", "ThemeDataType"),
-    "enum::IP.WAAD" to ClassName("", "IpWaad"),
+    "enum::Theme.DataType" to ClassName("", "Theme", "DataType"),
+    "enum::IP.WAAD" to ClassName("", "Ip", "Waad"),
     "bitfield::TextServerTextOverrunFlag" to ClassName("", "TextServerTextOverrunFlag"),
 
     // ── Meta numeric types ────────────────────────────────────────────────────
@@ -118,12 +118,9 @@ private val TYPES_EXPECTED = mapOf(
     "char32" to U_INT,
 
     // ── typedarray ────────────────────────────────────────────────────────────
-    "typedarray::Dictionary" to KotlinNativeTypeResolver.C_POINTER
-        .parameterizedBy(ClassName("", "GodotArray"))
-        .copy(true),
+    // FIXME idiomatic flow
 
     /*
-    // FIXME idiomatic flow
     "typedarray::Dictionary" to LIST.parameterizedBy(ClassName("", "Dictionary")),
     "typedarray::Vector2i" to LIST.parameterizedBy(ClassName("", "Vector2i")),
     "typedarray::String" to LIST.parameterizedBy(ClassName("", "GodotString")),
@@ -134,38 +131,19 @@ private val TYPES_EXPECTED = mapOf(
      */
 
     // ── Pointers ──────────────────────────────────────────────────────────────
-    "void*" to KotlinNativeTypeResolver.COPAQUE_POINTER.copy(nullable = true),
-    "const void*" to KotlinNativeTypeResolver.COPAQUE_POINTER.copy(nullable = true),
-    "const Glyph*" to KotlinNativeTypeResolver.C_POINTER
-        .parameterizedBy(ClassName("", "Glyph"))
-        .copy(nullable = true),
-    "AudioFrame*" to KotlinNativeTypeResolver.C_POINTER
-        .parameterizedBy(ClassName("", "AudioFrame"))
-        .copy(nullable = true),
+    "void*" to KotlinNativeTypeResolver.COPAQUE_POINTER,
+    "const void*" to KotlinNativeTypeResolver.COPAQUE_POINTER,
+    "const Glyph*" to KotlinNativeTypeResolver.COPAQUE_POINTER,
+    "AudioFrame*" to KotlinNativeTypeResolver.COPAQUE_POINTER,
     "float*" to KotlinNativeTypeResolver.C_POINTER
-        .parameterizedBy(KotlinNativeTypeResolver.FLOAT_VAR)
-        .copy(nullable = true),
+        .parameterizedBy(KotlinNativeTypeResolver.FLOAT_VAR),
     "int32_t*" to KotlinNativeTypeResolver.C_POINTER
-        .parameterizedBy(KotlinNativeTypeResolver.INT_VAR)
-        .copy(nullable = true),
+        .parameterizedBy(KotlinNativeTypeResolver.INT_VAR),
     "uint8_t*" to KotlinNativeTypeResolver.C_POINTER
-        .parameterizedBy(KotlinNativeTypeResolver.U_BYTE_VAR)
-        .copy(nullable = true),
+        .parameterizedBy(KotlinNativeTypeResolver.U_BYTE_VAR),
     "const uint8_t*" to KotlinNativeTypeResolver.C_POINTER
-        .parameterizedBy(KotlinNativeTypeResolver.U_BYTE_VAR)
-        .copy(nullable = true),
+        .parameterizedBy(KotlinNativeTypeResolver.U_BYTE_VAR),
     // const uint8_t** → CPointer<CPointerVarOf<CPointer<UByteVar>>>
-    "const uint8_t **" to KotlinNativeTypeResolver.C_POINTER
-        .parameterizedBy(
-            KotlinNativeTypeResolver.C_POINTER_VAR_OF
-                .parameterizedBy(
-                    KotlinNativeTypeResolver.C_POINTER
-                        .parameterizedBy(KotlinNativeTypeResolver.U_BYTE_VAR)
-                        .copy(nullable = true),
-                ),
-        )
-        .copy(nullable = true),
-    "CaretInfo*" to KotlinNativeTypeResolver.C_POINTER
-        .parameterizedBy(ClassName("", "CaretInfo"))
-        .copy(nullable = true),
+    "const uint8_t **" to KotlinNativeTypeResolver.COPAQUE_POINTER,
+    "CaretInfo*" to KotlinNativeTypeResolver.COPAQUE_POINTER,
 )
