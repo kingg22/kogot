@@ -7,13 +7,14 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.UNIT
 import io.github.kingg22.godot.codegen.impl.addKdocForBitfield
+import io.github.kingg22.godot.codegen.impl.buildKdoc
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
 import io.github.kingg22.godot.codegen.models.extensionapi.GodotClass
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
-import io.github.kingg22.godot.codegen.models.extensionapi.TypeMetaHolder
+import io.github.kingg22.godot.codegen.models.extensionapi.MethodDescriptor
 
 /**
  * Shared method/parameter generation logic used by both builtin class
@@ -44,6 +45,7 @@ class NativeMethodGenerator(private val typeResolver: TypeResolver, private val 
         className: String,
         extraModifiers: List<KModifier> = emptyList(),
         methodKdoc: String? = null,
+        originalReturnType: String? = null,
     ): FunSpec {
         val kotlinName = safeIdentifier(name)
         val builder = FunSpec
@@ -52,10 +54,14 @@ class NativeMethodGenerator(private val typeResolver: TypeResolver, private val 
             .returns(returnType)
             .addCode(body.todoBody())
             .apply {
-                if (!methodKdoc.isNullOrEmpty()) {
-                    addKdoc("%S", methodKdoc.replace("/*", "").replace("*/", ""))
-                }
-                if (name != kotlinName) addKdoc("\n\nOriginal name: `%L`", name)
+                val kdoc = buildKdoc(
+                    listOfNotNull(
+                        methodKdoc?.replace("/*", "")?.replace("*/", ""),
+                        "Original name: `$name`",
+                        originalReturnType?.let { "Original return type: `$it`" },
+                    ),
+                )
+                if (kdoc.isNotBlank()) addKdoc("%L", kdoc)
             }.fixAccidentalOverride(name, returnType)
             .experimentalApiAnnotation(className, name)
 
@@ -79,6 +85,31 @@ class NativeMethodGenerator(private val typeResolver: TypeResolver, private val 
         return builder.build()
     }
 
+    context(_: Context)
+    fun buildMethod(method: MethodDescriptor, className: String, vararg modifiers: KModifier): FunSpec {
+        val (originalReturnType, typeName) = when (method) {
+            is BuiltinClass.BuiltinMethod ->
+                method.returnType to (method.returnType?.let { typeResolver.resolve(it) } ?: UNIT)
+
+            is GodotClass.ClassMethod ->
+                method.returnValue?.let { "${it.type}, meta: ${it.meta}" } to
+                    (method.returnValue?.let { typeResolver.resolve(it) } ?: UNIT)
+
+            else -> error("Unknown method type: ${method::class}")
+        }
+
+        return buildMethod(
+            name = method.name,
+            returnType = typeName,
+            isVararg = method.isVararg,
+            arguments = method.arguments,
+            className = className,
+            extraModifiers = modifiers.toList(),
+            methodKdoc = method.description,
+            originalReturnType = originalReturnType,
+        )
+    }
+
     context(context: Context)
     private fun FunSpec.Builder.fixAccidentalOverride(name: String, returnType: TypeName): FunSpec.Builder {
         when (name) {
@@ -96,68 +127,6 @@ class NativeMethodGenerator(private val typeResolver: TypeResolver, private val 
     }
 
     /**
-     * Builds a [FunSpec] from raw method data.
-     *
-     * @param name           Godot method name (will be passed through [safeIdentifier])
-     * @param returnType     Godot return type string, null → Unit
-     * @param isVararg       whether the method accepts trailing vararg Variant args
-     * @param arguments      fixed argument list
-     * @param extraModifiers additional [KModifier]s (e.g., OVERRIDE, OPERATOR)
-     */
-    context(context: Context)
-    fun buildMethod(
-        name: String,
-        returnType: TypeMetaHolder?,
-        isVararg: Boolean,
-        arguments: List<MethodArg>,
-        className: String,
-        extraModifiers: List<KModifier> = emptyList(),
-        methodKdoc: String? = null,
-    ): FunSpec {
-        val returnTypeName = returnType?.let { typeResolver.resolve(it) } ?: UNIT
-        return buildMethod(
-            name = name,
-            returnType = returnTypeName,
-            isVararg = isVararg,
-            arguments = arguments,
-            className = className,
-            extraModifiers = extraModifiers,
-            methodKdoc = methodKdoc,
-        )
-    }
-
-    /**
-     * Builds a [FunSpec] from raw method data.
-     *
-     * @param name           Godot method name (will be passed through [safeIdentifier])
-     * @param returnType     Godot return type string, null → Unit
-     * @param isVararg       whether the method accepts trailing vararg Variant args
-     * @param arguments      fixed argument list
-     * @param extraModifiers additional [KModifier]s (e.g., OVERRIDE, OPERATOR)
-     */
-    context(context: Context)
-    fun buildMethod(
-        name: String,
-        returnType: String?,
-        isVararg: Boolean,
-        arguments: List<MethodArg>,
-        className: String,
-        extraModifiers: List<KModifier> = emptyList(),
-        methodKdoc: String? = null,
-    ): FunSpec {
-        val returnTypeName = returnType?.let { typeResolver.resolve(it) } ?: UNIT
-        return buildMethod(
-            name = name,
-            returnType = returnTypeName,
-            isVararg = isVararg,
-            arguments = arguments,
-            className = className,
-            extraModifiers = extraModifiers,
-            methodKdoc = methodKdoc,
-        )
-    }
-
-    /**
      * Builds a [ParameterSpec] for a single [MethodArg].
      *
      * Default values from Godot JSON are emitted as `TODO()` —
@@ -170,45 +139,27 @@ class NativeMethodGenerator(private val typeResolver: TypeResolver, private val 
         val paramBuilder = ParameterSpec
             .builder(kotlinName, type)
             .addKdocForBitfield(arg.type)
-        if (arg.name != kotlinName) paramBuilder.addKdoc("Original name: `%L`", arg.name)
+        if (arg.name != kotlinName) paramBuilder.addKdoc("\nOriginal name: `%L`", arg.name)
+        paramBuilder.addKdoc(
+            "\nOriginal type: `%L`, meta type: `%L`",
+            arg.type,
+            arg.meta ?: "--",
+        )
         arg.defaultValue?.let { value ->
             // FIXME remove kdoc when is implemented
-            paramBuilder.addKdoc("Default value: `%L`", value)
+            paramBuilder.addKdoc("\nDefault value: `%L`", value)
             paramBuilder.defaultValue(body.todoDefaultValueParam())
         }
         return paramBuilder.build()
     }
 
     context(_: Context)
-    fun buildMethod(method: GodotClass.ClassMethod, className: String, vararg modifiers: KModifier): FunSpec =
-        buildMethod(
-            name = method.name,
-            returnType = method.returnValue?.let { typeResolver.resolve(it) } ?: UNIT,
-            isVararg = method.isVararg,
-            arguments = method.arguments,
-            className = className,
-            extraModifiers = modifiers.toList(),
-            methodKdoc = method.description,
-        )
-
-    context(_: Context)
-    fun buildMethod(method: BuiltinClass.BuiltinMethod, className: String, vararg modifiers: KModifier): FunSpec =
-        buildMethod(
-            name = method.name,
-            returnType = method.returnType,
-            isVararg = method.isVararg,
-            arguments = method.arguments,
-            className = className,
-            extraModifiers = modifiers.toList(),
-            methodKdoc = method.description,
-        )
-
-    context(_: Context)
     fun generateExtension(
         method: GodotClass.ClassMethod,
         receiver: ClassName,
         className: String = receiver.simpleName,
-    ): FunSpec = buildMethod(method, className)
+        vararg modifiers: KModifier,
+    ): FunSpec = buildMethod(method, className, *modifiers)
         .toBuilder()
         .receiver(receiver)
         .build()
