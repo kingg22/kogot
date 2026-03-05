@@ -1,6 +1,7 @@
 package io.github.kingg22.godot.codegen.impl.extensionapi.stubs
 
 import io.github.kingg22.godot.codegen.impl.extensionapi.Backend
+import io.github.kingg22.godot.codegen.impl.extensionapi.CachedTypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.CodeImplGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 
@@ -13,7 +14,7 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
  */
 class KotlinStubBackend(
     packageName: String,
-    override val typeResolver: TypeResolver = KotlinStubTypeResolver(packageName),
+    override val typeResolver: TypeResolver = CachedTypeResolver(KotlinStubTypeResolver(packageName)),
     override val codeImplGenerator: CodeImplGenerator = KotlinStubGenerator(typeResolver, packageName),
 ) : Backend {
     override val name: String get() = "kotlin-stub"
