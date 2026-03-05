@@ -40,17 +40,11 @@ class NativePackageRegistry internal constructor(private val typeToPackage: Map<
 
     override fun packageForOrDefault(godotName: String): String = packageFor(godotName) ?: rootPackage
 
-    override fun packageForUtilityFun(): String {
-        if (rootPackage.endsWith(".api")) return "$rootPackage.utils"
-        return "$rootPackage.api.utils"
-    }
+    override fun packageForUtilityFun(): String = "$rootPackage.utils"
 
     override fun packageForUtilObject(): String = packageForUtilityFun()
 
-    override fun classNameOfExperimentalAnnotation(): ClassName = ClassName(
-        if (rootPackage.endsWith(".api")) rootPackage else "$rootPackage.api",
-        "ExperimentalGodotApi",
-    )
+    override fun classNameOfExperimentalAnnotation(): ClassName = ClassName(rootPackage, "ExperimentalGodotApi")
 
     companion object {
         val factory: PackageRegistryFactory = { rootPackage, context ->
