@@ -4,6 +4,7 @@ import com.squareup.kotlinpoet.ClassName
 import io.github.kingg22.godot.codegen.impl.extensionapi.InheritanceTree
 import io.github.kingg22.godot.codegen.impl.extensionapi.PackageRegistry
 import io.github.kingg22.godot.codegen.impl.extensionapi.PackageRegistryFactory
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeBuiltinClassGenerator
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 
 /**
@@ -18,7 +19,7 @@ import io.github.kingg22.godot.codegen.impl.renameGodotClass
  */
 class NativePackageRegistry internal constructor(private val typeToPackage: Map<String, String>, rootPackage: String) :
     PackageRegistry {
-    private val rootPackage = if (rootPackage.endsWith(".api")) rootPackage else "$rootPackage.api"
+    override val rootPackage = if (rootPackage.endsWith(".api")) rootPackage else "$rootPackage.api"
 
     init {
         println("INFO: Native PackageRegistry created with ${typeToPackage.size} entries")
@@ -72,7 +73,18 @@ class NativePackageRegistry internal constructor(private val typeToPackage: Map<
             register("Variant", "$rootPackage.api.builtin")
 
             context.builtinTypes.forEach { cls ->
-                register(cls, "$rootPackage.api.builtin")
+                if (cls in NativeBuiltinClassGenerator.SKIPPED_TYPES) {
+                    val kotlinName = when (cls.lowercase()) {
+                        "int" -> "kotlin.Int"
+                        "float" -> "kotlin.Float"
+                        "bool" -> "kotlin.Boolean"
+                        "nil" -> "null"
+                        else -> error("Unexpected builtin type: $cls")
+                    }
+                    register(cls, kotlinName)
+                } else {
+                    register(cls, "$rootPackage.api.builtin")
+                }
             }
 
             // Engine classes

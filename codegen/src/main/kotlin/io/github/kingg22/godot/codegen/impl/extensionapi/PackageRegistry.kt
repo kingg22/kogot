@@ -6,6 +6,8 @@ import io.github.kingg22.godot.codegen.impl.renameGodotClass
 typealias PackageRegistryFactory = (rootPackage: String, context: Context.IncompleteContext) -> PackageRegistry
 
 interface PackageRegistry {
+    val rootPackage: String
+
     /**
      * Returns the package for [godotName], or null if not registered
      * (caller should treat it as a primitive / external type).
