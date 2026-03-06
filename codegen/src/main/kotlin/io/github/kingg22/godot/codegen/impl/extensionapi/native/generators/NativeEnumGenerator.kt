@@ -2,6 +2,7 @@ package io.github.kingg22.godot.codegen.impl.extensionapi.native.generators
 
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
@@ -28,9 +29,15 @@ class NativeEnumGenerator {
     fun generateSpec(descriptor: EnumDescriptor, parentClassName: String? = null): TypeSpec {
         withExceptionContext({ "Generating enum '${descriptor.name}', values count: ${descriptor.values.size}" }) {
             val enumName = enumTypeName(descriptor.name)
+            val fullEnumName = if (parentClassName != null) {
+                "$parentClassName.${descriptor.name}"
+            } else {
+                descriptor.name
+            }
 
             val typeBuilder = TypeSpec
                 .enumBuilder(enumName)
+                .addSuperinterface(context.classNameForOrDefault("GodotEnum", "GodotEnum"))
                 .primaryConstructor(
                     FunSpec
                         .constructorBuilder()
@@ -40,17 +47,12 @@ class NativeEnumGenerator {
                 .addProperty(
                     PropertySpec
                         .builder("value", LONG)
+                        .addModifiers(KModifier.OVERRIDE)
                         .initializer("value")
                         .build(),
                 )
                 .addKdocIfPresent(descriptor)
-                .experimentalApiAnnotation(
-                    if (parentClassName != null) {
-                        "$parentClassName.${descriptor.name}"
-                    } else {
-                        descriptor.name
-                    },
-                )
+                .experimentalApiAnnotation(fullEnumName)
 
             val constants = context.getConstantEnumNamesFor(parentClassName, descriptor.name)
 
