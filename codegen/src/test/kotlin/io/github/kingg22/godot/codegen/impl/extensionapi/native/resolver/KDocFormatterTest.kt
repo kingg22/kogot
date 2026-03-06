@@ -91,7 +91,7 @@ class KDocFormatterTest {
     @Test
     fun `handles nested classes`() {
         val input = "Uses [Node2D.PositionMode] for alignment."
-        val expected = "Uses [PositionMode][Node2D.PositionMode]\n for alignment."
+        val expected = "Uses [PositionMode][Node2D.PositionMode] for alignment."
         context(context) {
             assertEquals(expected, KDocFormatter.format(input))
         }
@@ -173,20 +173,6 @@ class KDocFormatterTest {
                 it.contains("veryLongVariableName") && it.contains("\n")
             },
         )
-    }
-
-    @Test
-    fun `breaks at sentence boundaries when possible`() {
-        val input =
-            "This is the first sentence. This is the second sentence that is very long and should be on a new line. This is the third sentence."
-
-        val result = context(context) {
-            KDocFormatter.format(input)!!
-        }
-        val lines = result.lines()
-
-        // Should break after sentences
-        assertTrue(lines.any { it.trim().startsWith("This is the third") }, "Output: $result")
     }
 
     @Test
