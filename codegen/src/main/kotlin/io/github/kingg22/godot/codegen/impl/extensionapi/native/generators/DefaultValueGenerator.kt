@@ -30,17 +30,24 @@ private val ENUM_CONSTANT_REGEX = Regex("""[A-Z_][A-Z0-9_]*""")
  * - Special cases: `nil` → `Variant.NIL`
  */
 class DefaultValueGenerator(private val typeResolver: TypeResolver) {
-    private val cache = LinkedHashMap<Pair<MethodArg, TypeName>, CodeBlock>(2048)
+    private val cache = LinkedHashMap<Triple<String, String, TypeName>, CodeBlock>(2048)
+
+    context(_: Context)
+    fun generate(defaultValue: String, godotType: String, resolvedType: TypeName): CodeBlock? {
+        val defaultValue = defaultValue.trim()
+        if (defaultValue.isBlank()) return null
+        return cache.getOrPut(Triple(defaultValue, godotType, resolvedType)) {
+            withExceptionContext({ "parse default value '$defaultValue' for type $resolvedType" }) {
+                parseDefaultValue(defaultValue, resolvedType, godotType) ?: return null
+            }
+        }
+    }
 
     context(_: Context)
     fun generate(argument: MethodArg, resolvedType: TypeName): CodeBlock? {
         val defaultValue = argument.defaultValue?.trim()
         if (defaultValue.isNullOrBlank()) return null
-        return cache.getOrPut(argument to resolvedType) {
-            withExceptionContext({ "parse default value '$defaultValue' for type $resolvedType" }) {
-                parseDefaultValue(defaultValue, resolvedType, argument.type) ?: return null
-            }
-        }
+        return generate(defaultValue, argument.type, resolvedType)
     }
 
     context(context: Context)

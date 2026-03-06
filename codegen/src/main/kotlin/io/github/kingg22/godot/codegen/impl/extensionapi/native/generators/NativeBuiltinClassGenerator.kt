@@ -34,6 +34,7 @@ import io.github.kingg22.godot.codegen.utils.filterValuesNotNull
 class NativeBuiltinClassGenerator(
     private val typeResolver: TypeResolver,
     private val body: BodyGenerator,
+    private val defaultValueGenerator: DefaultValueGenerator,
     private val methodGen: NativeMethodGenerator,
     private val enumGenerator: NativeEnumGenerator,
 ) {
@@ -227,10 +228,7 @@ class NativeBuiltinClassGenerator(
             val propBuilder = PropertySpec.builder(constant.name, constType)
                 .experimentalApiAnnotation(builtinClass.name, constant.name)
                 .addKdocIfPresent(constant)
-
-            // Value is provided as a Godot expression string (e.g. "Vector2(0, 0)").
-            // For now we use TODO() getter; impl layer will replace with actual value.
-            propBuilder.getter(body.todoGetter())
+                .initializer("%L", defaultValueGenerator.generate(constant.value, constant.type, constType))
             companionBuilder.addProperty(propBuilder.build())
         }
 

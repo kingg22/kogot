@@ -21,7 +21,13 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
     private val defaultValue = DefaultValueGenerator(typeResolver)
     private val methodGenerator = NativeMethodGenerator(typeResolver, bodyGenerator, defaultValue)
     private val enumGen = NativeEnumGenerator()
-    private val builtinClass = NativeBuiltinClassGenerator(typeResolver, bodyGenerator, methodGenerator, enumGen)
+    private val builtinClass = NativeBuiltinClassGenerator(
+        typeResolver,
+        bodyGenerator,
+        defaultValue,
+        methodGenerator,
+        enumGen,
+    )
     private val engineClass = NativeEngineClassGenerator(typeResolver, bodyGenerator, methodGenerator, enumGen)
     private val variant = NativeVariantGenerator(typeResolver, enumGen)
     private val nativeStructure = KNativeStructureGenerator(typeResolver, bodyGenerator)
