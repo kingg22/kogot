@@ -23,6 +23,12 @@ kotlin {
 dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinpoet)
+    // https://github.com/ajalt/clikt/releases
+    implementation("com.github.ajalt.clikt:clikt:5.0.1") {
+        exclude(group = "com.github.ajalt.mordant")
+    }
+    // https://github.com/ajalt/mordant/releases
+    implementation("com.github.ajalt.mordant:mordant-core:3.0.2")
 }
 
 application {
