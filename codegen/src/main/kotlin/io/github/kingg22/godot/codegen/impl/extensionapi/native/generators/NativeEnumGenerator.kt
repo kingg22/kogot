@@ -73,6 +73,8 @@ class NativeEnumGenerator {
 
     private fun enumTypeName(rawName: String): String {
         if (!rawName.contains('.')) return sanitizeTypeName(rawName.renameGodotClass())
+        // Special cases
+        if (rawName.startsWith("Variant.")) return sanitizeTypeName(rawName.removePrefix("Variant.").renameGodotClass())
         val parent = rawName.substringBeforeLast('.')
         val enumName = rawName.substringAfterLast('.')
         val parentName = sanitizeTypeName(parent.renameGodotClass())

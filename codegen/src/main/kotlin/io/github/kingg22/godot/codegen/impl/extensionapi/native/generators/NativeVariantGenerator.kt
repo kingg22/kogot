@@ -20,9 +20,8 @@ class NativeVariantGenerator(private val typeResolver: TypeResolver, private val
     context(context: Context)
     fun generateSpec(variantEnums: List<EnumDescriptor>): TypeSpec {
         val spec = generateSpec(variantEnums.find { it.name == "Variant.Type" }).toBuilder()
-        variantEnums.forEach { enum ->
-            spec.addType(enumGenerator.generateSpec(enum.copy(name = enum.name.removePrefix("Variant.")), "Variant"))
-        }
+        val enumsSpec = variantEnums.map { enum -> enumGenerator.generateSpec(enum) }
+        spec.addTypes(enumsSpec)
         return spec.build()
     }
 
