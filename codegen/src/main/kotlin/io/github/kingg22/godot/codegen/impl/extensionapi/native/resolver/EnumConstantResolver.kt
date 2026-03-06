@@ -5,7 +5,7 @@ import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 
 class EnumConstantResolver(private val enumsByParent: Map<String, Map<String, Map<Long, String>>>) {
     init {
-        println("Enum Constant Resolver started with ${enumsByParent.keys.size} entries")
+        println("INFO: Enum Constant Resolver started with ${enumsByParent.keys.size} entries")
     }
 
     /**

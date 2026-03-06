@@ -22,7 +22,7 @@ class NativeUtilityFunctionGenerator(private val methodGen: NativeMethodGenerato
             val functionsSpec = functions.map { fn ->
                 withExceptionContext({ "Error generating utility function '${fn.name}'" }) {
                     methodGen.buildMethod(method = fn, className = "GD") {
-                        addKdoc("\n**Category**: %S", fn.category)
+                        addKdoc("\n\n**Category**: `%S`", fn.category)
                     }
                 }
             }
