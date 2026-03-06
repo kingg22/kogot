@@ -155,10 +155,10 @@ class KotlinNativeTypeResolver : TypeResolver {
             val innerPart = clean.removePrefix("typeddictionary::").trim()
 
             // Split por ':' para obtener K y V
-            val parts = innerPart.split(",", limit = 2)
+            val parts = innerPart.split(",", ";", limit = 2)
             if (parts.size != 2) {
                 error(
-                    "Invalid typeddictionary format: $clean, expected 2 types separated by ',', got ${parts.size}, raw: $innerPart.",
+                    "Invalid typeddictionary format: $clean, expected 2 types separated by ',' or ';', got ${parts.size}, raw: $innerPart.",
                 )
             }
 

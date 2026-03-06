@@ -91,7 +91,7 @@ private val TYPES_EXPECTED = mapOf(
     "Callable" to ClassName("", "Callable"),
     "Object" to ClassName("", "GodotObject"), // rename: Object colisiona con java.lang.Object
     "Array" to ClassName("", "VariantArray"), // rename: Array colisiona con kotlin.Array y este es untyped
-    "Dictionary" to ClassName("", "Dictionary"),
+    "Dictionary" to ClassName("", "VariantDictionary"), // Alias para Dictionary<Variant, Variant> untyped
     "RID" to ClassName("", "Rid"),
     "Range" to ClassName("", "GodotRange"), // rename: colisiona con kotlin.ranges.IntRange etc
 
@@ -115,10 +115,9 @@ private val TYPES_EXPECTED = mapOf(
     "char32" to U_INT,
 
     // ── typedarray ────────────────────────────────────────────────────────────
-    // FIXME idiomatic flow
 
     "typedarray::Dictionary" to ClassName("", "GodotArray")
-        .parameterizedBy(ClassName("", "Dictionary")),
+        .parameterizedBy(ClassName("", "VariantDictionary")),
     "typedarray::Vector2i" to ClassName("", "GodotArray")
         .parameterizedBy(ClassName("", "Vector2i")),
     "typedarray::String" to ClassName("", "GodotArray")
@@ -129,6 +128,12 @@ private val TYPES_EXPECTED = mapOf(
         .parameterizedBy(ClassName("", "RegExMatch")),
     "typedarray::RDPipelineSpecializationConstant" to ClassName("", "GodotArray")
         .parameterizedBy(ClassName("", "RDPipelineSpecializationConstant")),
+
+    // typeddictionary
+    "typeddictionary::int;String" to ClassName("", "Dictionary")
+        .parameterizedBy(INT, ClassName("", "GodotString")),
+    "typeddictionary::Color;Color" to ClassName("", "Dictionary")
+        .parameterizedBy(ClassName("", "Color"), ClassName("", "Color")),
 
     // ── Pointers ──────────────────────────────────────────────────────────────
     "void*" to COPAQUE_POINTER,
