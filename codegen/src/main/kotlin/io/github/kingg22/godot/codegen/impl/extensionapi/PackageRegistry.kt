@@ -2,6 +2,7 @@ package io.github.kingg22.godot.codegen.impl.extensionapi
 
 import com.squareup.kotlinpoet.ClassName
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
+import io.github.kingg22.godot.codegen.impl.renameGodotTypedClass
 
 typealias PackageRegistryFactory = (rootPackage: String, context: Context.IncompleteContext) -> PackageRegistry
 
@@ -40,6 +41,16 @@ interface PackageRegistry {
         godotName: String,
         vararg kotlinName: String = arrayOf(godotName.renameGodotClass()),
     ): ClassName
+
+    /**
+     * @see classNameFor
+     * @return default package if not registered
+     */
+    fun classNameForOrDefault(
+        godotName: String,
+        vararg kotlinName: String = arrayOf(godotName.renameGodotTypedClass()),
+        typedClass: Boolean,
+    ): ClassName = classNameForOrDefault(godotName, *kotlinName)
 
     /**
      * @see packageFor

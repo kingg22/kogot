@@ -371,7 +371,7 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
         // TODO: En el futuro, cuando tengas typed arrays:
         // Array[RID]([]) → TypedArray<RID>()
 
-        val arrayClass = context.classNameForOrDefault("Array", "GodotArray")
+        val arrayClass = context.classNameForOrDefault("Array", "GodotArray", typedClass = true)
 
         // Por ahora, siempre crear array vacío
         // En el futuro podrías parsear el contenido entre paréntesis
@@ -424,7 +424,7 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
             else -> "Array"
         }
 
-        val arrayClass = context.classNameForOrDefault(arrayType)
+        val arrayClass = context.classNameForOrDefault(arrayType, typedClass = true)
         return CodeBlock.of("%T()", arrayClass)
     }
 

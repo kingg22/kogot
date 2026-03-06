@@ -161,7 +161,9 @@ class KNativeStructureGenerator(private val typeResolver: TypeResolver, private 
                 fields.map { field ->
                     val type = typeResolver.resolve(field.type)
                     val resolvedType = if (field.arraySize != null) {
-                        context.classNameForOrDefault("Array", "GodotArray")
+                        context
+                            .classNameForOrDefault("Array", "GodotArray", typedClass = true)
+                            .parameterizedBy(type)
                     } else {
                         type
                     }
