@@ -17,6 +17,13 @@ abstract class GenerateGodotTask : JavaExec() {
     @get:[
     InputFile
     PathSensitive(PathSensitivity.ABSOLUTE)
+    Option(option = "input-interface", description = "Path to gdextension_interface.json")
+    ]
+    abstract val inputInterface: RegularFileProperty
+
+    @get:[
+    InputFile
+    PathSensitive(PathSensitivity.ABSOLUTE)
     Option(option = "input-extension", description = "Path to extension_api.json")
     ]
     abstract val inputExtension: RegularFileProperty
@@ -36,6 +43,8 @@ abstract class GenerateGodotTask : JavaExec() {
         mainClass.set("io.github.kingg22.godot.codegen.GenerateGodotApiKt")
         argumentProviders += CommandLineArgumentProvider {
             listOf(
+                "--input-interface",
+                inputInterface.get().asFile.absolutePath,
                 "--input-extension",
                 inputExtension.get().asFile.absolutePath,
                 "--output",

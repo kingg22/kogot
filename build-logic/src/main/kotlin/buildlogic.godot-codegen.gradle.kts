@@ -18,6 +18,11 @@ val generateGodotTask = tasks.register<GenerateGodotTask>("generateGodotExtensio
             .file("godot-version/v4_6_1/extension_api.json"),
     )
 
+    inputInterface.convention(
+        rootProject.layout.projectDirectory
+            .file("godot-version/v4_6_1/gdextension_interface.json"),
+    )
+
     outputDir.convention(layout.buildDirectory.dir("generated/sources/godotApi"))
 
     packageName.convention("io.github.kingg22.godot")
