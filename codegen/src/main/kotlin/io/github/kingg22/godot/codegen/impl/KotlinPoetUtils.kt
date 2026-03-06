@@ -133,27 +133,26 @@ fun sanitizeTypeName(name: String): String {
     }
 }
 
-fun String.renameGodotTypedClass(): String = when {
-    this.equals("Array", ignoreCase = true) -> "GodotArray"
-    this.equals("Dictionary", ignoreCase = true) -> "GodotDictionary"
-    else -> this.renameGodotClass()
-}
-
-fun String.renameGodotClass(): String {
+fun String.renameGodotClass(getTypedClass: Boolean = false): String = when {
     // 1. Comparación de longitud y contenido sin crear objetos nuevos.
     // Usamos ignoreCase = true para evitar el .lowercase()
-    if (this.equals("object", ignoreCase = true)) return "GodotObject"
-    if (this.equals("error", ignoreCase = true)) return "GodotError"
-    if (this.equals("string", ignoreCase = true)) return "GodotString"
-    if (this.equals("array", ignoreCase = true)) return "VariantArray"
-    if (this.equals("range", ignoreCase = true)) return "GodotRange"
+
+    this.equals("Object", ignoreCase = true) -> "GodotObject"
+
+    this.equals("Error", ignoreCase = true) -> "GodotError"
+
+    this.equals("String", ignoreCase = true) -> "GodotString"
+
+    this.equals("Array", ignoreCase = true) -> if (!getTypedClass) "VariantArray" else "GodotArray"
+
+    this.equals("Dictionary", ignoreCase = true) -> if (!getTypedClass) "VariantDictionary" else "Dictionary"
+
+    this.equals("Range", ignoreCase = true) -> "GodotRange"
 
     // 2. Chequeo de "All Upper Case" manualmente
-    if (isAllUpperCase(this)) {
-        return this.lowercase().replaceFirstChar { it.uppercaseChar() }
-    }
+    isAllUpperCase(this) -> this.lowercase().replaceFirstChar { it.uppercaseChar() }
 
-    return this
+    else -> this
 }
 
 /** Verifica si todos los caracteres son mayúsculas sin crear iteradores. */

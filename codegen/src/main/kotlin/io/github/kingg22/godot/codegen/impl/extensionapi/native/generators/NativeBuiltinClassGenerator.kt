@@ -13,7 +13,6 @@ import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
-import io.github.kingg22.godot.codegen.impl.renameGodotTypedClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
 import io.github.kingg22.godot.codegen.utils.filterValuesNotNull
@@ -123,11 +122,8 @@ class NativeBuiltinClassGenerator(
         if (builtinClass.name.lowercase() in SKIPPED_TYPES) return null
         val requiresGenerics = genericInterceptor.requiresGenerics(builtinClass)
 
-        val kotlinName = if (requiresGenerics) {
-            builtinClass.name.renameGodotTypedClass()
-        } else {
-            builtinClass.name.renameGodotClass()
-        }
+        val kotlinName = builtinClass.name.renameGodotClass(requiresGenerics)
+
         val classBuilder = TypeSpec
             .classBuilder(kotlinName)
             .experimentalApiAnnotation(builtinClass.name)

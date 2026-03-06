@@ -26,8 +26,7 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
     /** Detecta si una clase builtin debe ser genérica. */
     fun requiresGenerics(builtinClass: BuiltinClass): Boolean = when (builtinClass.name) {
         "Array" -> true
-
-        // Futuro: "Dictionary" -> true
+        "Dictionary" -> true
         else -> false
     }
 
@@ -35,8 +34,7 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
     context(_: Context)
     fun getGenericConfig(builtinClass: BuiltinClass): GenericConfig? = when (builtinClass.name) {
         "Array" -> ArrayGenericConfig(builtinClass, typeResolver)
-
-        // Futuro: "Dictionary" -> DictionaryGenericConfig(builtinClass, typeResolver)
+        "Dictionary" -> DictionaryGenericConfig(builtinClass, typeResolver)
         else -> null
     }
 
@@ -92,7 +90,7 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
 
             // Métodos que retornan Array self-type → Array<T>
             if (method.returnType == "Array") {
-                val godotArrayClass = context.classNameForOrDefault("Array", "GodotArray")
+                val godotArrayClass = context.classNameForOrDefault("Array", "GodotArray", typedClass = true)
                 return godotArrayClass.parameterizedBy(typeT)
             }
 
@@ -117,7 +115,7 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
             // Parámetros que aceptan Array → Array<T>
             val arg = method.arguments.getOrNull(argIndex)
             if (arg?.type == "Array") {
-                val godotArrayClass = context.classNameForOrDefault("Array", "GodotArray")
+                val godotArrayClass = context.classNameForOrDefault("Array", "GodotArray", typedClass = true)
                 return godotArrayClass.parameterizedBy(typeT)
             }
 
@@ -128,8 +126,94 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
         override fun transformOperatorReturnType(operator: BuiltinClass.Operator, originalType: TypeName): TypeName {
             // Operators que retornan Array self-type → Array<T>
             if (operator.returnType == "Array") {
-                val godotArrayClass = context.classNameForOrDefault("Array", "GodotArray")
+                val godotArrayClass = context.classNameForOrDefault("Array", "GodotArray", typedClass = true)
                 return godotArrayClass.parameterizedBy(typeT)
+            }
+
+            return originalType
+        }
+    }
+
+    private class DictionaryGenericConfig(
+        private val builtinClass: BuiltinClass,
+        private val typeResolver: TypeResolver,
+    ) : GenericConfig {
+        private val typeKeys = TypeVariableName("K")
+        private val typeValues = TypeVariableName("V")
+
+        override val typeVariables: List<TypeVariableName> = listOf(typeKeys, typeValues)
+
+        context(context: Context)
+        override val untypedAlias: Pair<String, ParameterizedTypeName>
+            get() {
+                val godotDictClass = context.classNameForOrDefault("Dictionary", typedClass = true)
+                val variantClass = context.classNameForOrDefault("Variant")
+                val untypedDict = godotDictClass.parameterizedBy(variantClass, variantClass)
+                return "VariantDictionary" to untypedDict
+            }
+
+        context(context: Context)
+        override fun transformReturnType(method: BuiltinClass.BuiltinMethod, originalType: TypeName?): TypeName? {
+            if (originalType == null) return null
+
+            // Dictionary.get(key) → V (indexing_return_type)
+            // Dictionary usa is_keyed = true, entonces get() retorna el value type
+            val indexingType = builtinClass.indexingReturnType
+            if (indexingType != null && method.name == "get") {
+                val indexingTypeName = typeResolver.resolve(indexingType)
+                if (originalType == indexingTypeName) {
+                    return typeValues
+                }
+            }
+
+            // Métodos que retornan Dictionary self-type → Dictionary<K, V>
+            if (method.returnType == "Dictionary") {
+                val godotDictClass = context.classNameForOrDefault("Dictionary", typedClass = true)
+                return godotDictClass.parameterizedBy(typeKeys, typeValues)
+            }
+
+            return originalType
+        }
+
+        context(context: Context)
+        override fun transformParameterType(
+            method: BuiltinClass.BuiltinMethod,
+            argIndex: Int,
+            originalType: TypeName,
+        ): TypeName {
+            // Dictionary.get(key: Variant) → Dictionary.get(key: K)
+            // Dictionary.set(key: Variant, value: Variant) → Dictionary.set(key: K, value: V)
+            // Dictionary.has(key: Variant) → Dictionary.has(key: K)
+
+            val arg = method.arguments.getOrNull(argIndex) ?: return originalType
+
+            // Primer parámetro (key) → K
+            if (argIndex == 0 && arg.type == "Variant") {
+                when (method.name) {
+                    "get", "set", "has", "erase", "get_or_add" -> return typeKeys
+                }
+            }
+
+            // Segundo parámetro (value) de set → V
+            if (argIndex == 1 && arg.type == "Variant" && method.name == "set") {
+                return typeValues
+            }
+
+            // Parámetros que aceptan Dictionary → Dictionary<K, V>
+            if (arg.type == "Dictionary") {
+                val godotDictClass = context.classNameForOrDefault("Dictionary", typedClass = true)
+                return godotDictClass.parameterizedBy(typeKeys, typeValues)
+            }
+
+            return originalType
+        }
+
+        context(context: Context)
+        override fun transformOperatorReturnType(operator: BuiltinClass.Operator, originalType: TypeName): TypeName {
+            // Operators que retornan Dictionary self-type → Dictionary<K, V>
+            if (operator.returnType == "Dictionary") {
+                val godotDictClass = context.classNameForOrDefault("Dictionary", typedClass = true)
+                return godotDictClass.parameterizedBy(typeKeys, typeValues)
             }
 
             return originalType

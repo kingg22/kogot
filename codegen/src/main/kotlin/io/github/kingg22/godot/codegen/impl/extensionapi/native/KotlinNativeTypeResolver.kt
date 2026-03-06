@@ -141,18 +141,38 @@ class KotlinNativeTypeResolver : TypeResolver {
         if (clean.startsWith("typedarray::")) {
             // typedarray::Node → Array<Node>
             val innerType = clean.removePrefix("typedarray::").trim()
-            val arrayPackage = context.packageForOrDefault("Array")
+            val godotArrayClass = context.classNameForOrDefault("Array", "GodotArray", typedClass = true)
 
             // Resolver el tipo interno
             val innerTypeName = resolve(innerType)
 
-            return ClassName(arrayPackage, "GodotArray").parameterizedBy(innerTypeName)
+            return godotArrayClass.parameterizedBy(innerTypeName)
         }
 
         if (clean.startsWith("typeddictionary")) {
-            // Currently is not supported a typeddict
-            // for now map as Dictionary
-            return context.classNameForOrDefault("Dictionary")
+            // typeddictionary::KeyType:ValueType → Dictionary<KeyType, ValueType>
+            // Ejemplo: typeddictionary::int:String → Dictionary<Int, GodotString>
+            val innerPart = clean.removePrefix("typeddictionary::").trim()
+
+            // Split por ':' para obtener K y V
+            val parts = innerPart.split(",", limit = 2)
+            if (parts.size != 2) {
+                error(
+                    "Invalid typeddictionary format: $clean, expected 2 types separated by ',', got ${parts.size}, raw: $innerPart.",
+                )
+            }
+
+            val keyTypeStr = parts[0].trim()
+            val valueTypeStr = parts[1].trim()
+
+            // Resolver tipos (pueden ser primitivos o clases)
+            val keyType = resolve(keyTypeStr)
+
+            val valueType = resolve(valueTypeStr)
+
+            val godotDictClass = context.classNameForOrDefault("Dictionary", typedClass = true)
+
+            return godotDictClass.parameterizedBy(keyType, valueType)
         }
 
         // Nested enum class handler

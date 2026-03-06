@@ -15,13 +15,21 @@ import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
  * // builtin/GodotArray.kt
  * class GodotArray<T> { ... }
  *
- * // builtin/VariantArray.kt (este archivo)
+ * // builtin/VariantArray.kt
  * typealias VariantArray = GodotArray<Variant>
+ *
+ * // builtin/GodotDictionary.kt
+ * class GodotDictionary<K, V> { ... }
+ *
+ * // builtin/VariantDictionary.kt
+ * typealias VariantDictionary = GodotDictionary<Variant, Variant>
  * ```
  *
  * ## Uso:
  * - Array sin tipo → `VariantArray` (equivalente a `Array` en GDScript)
  * - Array tipado → `GodotArray<Node>` (equivalente a `Array[Node]` en GDScript)
+ * - Dictionary sin tipo → `VariantDictionary` (equivalente a `Dictionary` en GDScript)
+ * - Dictionary tipado → `GodotDictionary<String, Int>` (equivalente a typed dict en GDScript)
  */
 class TypeAliasGenerator(private val genericInterceptor: GenericBuiltinInterceptor) {
 
@@ -49,22 +57,40 @@ class TypeAliasGenerator(private val genericInterceptor: GenericBuiltinIntercept
     }
 
     private fun TypeAliasSpec.Builder.addKdocForTypeAlias(aliasName: String, aliasType: ParameterizedTypeName) = apply {
-        if (aliasName == "VariantArray") {
-            addKdoc(
-                """
-                Untyped array, equivalent to `Array` in GDScript.
+        when (aliasName) {
+            "VariantArray" -> {
+                addKdoc(
+                    """
+                        Untyped array, equivalent to `Array` in GDScript.
 
-                For typed arrays, use `%T<T>` instead.
+                        For typed arrays, use `%T<T>` instead.
 
-                ## Examples:
-                ```kotlin
-                val untyped: VariantArray = VariantArray()  // Any Variant type
-                val typed: GodotArray<Node> = GodotArray()  // Only Node elements
-                ```
-                """.trimIndent(),
-                aliasType.rawType,
-            )
+                        ## Examples:
+                        ```kotlin
+                        val untyped: VariantArray = VariantArray()  // Any Variant type
+                        val typed: GodotArray<Node> = GodotArray()  // Only Node elements
+                        ```
+                    """.trimIndent(),
+                    aliasType.rawType,
+                )
+            }
+
+            "VariantDictionary" -> {
+                addKdoc(
+                    """
+                        Untyped dictionary, equivalent to `Dictionary` in GDScript.
+
+                        For typed dictionaries, use `%T<K, V>` instead.
+
+                        ## Examples:
+                        ```kotlin
+                        val untyped: VariantDictionary = VariantDictionary()  // Any Variant key/value
+                        val typed: GodotDictionary<String, Int> = GodotDictionary()  // String keys, Int values
+                        ```
+                    """.trimIndent(),
+                    aliasType.rawType,
+                )
+            }
         }
-        // TODO add Dictionary
     }
 }

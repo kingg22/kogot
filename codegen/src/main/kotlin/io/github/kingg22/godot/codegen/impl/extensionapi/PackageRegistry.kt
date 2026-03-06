@@ -2,7 +2,6 @@ package io.github.kingg22.godot.codegen.impl.extensionapi
 
 import com.squareup.kotlinpoet.ClassName
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
-import io.github.kingg22.godot.codegen.impl.renameGodotTypedClass
 
 typealias PackageRegistryFactory = (rootPackage: String, context: Context.IncompleteContext) -> PackageRegistry
 
@@ -31,38 +30,30 @@ interface PackageRegistry {
     fun classNameForOrNull(
         godotName: String,
         vararg kotlinName: String = arrayOf(godotName.renameGodotClass()),
-    ): ClassName?
+    ): ClassName? = packageFor(godotName)?.let { ClassName(it, *kotlinName) }
 
     /**
      * @see classNameFor
      * @return default package if not registered
      */
-    fun classNameForOrDefault(
-        godotName: String,
-        vararg kotlinName: String = arrayOf(godotName.renameGodotClass()),
-    ): ClassName
-
-    /**
-     * @see classNameFor
-     * @return default package if not registered
-     */
-    fun classNameForOrDefault(
-        godotName: String,
-        vararg kotlinName: String = arrayOf(godotName.renameGodotTypedClass()),
-        typedClass: Boolean,
-    ): ClassName = classNameForOrDefault(godotName, *kotlinName)
-
-    /**
-     * @see packageFor
-     * @return default package if not registered
-     */
-    fun packageForOrDefault(godotName: String): String
+    fun classNameForOrDefault(godotName: String, vararg kotlinName: String, typedClass: Boolean = false): ClassName {
+        val kotlinNames = if (typedClass) {
+            if (kotlinName.isEmpty()) {
+                arrayOf(godotName.renameGodotClass(getTypedClass = true))
+            } else {
+                kotlinName.map { it.renameGodotClass(getTypedClass = true) }.toTypedArray()
+            }
+        } else {
+            kotlinName.ifEmpty { arrayOf(godotName.renameGodotClass()) }
+        }
+        return classNameForOrNull(godotName, *kotlinNames) ?: ClassName(rootPackage, *kotlinNames)
+    }
 
     /**
      * @see packageFor
-     * @return default string if not registered
+     * @return default package if not registered
      */
-    fun packageForOrDefault(godotName: String, defaultName: String): String = packageFor(godotName) ?: defaultName
+    fun packageForOrDefault(godotName: String): String = packageFor(godotName) ?: rootPackage
 
     fun packageForUtilityFun(): String
 

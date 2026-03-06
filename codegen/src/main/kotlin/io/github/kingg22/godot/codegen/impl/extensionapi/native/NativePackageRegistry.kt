@@ -32,14 +32,6 @@ class NativePackageRegistry internal constructor(private val typeToPackage: Map<
         return ClassName(pkg, *kotlinName)
     }
 
-    override fun classNameForOrNull(godotName: String, vararg kotlinName: String): ClassName? =
-        packageFor(godotName)?.let { ClassName(it, *kotlinName) }
-
-    override fun classNameForOrDefault(godotName: String, vararg kotlinName: String): ClassName =
-        classNameForOrNull(godotName, *kotlinName) ?: ClassName(rootPackage, *kotlinName)
-
-    override fun packageForOrDefault(godotName: String): String = packageFor(godotName) ?: rootPackage
-
     override fun packageForUtilityFun(): String = "$rootPackage.utils"
 
     override fun packageForUtilObject(): String = packageForUtilityFun()
@@ -82,7 +74,7 @@ class NativePackageRegistry internal constructor(private val typeToPackage: Map<
                     // NUEVO: Registrar typealiases para clases genéricas
                     when (cls) {
                         "Array" -> register("VariantArray", "$rootPackage.api.builtin")
-                        // Futuro: "Dictionary" -> register("VariantDictionary", "$rootPackage.api.builtin")
+                        "Dictionary" -> register("VariantDictionary", "$rootPackage.api.builtin")
                     }
                 }
             }
