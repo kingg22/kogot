@@ -1,3 +1,5 @@
+import net.ltgt.gradle.errorprone.errorprone
+
 plugins {
     // Apply the java conventions plugin from build-logic.
     id("buildlogic.java-library-conventions")
@@ -11,6 +13,12 @@ jextract {
     headerClassName = "FFMUtils"
     argsFile = layout.projectDirectory.file("scripts/v4_6_1/godot_includes.txt")
     headerFile(rootProject.layout.projectDirectory.file("godot-version/v4_6_1/gdextension_interface.h"))
+}
+
+tasks.withType<JavaCompile> {
+    options.errorprone {
+        disable("NotJavadoc", "StringConcatToTextBlock")
+    }
 }
 
 tasks.jextract.configure {
