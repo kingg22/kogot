@@ -5,7 +5,7 @@ plugins {
     id("buildlogic.kotlin-styles-conventions")
 }
 
-val isRelease = hasProperty("releaseMode") || hasProperty("release") || System.getenv("CI") != null
+val isRelease = hasProperty("releaseMode") || hasProperty("release")
 
 val listOfNativeBuildType = if (isRelease) {
     listOf(NativeBuildType.DEBUG, NativeBuildType.RELEASE)

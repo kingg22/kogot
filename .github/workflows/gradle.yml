@@ -78,7 +78,8 @@ jobs:
           validate-wrappers: true
 
     - name: Build with Gradle Wrapper
-      run: ./gradlew build
+      # Run without a daemon when only run one task
+      run: ./gradlew build --no-daemon --stacktrace
 
 #    # With configuration cache parallel, the KMP plugin fails with ConcurrentModificationException
 #    - name: Sonar analyze

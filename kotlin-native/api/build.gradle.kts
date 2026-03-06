@@ -7,7 +7,7 @@ plugins {
     id("buildlogic.godot-codegen")
 }
 
-val isRelease = hasProperty("releaseMode") || hasProperty("release") || System.getenv("CI") != null
+val isRelease = hasProperty("releaseMode") || hasProperty("release")
 
 val listOfNativeBuildType = if (isRelease) {
     listOf(NativeBuildType.DEBUG, NativeBuildType.RELEASE)
