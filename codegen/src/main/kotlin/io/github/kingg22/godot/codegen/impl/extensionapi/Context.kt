@@ -2,8 +2,8 @@ package io.github.kingg22.godot.codegen.impl.extensionapi
 
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.resolver.EnumConstantResolver
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
+import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
-import io.github.kingg22.godot.codegen.models.extensionapi.GodotClass
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.GodotVersion
 
 /**
@@ -57,7 +57,7 @@ class Context(
 
     fun isBuiltin(godotName: String): Boolean = godotName in builtinTypes
     fun isSingleton(godotName: String): Boolean = godotName in singletons
-    fun isSingleton(godotClass: GodotClass): Boolean = godotClass.name in singletons
+    fun isSingleton(engineClass: EngineClass): Boolean = engineClass.name in singletons
 
     fun isGodotType(godotName: String) = isBuiltin(godotName) || isSingleton(godotName) ||
         godotName in classes || godotName in globalEnumsTypes
@@ -107,7 +107,7 @@ class Context(
 
     fun findBuiltinClass(name: String): BuiltinClass? = extensionApi.builtinClasses.find { it.name == name }
 
-    fun findEngineClass(name: String): GodotClass? = extensionApi.classes.find { it.name == name }
+    fun findEngineClass(name: String): EngineClass? = extensionApi.classes.find { it.name == name }
 
     fun findConstructor(className: String, argCount: Int): BuiltinClass.Constructor? = findBuiltinClass(className)
         ?.constructors

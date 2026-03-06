@@ -1,7 +1,7 @@
 package io.github.kingg22.godot.codegen.impl.extensionapi.native.resolver
 
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
-import io.github.kingg22.godot.codegen.models.extensionapi.GodotClass
+import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
 
 /**
  * Initialization order for Godot (see [Godot main](https://github.com/godotengine/godot/blob/master/main/main.cpp)).
@@ -100,17 +100,17 @@ enum class ClassCodegenLevel {
          * Logic for determining the API level of a given class.
          */
         context(_: Context)
-        fun getApiLevel(godotClass: GodotClass): ClassCodegenLevel {
+        fun getApiLevel(engineClass: EngineClass): ClassCodegenLevel {
             // NOTE: We have to use a whitelist of known classes because Godot doesn't separate these out
             // beyond "editor" and "core" and some classes are also mis-classified in the JSON depending on the Godot version.
-            val forcedClassification = classifyCodegenLevel(godotClass.name)
+            val forcedClassification = classifyCodegenLevel(engineClass.name)
             if (forcedClassification != null) {
                 return forcedClassification
             }
 
             // NOTE: Right now, Godot reports everything that's not "editor" as "core" in `extension_api.json`.
             // If it wasn't picked up by classify_codegen_level, and Godot reports it as "core" we will treat it as a scene class.
-            return when (godotClass.apiType) {
+            return when (engineClass.apiType) {
                 "editor" -> Editor
 
                 "core" -> Scene
@@ -121,7 +121,7 @@ enum class ClassCodegenLevel {
 
                 else -> {
                     // we don't know this classification
-                    throw IllegalStateException("class ${godotClass.name} has unknown API type ${godotClass.apiType}")
+                    throw IllegalStateException("class ${engineClass.name} has unknown API type ${engineClass.apiType}")
                 }
             }
         }

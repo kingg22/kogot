@@ -3,7 +3,7 @@ package io.github.kingg22.godot.codegen.impl.extensionapi.native
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.kingg22.godot.codegen.impl.extensionapi.EmptyContext
-import io.github.kingg22.godot.codegen.models.extensionapi.TypeMetaHolder
+import io.github.kingg22.godot.codegen.models.extensionapi.MethodReturn
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -44,10 +44,10 @@ class KotlinNativeTypeResolverTest {
     fun `when meta is required, then type is resolved`() {
         // ── "required" meta marker ────────────────────────────────────────────────
         // "required" aparece solo en TypeMetaHolder.meta, no como tipo base.
-        val tested = object : TypeMetaHolder {
-            override val type: String = "String"
-            override val meta: String = "required"
-        }
+        val tested = MethodReturn(
+            type = "String",
+            meta = "required",
+        )
 
         val resolved = context(testContext) {
             resolver.resolve(tested)
@@ -59,10 +59,7 @@ class KotlinNativeTypeResolverTest {
     fun `when meta is null, then type is resolved`() {
         // ── "required" meta marker ────────────────────────────────────────────────
         // "required" aparece solo en TypeMetaHolder.meta, no como tipo base.
-        val tested = object : TypeMetaHolder {
-            override val type: String = "String"
-            override val meta: String? = null
-        }
+        val tested = MethodReturn("String", null)
 
         val resolved = context(testContext) {
             resolver.resolve(tested)

@@ -16,7 +16,7 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.native.PRIMITIVE_NUMERI
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.impl.withExceptionContext
-import io.github.kingg22.godot.codegen.models.extensionapi.GodotClass
+import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
 
 private val lazyMethod = MemberName("kotlin", "lazy")
 private val lazyMode = ClassName("kotlin", "LazyThreadSafetyMode")
@@ -29,14 +29,14 @@ class NativeEngineClassGenerator(
 ) {
 
     context(context: Context)
-    fun generateFile(cls: GodotClass): FileSpec {
+    fun generateFile(cls: EngineClass): FileSpec {
         val packageName = context.packageForOrDefault(cls.name)
         val spec = generateSpec(cls)
         return createFile(spec, spec.name!!, packageName)
     }
 
     context(context: Context)
-    fun generateSpec(cls: GodotClass): TypeSpec {
+    fun generateSpec(cls: EngineClass): TypeSpec {
         withExceptionContext({ "Generating class '${cls.name}'" }) {
             val classNameStr = cls.name.renameGodotClass()
             val packageName = context.packageForOrDefault(cls.name)
@@ -99,10 +99,10 @@ class NativeEngineClassGenerator(
      */
     context(context: Context)
     private fun generateProperties(
-        cls: GodotClass,
-        methods: List<GodotClass.ClassMethod>,
+        cls: EngineClass,
+        methods: List<EngineClass.ClassMethod>,
         classBuilder: TypeSpec.Builder,
-    ): List<GodotClass.ClassMethod> {
+    ): List<EngineClass.ClassMethod> {
         val usedMethodNames = mutableSetOf<String>()
 
         cls.properties.forEach { property ->
@@ -123,8 +123,8 @@ class NativeEngineClassGenerator(
 
     context(context: Context)
     private fun synthesizeProperty(
-        property: GodotClass.ClassProperty,
-        methods: List<GodotClass.ClassMethod>,
+        property: EngineClass.ClassProperty,
+        methods: List<EngineClass.ClassMethod>,
         className: String,
     ): PropertySpec {
         val safeName = safeIdentifier(property.name)
@@ -220,7 +220,7 @@ class NativeEngineClassGenerator(
      * @return String del constant qualified (ej. "Flags.DISABLE_FOG") o el valor raw si no se encuentra
      */
     context(context: Context)
-    private fun resolveIndexedPropertyConstant(method: GodotClass.ClassMethod, indexValue: Int): CodeBlock {
+    private fun resolveIndexedPropertyConstant(method: EngineClass.ClassMethod, indexValue: Int): CodeBlock {
         // El primer argumento del método es el enum
         check(method.arguments.isNotEmpty()) {
             "Indexed property getter/setter must have at least one argument, got ${method.arguments.size}"
@@ -256,10 +256,10 @@ class NativeEngineClassGenerator(
 
     context(_: Context)
     private fun generateProperty(
-        property: GodotClass.ClassProperty,
+        property: EngineClass.ClassProperty,
         className: String,
-        getter: GodotClass.ClassMethod?,
-        setter: GodotClass.ClassMethod?,
+        getter: EngineClass.ClassMethod?,
+        setter: EngineClass.ClassMethod?,
     ): PropertySpec {
         if (property.type.contains(',')) error("Multi-type properties are not supported by generate property yet")
 
@@ -318,7 +318,7 @@ class NativeEngineClassGenerator(
     }
 
     context(_: Context)
-    private fun buildBaseClass(cls: GodotClass, className: ClassName, isSingleton: Boolean): TypeSpec.Builder {
+    private fun buildBaseClass(cls: EngineClass, className: ClassName, isSingleton: Boolean): TypeSpec.Builder {
         val builder = TypeSpec.classBuilder(className)
             .experimentalApiAnnotation(cls.name)
         val constructorSpec = FunSpec.constructorBuilder()

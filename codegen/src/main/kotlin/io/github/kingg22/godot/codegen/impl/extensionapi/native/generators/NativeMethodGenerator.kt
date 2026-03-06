@@ -11,7 +11,7 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.impl.withExceptionContext
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
-import io.github.kingg22.godot.codegen.models.extensionapi.GodotClass
+import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodDescriptor
 import io.github.kingg22.godot.codegen.models.extensionapi.UtilityFunction
@@ -52,7 +52,7 @@ class NativeMethodGenerator(
                 is BuiltinClass.BuiltinMethod ->
                     method.returnType to (method.returnType?.let { typeResolver.resolve(it) } ?: UNIT)
 
-                is GodotClass.ClassMethod ->
+                is EngineClass.ClassMethod ->
                     method.returnValue?.let { "${it.type}, meta: ${it.meta}" } to
                         (method.returnValue?.let { typeResolver.resolve(it) } ?: UNIT)
 

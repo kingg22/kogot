@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-class GodotClass private constructor(
+class EngineClass private constructor(
     override val name: String,
     @SerialName("is_refcounted") val isRefcounted: Boolean,
     @SerialName("is_instantiable") val isInstantiable: Boolean,
@@ -23,7 +23,7 @@ class GodotClass private constructor(
     }
 
     @Serializable
-    class Signal(
+    class Signal private constructor(
         override val name: String,
         val arguments: List<MethodArg> = emptyList(),
         override val description: String? = null,

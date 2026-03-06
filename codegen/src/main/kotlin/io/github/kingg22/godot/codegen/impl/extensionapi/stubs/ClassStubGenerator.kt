@@ -8,7 +8,7 @@ import io.github.kingg22.godot.codegen.impl.jvmNameAnnotation
 import io.github.kingg22.godot.codegen.impl.jvmStaticAnnotation
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.withExceptionContext
-import io.github.kingg22.godot.codegen.models.extensionapi.GodotClass
+import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
 
 /**
  * Generates an `open class` or singleton `object`-style class for a Godot engine class.
@@ -17,7 +17,7 @@ class ClassStubGenerator(private val packageName: String, private val typeResolv
     private val methodGen = MethodStubGenerator(typeResolver)
 
     context(context: Context)
-    fun generate(cls: GodotClass): FileSpec {
+    fun generate(cls: EngineClass): FileSpec {
         val isSingleton = context.isSingleton(cls)
         val className = cls.name.renameGodotClass()
 

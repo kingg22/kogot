@@ -11,7 +11,7 @@ class ExtensionApi(
     @SerialName("builtin_class_member_offsets") val builtinClassMemberOffsets: List<BuiltinClassMemberOffsets> =
         emptyList(),
     @SerialName("builtin_classes") val builtinClasses: List<BuiltinClass> = emptyList(),
-    val classes: List<GodotClass> = emptyList(),
+    val classes: List<EngineClass> = emptyList(),
     @SerialName("global_constants") val globalConstants: List<JsonElement> = emptyList(),
     @SerialName("global_enums") val globalEnums: List<ApiEnum> = emptyList(),
     @SerialName("utility_functions") val utilityFunctions: List<UtilityFunction> = emptyList(),
