@@ -1,6 +1,5 @@
 package io.github.kingg22.godot.codegen.impl.extensionapi.stubs
 
-import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
@@ -76,10 +75,7 @@ class MethodStubGenerator(private val typeResolver: TypeResolver) {
                     )
             }
 
-            "toString" if returnType == ClassName(
-                context.packageForOrDefault("String", "GodotString"),
-                "GodotString",
-            ) -> {
+            "toString" if returnType == context.classNameForOrDefault("String", "GodotString") -> {
                 println("INFO: renaming toString() → toGodotString() to avoid Any clash")
                 build().toBuilder("toGodotString")
                     .addKdoc(
