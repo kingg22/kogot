@@ -9,6 +9,8 @@ import io.github.kingg22.godot.codegen.models.extensioninterface.GDExtensionInte
 class RuntimePackageRegistry(packageStr: String, interfaceModel: GDExtensionInterface) : PackageRegistry {
     override val rootPackage: String = if (packageStr.endsWith(".internal.binding")) {
         packageStr
+    } else if (packageStr.endsWith(".api")) {
+        "${packageStr.removeSuffix(".api")}.internal.binding"
     } else {
         "$packageStr.internal.binding"
     }
