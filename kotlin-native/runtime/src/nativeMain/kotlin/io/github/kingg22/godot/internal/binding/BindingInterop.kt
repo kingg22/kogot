@@ -1,3 +1,6 @@
+// TODO make all internals published api when shared internals are beta/stable
+// https://github.com/Kotlin/KEEP/blob/main/proposals/KEEP-0451-shared-internals.md
+
 package io.github.kingg22.godot.internal.binding
 
 import io.github.kingg22.godot.internal.ffi.GDExtensionBool
@@ -27,35 +30,35 @@ data class BindingBooleanResult(val value: Boolean, val valid: Boolean? = null, 
 @ApiStatus.Internal
 data class BindingCallErrorInfo(val error: GDExtensionCallErrorType, val argument: Int, val expected: Int)
 
-@PublishedApi
-internal fun Boolean.toGdBool(): GDExtensionBool = if (this) 1u else 0u
+@ApiStatus.Internal
+fun Boolean.toGdBool(): GDExtensionBool = if (this) 1u else 0u
 
-@PublishedApi
-internal fun GDExtensionBool.toBoolean(): Boolean = this != 0u.toUByte()
+@ApiStatus.Internal
+fun GDExtensionBool.toBoolean(): Boolean = this != 0u.toUByte()
 
-@PublishedApi
-internal fun MemScope.allocGdBool(initialValue: Boolean = false) = allocArray<UByteVar>(1).also {
+@ApiStatus.Internal
+fun MemScope.allocGdBool(initialValue: Boolean = false) = allocArray<UByteVar>(1).also {
     it[0] = initialValue.toGdBool()
 }
 
-@PublishedApi
-internal fun CPointer<UByteVar>.readGdBool(): Boolean = this[0].toBoolean()
+@ApiStatus.Internal
+fun CPointer<UByteVar>.readGdBool(): Boolean = this[0].toBoolean()
 
-@PublishedApi
-internal fun MemScope.allocCallError() = allocArray<GDExtensionCallError>(1)
+@ApiStatus.Internal
+fun MemScope.allocCallError() = allocArray<GDExtensionCallError>(1)
 
-@PublishedApi
-internal fun CPointer<GDExtensionCallError>.readCallErrorInfo(): BindingCallErrorInfo = pointed.toBindingCallErrorInfo()
+@ApiStatus.Internal
+fun CPointer<GDExtensionCallError>.readCallErrorInfo(): BindingCallErrorInfo = pointed.toBindingCallErrorInfo()
 
-@PublishedApi
-internal fun GDExtensionCallError.toBindingCallErrorInfo(): BindingCallErrorInfo = BindingCallErrorInfo(
+@ApiStatus.Internal
+fun GDExtensionCallError.toBindingCallErrorInfo(): BindingCallErrorInfo = BindingCallErrorInfo(
     error = error,
     argument = argument,
     expected = expected,
 )
 
-@PublishedApi
-internal fun MemScope.allocConstTypePtrArray(vararg values: GDExtensionConstTypePtr?) =
+@ApiStatus.Internal
+fun MemScope.allocConstTypePtrArray(vararg values: GDExtensionConstTypePtr?) =
     values.takeIf { it.isNotEmpty() }?.let { array ->
         allocArray<GDExtensionConstTypePtrVar>(array.size).also { pointers ->
             array.forEachIndexed { index, value ->
@@ -64,8 +67,8 @@ internal fun MemScope.allocConstTypePtrArray(vararg values: GDExtensionConstType
         }
     }
 
-@PublishedApi
-internal fun MemScope.allocTypePtrArray(vararg values: GDExtensionTypePtr?): CPointer<GDExtensionTypePtrVar>? =
+@ApiStatus.Internal
+fun MemScope.allocTypePtrArray(vararg values: GDExtensionTypePtr?): CPointer<GDExtensionTypePtrVar>? =
     values.takeIf { it.isNotEmpty() }?.let { array ->
         allocArray<GDExtensionTypePtrVar>(array.size).also { pointers ->
             array.forEachIndexed { index, value ->
@@ -74,8 +77,8 @@ internal fun MemScope.allocTypePtrArray(vararg values: GDExtensionTypePtr?): CPo
         }
     }
 
-@PublishedApi
-internal fun MemScope.allocConstVariantPtrArray(vararg values: GDExtensionConstVariantPtr?) =
+@ApiStatus.Internal
+fun MemScope.allocConstVariantPtrArray(vararg values: GDExtensionConstVariantPtr?) =
     values.takeIf { it.isNotEmpty() }?.let { array ->
         allocArray<GDExtensionConstVariantPtrVar>(array.size).also { pointers ->
             array.forEachIndexed { index, value ->
