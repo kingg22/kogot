@@ -28,13 +28,13 @@ kotlin {
     linuxX64 {
         val main by compilations.getting
         val godot by main.cinterops.creating {
-            packageName = "io.github.kingg22.godot.internal.ffm"
+            packageName = "io.github.kingg22.godot.internal.ffi"
             defFile(layout.projectDirectory.file("nativeInterop/cinterop/godot.def"))
             includeDirs.allHeaders(rootProject.layout.projectDirectory.file("godot-version/v4_6_1/"))
         }
         binaries {
             sharedLib(buildTypes = listOfNativeBuildType) {
-                baseName = "godot-kotlin-ffm"
+                baseName = "godot-kotlin-ffi"
             }
         }
     }

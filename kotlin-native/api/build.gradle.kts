@@ -30,7 +30,7 @@ kotlin {
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
     dependencies {
         api(libs.jetbrains.annotations)
-        api(projects.kotlinNativeFfm)
+        api(projects.kotlinNativeFfi)
         implementation(projects.kotlinNativeRuntime)
     }
 
