@@ -12,6 +12,7 @@ import io.github.kingg22.godot.codegen.impl.addKdocForBitfield
 import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.impl.BuiltinClassImplGen
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
@@ -34,7 +35,7 @@ import io.github.kingg22.godot.codegen.utils.filterValuesNotNull
  */
 class NativeBuiltinClassGenerator(
     private val typeResolver: TypeResolver,
-    private val body: BodyGenerator,
+    private val body: BuiltinClassImplGen,
     private val defaultValueGenerator: DefaultValueGenerator,
     private val methodGen: NativeMethodGenerator,
     private val enumGenerator: NativeEnumGenerator,
@@ -123,6 +124,8 @@ class NativeBuiltinClassGenerator(
         val raw = builtinClass.raw
         if (builtinClass.name.lowercase() in SKIPPED_TYPES) return null
         val requiresGenerics = genericInterceptor.requiresGenerics(raw)
+
+        body.initialize(context.rootPackage, checkNotNull(context.extensionInterface))
 
         val kotlinName = builtinClass.name.renameGodotClass(requiresGenerics)
 

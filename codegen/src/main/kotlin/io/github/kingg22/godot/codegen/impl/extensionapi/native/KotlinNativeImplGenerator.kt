@@ -5,6 +5,8 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.CodeImplGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.*
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.impl.BuiltinClassImplGen
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.impl.ImplementationPackageRegistry
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 
 /** Generates Kotlin Native implementation bodies (cinterop / GDExtension bindings). */
@@ -17,7 +19,7 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
     private val typeAliasGen = TypeAliasGenerator(genericInterceptor)
     private val builtinClass = NativeBuiltinClassGenerator(
         typeResolver,
-        bodyGenerator,
+        BuiltinClassImplGen(bodyGenerator),
         defaultValue,
         methodGenerator,
         enumGen,
