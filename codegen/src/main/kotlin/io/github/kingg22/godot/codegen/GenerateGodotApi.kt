@@ -115,7 +115,7 @@ private class CodegenCommand : CliktCommand("Generador de Extension API para God
                     for (fileSpec in sequenceFiles) {
                         // El hilo principal solo envía la tarea, no espera.
                         // El 'writeTo' ocurre DENTRO del Virtual Thread.
-                        executor.submit {
+                        executor.execute {
                             val path = fileSpec.writeTo(outputDir)
                             // Actualización segura del primer path para el log
                             if (firstPathParent == null) firstPathParent = path.parent.toString()
