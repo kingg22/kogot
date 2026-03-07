@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 plugins {
     id("buildlogic.kotlin-multiplatform-conventions")
     id("buildlogic.kotlin-styles-conventions")
+    id("buildlogic.godot-codegen")
 }
 
 val isRelease = hasProperty("releaseMode") || hasProperty("release")
@@ -26,7 +27,7 @@ kotlin {
 
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
     dependencies {
-        implementation(projects.kotlinNativeFfm)
+        implementation(projects.kotlinNativeFfi)
     }
 
     applyDefaultHierarchyTemplate()
@@ -39,4 +40,9 @@ kotlin {
             }
         }
     }
+}
+
+tasks.generateGodotExtensionApi.configure {
+    backendName.set("kotlin_native")
+    outputKindName.set("runtime")
 }
