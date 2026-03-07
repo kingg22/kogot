@@ -47,9 +47,8 @@ class Context(
     val globalEnumsTypes: Set<String> get() = model.globalEnumTypes
     val nestedEnumsTypes: Set<Pair<String, String>> get() = model.nestedEnumOwners
     val nativeStructureTypes: Set<String> get() = model.nativeStructuresByName.keys
-    val classesAndApiType: Set<Pair<String, String>> get() = model.classApiTypes.entries.mapTo(linkedSetOf()) {
-        it.toPair()
-    }
+    val classesAndApiType: Set<Pair<String, String>>
+        get() = model.classApiTypes.entries.mapTo(linkedSetOf()) { it.toPair() }
 
     fun isBuiltin(godotName: String): Boolean = godotName in builtinTypes
     fun isSingleton(godotName: String): Boolean = godotName in singletons
@@ -86,7 +85,9 @@ class Context(
     fun findResolvedEngineClass(name: String): ResolvedEngineClass? = model.engineClassesByName[name]
 
     fun findConstructor(className: String, argCount: Int): BuiltinClass.Constructor? =
-        findResolvedBuiltinClass(className)?.constructors?.firstOrNull { it.raw != null && it.arguments.size == argCount }?.raw
+        findResolvedBuiltinClass(className)
+            ?.constructors
+            ?.firstOrNull { it.raw != null && it.arguments.size == argCount }?.raw
 
     fun resolveConstructor(className: String, rawArgs: List<String>): ResolvedBuiltinConstructor? {
         val constructors = findResolvedBuiltinClass(className)?.constructors.orEmpty()
@@ -262,39 +263,40 @@ class Context(
             else -> null
         }
 
-        private fun syntheticBuiltinConstructorsFor(className: String): List<ResolvedBuiltinConstructor> = when (className) {
-            "String" -> listOf(
-                ResolvedBuiltinConstructor(
-                    raw = null,
-                    ownerName = className,
-                    arguments = listOf(MethodArg("value", "kotlin.String")),
-                    runtimeFunctionName = "initializeStringFromUtf8",
-                    usesKotlinStringBridge = true,
-                ),
-            )
+        private fun syntheticBuiltinConstructorsFor(className: String): List<ResolvedBuiltinConstructor> =
+            when (className) {
+                "String" -> listOf(
+                    ResolvedBuiltinConstructor(
+                        raw = null,
+                        ownerName = className,
+                        arguments = listOf(MethodArg("value", "kotlin.String")),
+                        runtimeFunctionName = "initializeStringFromUtf8",
+                        usesKotlinStringBridge = true,
+                    ),
+                )
 
-            "StringName" -> listOf(
-                ResolvedBuiltinConstructor(
-                    raw = null,
-                    ownerName = className,
-                    arguments = listOf(MethodArg("value", "kotlin.String")),
-                    runtimeFunctionName = "initializeStringNameFromUtf8",
-                    usesKotlinStringBridge = true,
-                ),
-            )
+                "StringName" -> listOf(
+                    ResolvedBuiltinConstructor(
+                        raw = null,
+                        ownerName = className,
+                        arguments = listOf(MethodArg("value", "kotlin.String")),
+                        runtimeFunctionName = "initializeStringNameFromUtf8",
+                        usesKotlinStringBridge = true,
+                    ),
+                )
 
-            "NodePath" -> listOf(
-                ResolvedBuiltinConstructor(
-                    raw = null,
-                    ownerName = className,
-                    arguments = listOf(MethodArg("value", "kotlin.String")),
-                    runtimeFunctionName = "initializeNodePathFromString",
-                    usesKotlinStringBridge = true,
-                ),
-            )
+                "NodePath" -> listOf(
+                    ResolvedBuiltinConstructor(
+                        raw = null,
+                        ownerName = className,
+                        arguments = listOf(MethodArg("value", "kotlin.String")),
+                        runtimeFunctionName = "initializeNodePathFromString",
+                        usesKotlinStringBridge = true,
+                    ),
+                )
 
-            else -> emptyList()
-        }
+                else -> emptyList()
+            }
 
         private fun scoreConstructorArgument(rawArg: String, expectedType: String): Int {
             val cleanExpectedType = expectedType.removePrefix("enum::").removePrefix("bitfield::")
@@ -303,7 +305,10 @@ class Context(
 
                 rawArg.startsWith("&") && rawArg.endsWith('"') && cleanExpectedType == "StringName" -> 100
 
-                rawArg.startsWith('"') && rawArg.endsWith('"') && cleanExpectedType in setOf("String", "kotlin.String") ->
+                rawArg.startsWith('"') && rawArg.endsWith('"') && cleanExpectedType in setOf(
+                    "String",
+                    "kotlin.String",
+                ) ->
                     100
 
                 rawArg == "true" || rawArg == "false" -> if (cleanExpectedType == "bool") 100 else 0
