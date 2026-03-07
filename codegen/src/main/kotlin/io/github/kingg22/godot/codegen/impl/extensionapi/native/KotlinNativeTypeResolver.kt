@@ -85,17 +85,25 @@ class KotlinNativeTypeResolver : TypeResolver {
 
     // ── Pointer resolution ────────────────────────────────────────────────────
 
-    context(_: Context)
+    context(context: Context)
     private fun resolvePointer(type: String): TypeName {
         // Strip one level of pointer
         val inner = type.removeSuffix("*").trim().removePrefix("const ").trim()
 
         return when {
+            // Special case of FFI
+            inner == "GDExtensionInitializationFunction" -> context.classNameForOrDefault(
+                "GDExtensionInitializationFunction",
+            )
+
             // 1. void* y handles GDExtension → COpaquePointer?
             inner == "void" || isOpaqueHandle(inner) -> COPAQUE_POINTER
 
-            // 2. Punteros multilevel → COpaquePointer (no tipable sin CPointed)
-            inner.endsWith("*") -> COPAQUE_POINTER
+            // 2. Multi-level pointers (e.g. uint_8**) → CPointer<CPointerVar<T>>
+            inner.endsWith("*") -> {
+                val innerType = resolvePointer(inner.removeSuffix("*"))
+                C_POINTER.parameterizedBy(C_POINTER_VAR_OF.parameterizedBy(innerType))
+            }
 
             // 3. Primitivos → CPointer<XVar> (e.g. int* → CPointer<IntVar>)
             isPrimitive(inner) -> {

@@ -136,7 +136,22 @@ private val TYPES_EXPECTED = mapOf(
     "typeddictionary::Color;Color" to ClassName("", "Dictionary")
         .parameterizedBy(ClassName("", "Color"), ClassName("", "Color")),
 
-    // ── Pointers ──────────────────────────────────────────────────────────────
+    /*
+    TODO insert native structs to context to correctly resolve them
+    ── Pointers ──────────────────────────────────────────────────────────────
+
+    | C Type         | Kotlin Type                                   |
+    |----------------|-----------------------------------------------|
+    | `uint8_t*`     | `CPointer<UByteVar>`                          |
+    | `uint8_t**`    | `CPointer<CPointerVarOf<CPointer<UByteVar>>>` |
+    | `int32_t*`     | `CPointer<IntVar>`                            |
+    | `const char*`  | `CPointer<ByteVar>`                           |
+    | `const char**` | `CPointer<CPointerVarOf<CPointer<ByteVar>>>`  |
+    | `void*`        | `COpaquePointer`                              |
+    | `void**`       | `CPointer<COpaquePointerVar>`                 |
+
+     */
+
     "void*" to COPAQUE_POINTER,
     "const void*" to COPAQUE_POINTER,
     "const Glyph*" to COPAQUE_POINTER,
@@ -146,6 +161,14 @@ private val TYPES_EXPECTED = mapOf(
     "uint8_t*" to C_POINTER.parameterizedBy(U_BYTE_VAR),
     "const uint8_t*" to C_POINTER.parameterizedBy(U_BYTE_VAR),
     // const uint8_t** → CPointer<CPointerVarOf<CPointer<UByteVar>>>
-    "const uint8_t **" to COPAQUE_POINTER,
+    "const uint8_t **" to C_POINTER
+        .parameterizedBy(
+            C_POINTER_VAR_OF
+                .parameterizedBy(
+                    C_POINTER
+                        .parameterizedBy(U_BYTE_VAR),
+                ),
+        ),
     "CaretInfo*" to COPAQUE_POINTER,
+    "const GDExtensionInitializationFunction*" to ClassName("", "GDExtensionInitializationFunction"),
 )

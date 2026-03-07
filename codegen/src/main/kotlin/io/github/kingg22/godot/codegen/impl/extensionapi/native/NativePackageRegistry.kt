@@ -54,6 +54,9 @@ class NativePackageRegistry internal constructor(private val typeToPackage: Map<
                 if (renamed != name) map[renamed] = pkg
             }
 
+            // FFI RAW special case
+            register("GDExtensionInitializationFunction", "$rootPackage.internal.ffi")
+
             // Builtins
             // Variant is injected manually in Context but not in builtinClasses
             register("Variant", "$rootPackage.api.builtin")
