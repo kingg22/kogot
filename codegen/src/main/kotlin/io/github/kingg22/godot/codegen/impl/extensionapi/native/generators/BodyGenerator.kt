@@ -13,13 +13,20 @@ import io.github.kingg22.godot.codegen.impl.K_TODO
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.BYTE_VAR
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.COPAQUE_POINTER
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.C_POINTER
-import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.cinteropInvoke
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.memScoped
+import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinClass
+import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinConstructor
 
 private val STORAGE_BACKED_BUILTINS = setOf("String", "StringName", "NodePath")
 
-// FIXME create a new RuntimePackageRegistry to handle those
-private val builtinRuntimeObject = ClassName("io.github.kingg22.godot.runtime", "BuiltinRuntime")
 private val godotStringClass = ClassName("io.github.kingg22.godot.api.builtin", "GodotString")
+private val stringBindingClass = ClassName("io.github.kingg22.godot.internal.binding", "StringBinding")
+private val variantBindingClass = ClassName("io.github.kingg22.godot.internal.binding", "VariantBinding")
+private const val VARIANT_TYPE_STRING = "GDEXTENSION_VARIANT_TYPE_STRING"
+private const val VARIANT_TYPE_STRING_NAME = "GDEXTENSION_VARIANT_TYPE_STRING_NAME"
+private const val VARIANT_TYPE_NODE_PATH = "GDEXTENSION_VARIANT_TYPE_NODE_PATH"
+private val allocConstTypePtrArray = MemberName("io.github.kingg22.godot.internal.binding", "allocConstTypePtrArray")
 private val allocateBuiltinStorage = MemberName(
     "io.github.kingg22.godot.api.builtin.internal",
     "allocateBuiltinStorage",
@@ -38,45 +45,47 @@ class BodyGenerator {
         .addCode(todoBody())
         .build()
 
-    fun configureStorageBackedBuiltin(builtinClass: BuiltinClass, classBuilder: TypeSpec.Builder): TypeSpec.Builder =
-        classBuilder.apply {
-            if (builtinClass.name !in STORAGE_BACKED_BUILTINS) return@apply
+    fun configureStorageBackedBuiltin(
+        builtinClass: ResolvedBuiltinClass,
+        classBuilder: TypeSpec.Builder,
+    ): TypeSpec.Builder = classBuilder.apply {
+        if (builtinClass.name !in STORAGE_BACKED_BUILTINS) return@apply
 
-            val storageType = C_POINTER.parameterizedBy(BYTE_VAR)
-            val storageProperty = PropertySpec
-                .builder("storage", storageType, KModifier.PRIVATE)
-                .initializer("storage")
-                .build()
+        val storageType = C_POINTER.parameterizedBy(BYTE_VAR)
+        val storageProperty = PropertySpec
+            .builder("storage", storageType, KModifier.PRIVATE)
+            .initializer("storage")
+            .build()
 
-            classBuilder.primaryConstructor(
-                FunSpec
-                    .constructorBuilder()
-                    .addParameter("storage", storageType)
-                    .addModifiers(KModifier.PRIVATE)
-                    .build(),
-            )
-            classBuilder.addProperty(storageProperty)
-            classBuilder.addProperty(
-                PropertySpec
-                    .builder("closed", BOOLEAN, KModifier.PRIVATE)
-                    .mutable(true)
-                    .initializer("false")
-                    .build(),
-            )
-            classBuilder.addProperty(
-                PropertySpec
-                    .builder("rawPtr", COPAQUE_POINTER, KModifier.INTERNAL)
-                    .getter(
-                        FunSpec
-                            .getterBuilder()
-                            .addStatement("return %N", storageProperty)
-                            .build(),
-                    )
-                    .build(),
-            )
-        }
+        classBuilder.primaryConstructor(
+            FunSpec
+                .constructorBuilder()
+                .addParameter("storage", storageType)
+                .addModifiers(KModifier.PRIVATE)
+                .build(),
+        )
+        classBuilder.addProperty(storageProperty)
+        classBuilder.addProperty(
+            PropertySpec
+                .builder("closed", BOOLEAN, KModifier.PRIVATE)
+                .mutable(true)
+                .initializer("false")
+                .build(),
+        )
+        classBuilder.addProperty(
+            PropertySpec
+                .builder("rawPtr", COPAQUE_POINTER, KModifier.INTERNAL)
+                .getter(
+                    FunSpec
+                        .getterBuilder()
+                        .addStatement("return %N", storageProperty)
+                        .build(),
+                )
+                .build(),
+        )
+    }
 
-    fun buildCloseFunction(builtinClass: BuiltinClass): FunSpec {
+    fun buildCloseFunction(builtinClass: ResolvedBuiltinClass): FunSpec {
         if (builtinClass.name !in STORAGE_BACKED_BUILTINS) {
             return FunSpec
                 .builder("close")
@@ -91,7 +100,7 @@ class BodyGenerator {
             .addCode(
                 CodeBlock.builder()
                     .beginControlFlow("if (!closed)")
-                    .addStatement("%L", destroyCallFor(builtinClass.name))
+                    .add("%L", destroyCallFor(builtinClass))
                     .addStatement("%M(%N)", freeBuiltinStorage, "storage")
                     .addStatement("closed = true")
                     .endControlFlow()
@@ -101,73 +110,45 @@ class BodyGenerator {
     }
 
     fun constructorBodyFor(
-        builtinClass: BuiltinClass,
-        ctor: BuiltinClass.Constructor,
+        builtinClass: ResolvedBuiltinClass,
+        ctor: ResolvedBuiltinConstructor,
         ctorBuilder: FunSpec.Builder,
     ): CodeBlock {
         if (builtinClass.name !in STORAGE_BACKED_BUILTINS) return todoBody()
 
-        if (builtinClass.name in STORAGE_BACKED_BUILTINS) {
-            ctorBuilder.callThisConstructor(
-                CodeBlock.of("%M(%L)", allocateBuiltinStorage, builtinStorageSize(builtinClass.name)),
-            )
-        }
-
-        val initCall = when (builtinClass.name) {
-            "String" -> when (ctor.index) {
-                0 -> CodeBlock.of("%T.initializeStringEmpty(rawPtr)", builtinRuntimeObject)
-                1 -> CodeBlock.of("%T.initializeStringCopy(rawPtr, from.rawPtr)", builtinRuntimeObject)
-                2 -> CodeBlock.of("%T.initializeStringFromStringName(rawPtr, from.rawPtr)", builtinRuntimeObject)
-                3 -> CodeBlock.of("%T.initializeStringFromNodePath(rawPtr, from.rawPtr)", builtinRuntimeObject)
-                else -> return todoBody()
-            }
-
-            "StringName" -> when (ctor.index) {
-                0 -> CodeBlock.of("%T.initializeStringNameEmpty(rawPtr)", builtinRuntimeObject)
-                1 -> CodeBlock.of("%T.initializeStringNameCopy(rawPtr, from.rawPtr)", builtinRuntimeObject)
-                2 -> CodeBlock.of("%T.initializeStringNameFromString(rawPtr, from.rawPtr)", builtinRuntimeObject)
-                else -> return todoBody()
-            }
-
-            "NodePath" -> when (ctor.index) {
-                0 -> CodeBlock.of("%T.initializeNodePathEmpty(rawPtr)", builtinRuntimeObject)
-                1 -> CodeBlock.of("%T.initializeNodePathCopy(rawPtr, from.rawPtr)", builtinRuntimeObject)
-                2 -> CodeBlock.of("%T.initializeNodePathFromString(rawPtr, from.rawPtr)", builtinRuntimeObject)
-                else -> return todoBody()
-            }
-
-            else -> return todoBody()
-        }
+        ctorBuilder.callThisConstructor(
+            CodeBlock.of("%M(%L)", allocateBuiltinStorage, builtinStorageSize(builtinClass)),
+        )
 
         return CodeBlock
             .builder()
-            .addStatement("%L", initCall)
+            .add("%L", constructorInvocation(builtinClass, ctor))
             .build()
     }
 
-    fun stringConstructorBodyFor(builtinClass: BuiltinClass, ctorBuilder: FunSpec.Builder): CodeBlock {
+    fun stringConstructorBodyFor(builtinClass: ResolvedBuiltinClass, ctorBuilder: FunSpec.Builder): CodeBlock {
         if (builtinClass.name in STORAGE_BACKED_BUILTINS) {
             ctorBuilder.callThisConstructor(
                 CodeBlock.of(
                     "%M(%L)",
                     allocateBuiltinStorage,
-                    builtinStorageSize(builtinClass.name),
+                    builtinStorageSize(builtinClass),
                 ),
             )
         }
 
         return when (builtinClass.name) {
             "String" -> CodeBlock.builder()
-                .addStatement("%T.initializeStringFromUtf8(rawPtr, value)", builtinRuntimeObject)
+                .addStatement("%T.instance.newWithUtf8Chars(rawPtr, value)", stringBindingClass)
                 .build()
 
             "StringName" -> CodeBlock.builder()
-                .addStatement("%T.initializeStringNameFromUtf8(rawPtr, value)", builtinRuntimeObject)
+                .addStatement("%T.instance.nameNewWithUtf8Chars(rawPtr, value)", stringBindingClass)
                 .build()
 
             "NodePath" -> CodeBlock.builder()
                 .beginControlFlow("%T(value).use { godotString ->", godotStringClass)
-                .addStatement("%T.initializeNodePathFromString(rawPtr, godotString.rawPtr)", builtinRuntimeObject)
+                .add("%L", callBuiltinConstructor(VARIANT_TYPE_NODE_PATH, 2, "godotString.rawPtr"))
                 .endControlFlow()
                 .build()
 
@@ -175,17 +156,83 @@ class BodyGenerator {
         }
     }
 
-    fun destroyCallFor(className: String): CodeBlock = when (className) {
-        "String" -> CodeBlock.of("%T.destroyString(rawPtr)", builtinRuntimeObject)
-        "StringName" -> CodeBlock.of("%T.destroyStringName(rawPtr)", builtinRuntimeObject)
-        "NodePath" -> CodeBlock.of("%T.destroyNodePath(rawPtr)", builtinRuntimeObject)
-        else -> error("Missing destroy method for $className")
+    fun destroyCallFor(builtinClass: ResolvedBuiltinClass): CodeBlock = when (builtinClass.name) {
+        "String" -> destroyBuiltin(VARIANT_TYPE_STRING)
+        "StringName" -> destroyBuiltin(VARIANT_TYPE_STRING_NAME)
+        "NodePath" -> destroyBuiltin(VARIANT_TYPE_NODE_PATH)
+        else -> error("Missing destroy method for ${builtinClass.name}")
     }
 
-    fun builtinStorageSize(className: String): Int = when (className) {
-        "String" -> 8
-        "StringName" -> 8
-        "NodePath" -> 8
-        else -> error("Missing storage size for $className")
-    }
+    private fun builtinStorageSize(builtinClass: ResolvedBuiltinClass): Int = builtinClass.layout?.size
+        ?: error("Missing layout size for ${builtinClass.name}")
+
+    private fun constructorInvocation(builtinClass: ResolvedBuiltinClass, ctor: ResolvedBuiltinConstructor): CodeBlock =
+        when {
+            ctor.usesKotlinStringBridge -> when (builtinClass.name) {
+                "String" -> CodeBlock.of("%T.instance.newWithUtf8Chars(rawPtr, value)\n", stringBindingClass)
+
+                "StringName" -> CodeBlock.of("%T.instance.nameNewWithUtf8Chars(rawPtr, value)\n", stringBindingClass)
+
+                "NodePath" -> CodeBlock.builder()
+                    .beginControlFlow("%T(value).use { godotString ->", godotStringClass)
+                    .add("%L", callBuiltinConstructor(VARIANT_TYPE_NODE_PATH, 2, "godotString.rawPtr"))
+                    .endControlFlow()
+                    .build()
+
+                else -> todoBody()
+            }
+
+            builtinClass.name == "String" -> when (ctor.index) {
+                0 -> callBuiltinConstructor(VARIANT_TYPE_STRING, ctor.index)
+                1 -> callBuiltinConstructor(VARIANT_TYPE_STRING, ctor.index, "from.rawPtr")
+                2 -> callBuiltinConstructor(VARIANT_TYPE_STRING, ctor.index, "from.rawPtr")
+                3 -> callBuiltinConstructor(VARIANT_TYPE_STRING, ctor.index, "from.rawPtr")
+                else -> todoBody()
+            }
+
+            builtinClass.name == "StringName" -> when (ctor.index) {
+                0 -> callBuiltinConstructor(VARIANT_TYPE_STRING_NAME, ctor.index)
+                1 -> callBuiltinConstructor(VARIANT_TYPE_STRING_NAME, ctor.index, "from.rawPtr")
+                2 -> callBuiltinConstructor(VARIANT_TYPE_STRING_NAME, ctor.index, "from.rawPtr")
+                else -> todoBody()
+            }
+
+            builtinClass.name == "NodePath" -> when (ctor.index) {
+                0 -> callBuiltinConstructor(VARIANT_TYPE_NODE_PATH, ctor.index)
+                1 -> callBuiltinConstructor(VARIANT_TYPE_NODE_PATH, ctor.index, "from.rawPtr")
+                2 -> callBuiltinConstructor(VARIANT_TYPE_NODE_PATH, ctor.index, "from.rawPtr")
+                else -> todoBody()
+            }
+
+            else -> todoBody()
+        }
+
+    private fun callBuiltinConstructor(variantType: String, constructorIndex: Int, vararg args: String): CodeBlock =
+        CodeBlock
+            .builder()
+            .beginControlFlow("%M", memScoped)
+            .addStatement(
+                "val constructor = %T.instance.getPtrConstructorRaw(%N, %L)",
+                variantBindingClass,
+                variantType,
+                constructorIndex,
+            ).indent()
+            .addStatement("?: error(%S)", "Missing builtin constructor")
+            .unindent()
+            .addStatement("constructor.%M(rawPtr, %M(%L))", cinteropInvoke, allocConstTypePtrArray, args.joinToString())
+            .endControlFlow()
+            .build()
+
+    private fun destroyBuiltin(variantType: String): CodeBlock = CodeBlock
+        .builder()
+        .addStatement(
+            "val %N = %T.instance.getPtrDestructorRaw(%N)",
+            "destructor",
+            variantBindingClass,
+            variantType,
+        ).indent()
+        .addStatement("?: error(%S)", "Missing builtin destructor")
+        .unindent()
+        .addStatement("%N.%M(rawPtr)", "destructor", cinteropInvoke)
+        .build()
 }
