@@ -13,7 +13,9 @@ import com.github.ajalt.clikt.parameters.types.inputStream
 import com.github.ajalt.clikt.parameters.types.path
 import com.github.ajalt.mordant.rendering.AnsiLevel
 import com.github.ajalt.mordant.terminal.Terminal
+import com.squareup.kotlinpoet.FileSpec
 import io.github.kingg22.godot.codegen.impl.KotlinPoetGenerator
+import io.github.kingg22.godot.codegen.impl.runtime.RuntimeFFIGenerator
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 import io.github.kingg22.godot.codegen.models.extensioninterface.GDExtensionInterface
 import io.github.kingg22.godot.codegen.models.internal.GeneratorBackend
@@ -71,8 +73,6 @@ private class CodegenCommand : CliktCommand("Generador de Extension API para God
 
     @OptIn(ExperimentalSerializationApi::class)
     override fun run() {
-        echo("---Generator Extension API files--- Backend: $backend")
-
         var firstPathParent: String? = null
         var generatedFilesCount = 0
         var time: Duration? = null
@@ -80,16 +80,27 @@ private class CodegenCommand : CliktCommand("Generador de Extension API para God
         try {
             time = measureTime {
                 val json = Json
-                val generator = KotlinPoetGenerator(packageName, backend)
 
-                val extensionApi = json.decodeFromStream<ExtensionApi>(inputExtension)
-                val extensionInterface = json.decodeFromStream<GDExtensionInterface>(inputInterface)
+                val sequenceFiles: Sequence<FileSpec> = when (kind) {
+                    GeneratorKind.API -> {
+                        echo("---Generator Extension API files--- Backend: $backend")
+                        val extensionApi = json.decodeFromStream<ExtensionApi>(inputExtension)
+                        // TODO pass generateDocs option
+                        val generator = KotlinPoetGenerator(packageName, backend)
+                        generator.generate(extensionApi)
+                    }
+
+                    GeneratorKind.RUNTIME -> {
+                        echo("---Generating Runtime FFI Layer---")
+                        val extensionInterface = json.decodeFromStream<GDExtensionInterface>(inputInterface)
+                        val runtimeGenerator = RuntimeFFIGenerator(packageName)
+                        runtimeGenerator.generate(extensionInterface)
+                    }
+                }
 
                 Executors.newVirtualThreadPerTaskExecutor().use { executor: ExecutorService ->
-                    val fileSpecSequence = generator.generate(extensionApi)
-
                     // El hilo principal recorre la secuencia (Lazy)
-                    for (fileSpec in fileSpecSequence) {
+                    for (fileSpec in sequenceFiles) {
                         // El hilo principal solo envía la tarea, no espera.
                         // El 'writeTo' ocurre DENTRO del Virtual Thread.
                         executor.submit {
