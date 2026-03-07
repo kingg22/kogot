@@ -18,6 +18,8 @@ import io.github.kingg22.godot.codegen.impl.KotlinPoetGenerator
 import io.github.kingg22.godot.codegen.impl.runtime.RuntimeFFIGenerator
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 import io.github.kingg22.godot.codegen.models.extensioninterface.GDExtensionInterface
+import io.github.kingg22.godot.codegen.models.internal.BuildConfiguration
+import io.github.kingg22.godot.codegen.models.internal.CodegenOptions
 import io.github.kingg22.godot.codegen.models.internal.GeneratorBackend
 import io.github.kingg22.godot.codegen.models.internal.GeneratorKind
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -65,6 +67,11 @@ private class CodegenCommand : CliktCommand("Generador de Extension API para God
     private val packageName by option("-p", "--package", help = "Nombre del paquete base")
         .default("")
 
+    private val buildConfiguration by option(
+        "--build-config",
+        help = "Configuracion activa para builtin sizes/offsets: float_32, float_64, double_32, double_64",
+    ).enum<BuildConfiguration>(ignoreCase = true)
+
     init {
         context {
             terminal = Terminal(ansiLevel = AnsiLevel.TRUECOLOR)
@@ -84,10 +91,15 @@ private class CodegenCommand : CliktCommand("Generador de Extension API para God
                 val sequenceFiles: Sequence<FileSpec> = when (kind) {
                     GeneratorKind.API -> {
                         echo("---Generator Extension API files--- Backend: $backend")
+                        val extensionInterface = json.decodeFromStream<GDExtensionInterface>(inputInterface)
                         val extensionApi = json.decodeFromStream<ExtensionApi>(inputExtension)
                         // TODO pass generateDocs option
                         val generator = KotlinPoetGenerator(packageName, backend)
-                        generator.generate(extensionApi)
+                        generator.generate(
+                            extensionApi,
+                            extensionInterface,
+                            CodegenOptions(buildConfiguration = buildConfiguration),
+                        )
                     }
 
                     GeneratorKind.RUNTIME -> {
