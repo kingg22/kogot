@@ -47,30 +47,48 @@ class NativeMethodGenerator(
         block: FunSpec.Builder.() -> Unit = {},
     ): FunSpec {
         withExceptionContext({ "Generating method $className.'${method.name}'" }) {
-            val (originalReturnType, returnType) = when (method) {
-                is BuiltinClass.BuiltinMethod ->
-                    method.returnType to (method.returnType?.let { typeResolver.resolve(it) } ?: UNIT)
+            val (returnTypeSpec, originalType, originalMeta) = when (method) {
+                is BuiltinClass.BuiltinMethod -> Triple(
+                    method.returnType?.let { typeResolver.resolve(it) } ?: UNIT,
+                    method.returnType,
+                    null,
+                )
 
-                is EngineClass.ClassMethod ->
-                    method.returnValue?.let { "${it.type}, meta: ${it.meta}" } to
-                        (method.returnValue?.let { typeResolver.resolve(it) } ?: UNIT)
+                is EngineClass.ClassMethod -> Triple(
+                    method.returnValue?.let { typeResolver.resolve(it) } ?: UNIT,
+                    method.returnValue?.type,
+                    method.returnValue?.meta,
+                )
 
-                is UtilityFunction -> method.returnType to (method.returnType?.let { typeResolver.resolve(it) } ?: UNIT)
+                is UtilityFunction -> Triple(
+                    method.returnType?.let { typeResolver.resolve(it) } ?: UNIT,
+                    method.returnType,
+                    null,
+                )
             }
 
             val name = method.name
             val isVararg = method.isVararg
             val arguments = method.arguments
 
-            val kotlinName = safeIdentifier(name).fixAccidentalOverride(name, returnType)
+            val kotlinName = safeIdentifier(name).fixAccidentalOverride(name, returnTypeSpec)
+
             val builder = FunSpec
                 .builder(kotlinName)
                 .addModifiers(*modifiers)
-                .returns(returnType)
+                .returns(returnTypeSpec)
                 .addCode(body.todoBody())
                 .addKdocIfPresent(method)
-                .apply { if (name != kotlinName) addKdoc("\n\nOriginal name: `%S`", name) }
-                .apply { if (originalReturnType != null) addKdoc("\n\nOriginal return type: `%L`", originalReturnType) }
+                .apply {
+                    if (name != kotlinName) {
+                        if (method.description != null) addKdoc("\n\n")
+                        addKdoc("Original name: `%S`", name)
+                    }
+                    if (originalType != null) {
+                        addKdoc("\n\n@return Original type: `%L`", originalType)
+                        if (originalMeta != null) addKdoc(", meta type: `%L`", originalMeta)
+                    }
+                }
                 .experimentalApiAnnotation(className, name)
 
             // Fixed args always come first
