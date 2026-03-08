@@ -7,8 +7,7 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 
 /** Generates Java FFM API implementation bodies (Java FFM bindings, MemorySegment, Arena). */
-class JavaFfmImplGenerator(override val typeResolver: TypeResolver, private val packageName: String) :
-    CodeImplGenerator.ImplGenerator {
+class JavaFfmImplGenerator(override val typeResolver: TypeResolver) : CodeImplGenerator.ImplGenerator {
 
     // TODO: generate Java FFM for classes, builtins, utility functions
     context(context: Context)

@@ -7,7 +7,6 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.ffm.JavaFfmBackend
 import io.github.kingg22.godot.codegen.impl.extensionapi.ffm.JavaFfmPackageRegistry
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.KotlinNativeBackend
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.NativePackageRegistry
-import io.github.kingg22.godot.codegen.impl.extensionapi.stubs.StubsPackageRegistry
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 import io.github.kingg22.godot.codegen.models.extensioninterface.GDExtensionInterface
 import io.github.kingg22.godot.codegen.models.internal.CodegenOptions
@@ -21,7 +20,7 @@ class KotlinPoetGenerator(
     constructor(packageName: String, backend: GeneratorBackend) : this(
         packageName,
         when (backend) {
-            GeneratorBackend.JAVA_FFM -> JavaFfmBackend(packageName)
+            GeneratorBackend.JAVA_FFM -> JavaFfmBackend()
             GeneratorBackend.KOTLIN_NATIVE -> KotlinNativeBackend()
         },
         when (backend) {

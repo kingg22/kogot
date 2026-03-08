@@ -5,9 +5,8 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.CodeImplGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 
 class JavaFfmBackend(
-    packageName: String,
-    override val typeResolver: TypeResolver = JavaFfmTypeResolver(packageName),
-    override val codeImplGenerator: CodeImplGenerator = JavaFfmImplGenerator(typeResolver, packageName),
+    override val typeResolver: TypeResolver = JavaFfmTypeResolver(),
+    override val codeImplGenerator: CodeImplGenerator = JavaFfmImplGenerator(typeResolver),
 ) : Backend {
     override val name: String get() = "java-ffm"
 }
