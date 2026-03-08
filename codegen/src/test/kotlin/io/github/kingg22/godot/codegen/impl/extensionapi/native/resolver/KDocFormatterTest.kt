@@ -202,4 +202,101 @@ class KDocFormatterTest {
         // The code tag should remain intact (will be converted to backticks)
         assertTrue(result.contains("`code snippet that should not be broken`"))
     }
+
+    @Test
+    fun `ignores codeblocks wrapper`() {
+        val input = """
+        Example:
+        [codeblocks]
+        [gdscript]
+        var x = 1
+        [/gdscript]
+        [/codeblocks]
+        """.trimIndent()
+
+        val result = context(context) {
+            KDocFormatter.format(input)!!
+        }
+
+        // Solo debe existir un bloque de código
+        val fenceCount = result.split("```").size - 1
+        assertEquals(2, fenceCount, "Expected exactly one code block, got:\n$result")
+
+        assertTrue(result.contains("```gdscript"))
+        assertTrue(result.contains("var x = 1"))
+    }
+
+    @Test
+    fun `supports multiple languages inside codeblocks`() {
+        val input = """
+        [codeblocks]
+        [gdscript]
+        print("hello")
+        [/gdscript]
+        [csharp]
+        GD.Print("hello");
+        [/csharp]
+        [/codeblocks]
+        """.trimIndent()
+
+        val result = context(context) {
+            KDocFormatter.format(input)!!
+        }
+
+        assertTrue(result.contains("```gdscript"))
+        assertTrue(result.contains("print(\"hello\")"))
+
+        assertTrue(result.contains("```csharp"))
+        assertTrue(result.contains("GD.Print"))
+    }
+
+    @Test
+    fun `does not generate empty code fences`() {
+        val input = """
+        Text before
+        [codeblocks]
+        [gdscript]
+        var a = 1
+        [/gdscript]
+        [/codeblocks]
+        Text after
+        """.trimIndent()
+
+        val result = context(context) {
+            KDocFormatter.format(input)!!
+        }
+
+        val fences = Regex("```").findAll(result).count()
+
+        // Un bloque de código = 2 fences
+        assertEquals(2, fences, "Unexpected extra fences:\n$result")
+    }
+
+    @Test
+    fun `does not create excessive blank lines around codeblocks`() {
+        val input = """
+        Before
+
+        [codeblocks]
+
+        [gdscript]
+        var x = 1
+        [/gdscript]
+
+        [/codeblocks]
+
+        After
+
+        """.trimIndent()
+
+        val result = context(context) {
+            KDocFormatter.format(input)!!
+        }
+
+        // No debe haber más de 2 newlines seguidos
+        assertTrue(
+            !result.contains("\n\n\n"),
+            "Formatter created excessive blank lines:\n$result",
+        )
+    }
 }

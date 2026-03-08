@@ -6,6 +6,7 @@ import io.github.kingg22.godot.codegen.impl.snakeCaseToCamelCase
 
 private val cache = LinkedHashMap<String, String>(2048)
 private val SPECIAL_SECTION_REGEX = Regex("""\*\*(Note|Warning|Deprecated|See also|Example)s?:\*\*""")
+private val TOO_MANY_BREAK_LINES_REGEX = Regex("\n{3,}")
 
 /**
  * Converts Godot BBCode documentation to KDoc format.
@@ -67,7 +68,11 @@ object KDocFormatter {
 
             // 3. Formateo de secciones y wrapping
             val withSections = SPECIAL_SECTION_REGEX.replace(transformed) { "\n\n${it.value}" }
-            wrapLongLines(withSections)
+
+            // 4. Limpieza de saltos de lineas
+            val normalized = withSections.replace(TOO_MANY_BREAK_LINES_REGEX, "\n\n")
+
+            wrapLongLines(normalized)
         }
     }
 
@@ -146,33 +151,44 @@ object KDocFormatter {
 
         // Bloques de código
         tag == "gdscript" -> {
-            sb.append("\n```gdscript\n")
+            sb.ensureNewLine()
+            sb.append("```gdscript")
             true
         }
 
         tag == "/gdscript" -> {
-            sb.append("\n```\n")
+            sb.ensureNewLine()
+            sb.append("```\n")
             true
         }
 
         tag == "csharp" -> {
-            sb.append("\n```csharp\n")
+            sb.ensureNewLine()
+            sb.append("```csharp")
             true
         }
 
         tag == "/csharp" -> {
-            sb.append("\n```\n")
+            sb.ensureNewLine()
+            sb.append("```\n")
             true
         }
 
-        tag.startsWith("codeblock") -> {
+        tag == "codeblocks" || tag == "/codeblocks" -> {
+            // ignorar completamente, manejado por otros casos
+            true
+        }
+
+        tag.startsWith("codeblock") || tag.startsWith("codeblocks") -> {
             val lang = tag.substringAfter("lang=", "").substringBefore(" ")
-            sb.append("\n```$lang\n")
+            sb.ensureNewLine()
+            sb.append("```$lang\n")
             true
         }
 
-        tag == "/codeblock" || tag == "/codeblocks" -> {
-            sb.append("\n```\n")
+        tag == "/codeblock" -> {
+            sb.ensureNewLine()
+            sb.append("```\n")
             true
         }
 
@@ -256,7 +272,7 @@ object KDocFormatter {
                 var currentLine = line
                 while (currentLine.length > limit) {
                     val breakAt = currentLine.lastIndexOf(' ', limit).let { if (it == -1) limit else it }
-                    result.append(currentLine.substring(0, breakAt)).append("\n")
+                    result.append(currentLine.substring(0, breakAt)).ensureNewLine()
                     currentLine = currentLine.substring(if (breakAt < currentLine.length) breakAt + 1 else breakAt)
                 }
                 result.append(currentLine)
@@ -266,5 +282,9 @@ object KDocFormatter {
             lineStart = lineEnd + 1
         }
         return result.toString().trim()
+    }
+
+    private fun StringBuilder.ensureNewLine() = apply {
+        if (isNotEmpty() && last() != '\n') append('\n')
     }
 }
