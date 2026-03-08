@@ -31,8 +31,8 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator) {
     fun todoBody() = delegate.todoBody()
     fun todoGetter() = delegate.todoGetter()
 
-    fun initialize(packageStr: String, gdInterface: GDExtensionInterface) {
-        implPackageRegistry = ImplementationPackageRegistry(packageStr, gdInterface)
+    fun initialize(implementationPackageRegistry: ImplementationPackageRegistry) {
+        implPackageRegistry = implementationPackageRegistry
     }
 
     fun configureStorageBackedBuiltin(

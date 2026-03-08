@@ -124,8 +124,6 @@ class NativeBuiltinClassGenerator(
         if (builtinClass.name.lowercase() in SKIPPED_TYPES) return null
         val requiresGenerics = genericInterceptor.requiresGenerics(raw)
 
-        body.initialize(context.rootPackage, checkNotNull(context.extensionInterface))
-
         val kotlinName = builtinClass.name.renameGodotClass(requiresGenerics)
 
         val classBuilder = TypeSpec

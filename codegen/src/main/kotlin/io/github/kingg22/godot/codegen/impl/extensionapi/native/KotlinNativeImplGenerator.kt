@@ -11,7 +11,9 @@ import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 
 /** Generates Kotlin Native implementation bodies (cinterop / GDExtension bindings). */
 class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeImplGenerator.ImplGenerator {
+    private lateinit var implPackageRegistry: ImplementationPackageRegistry
     private val bodyGenerator = BodyGenerator()
+    private val builtinClassImplGen = BuiltinClassImplGen(bodyGenerator)
     private val defaultValue = DefaultValueGenerator(typeResolver)
     private val methodGenerator = NativeMethodGenerator(typeResolver, bodyGenerator, defaultValue)
     private val genericInterceptor = GenericBuiltinInterceptor(typeResolver)
@@ -19,7 +21,7 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
     private val typeAliasGen = TypeAliasGenerator(genericInterceptor)
     private val builtinClass = NativeBuiltinClassGenerator(
         typeResolver,
-        BuiltinClassImplGen(bodyGenerator),
+        builtinClassImplGen,
         defaultValue,
         methodGenerator,
         enumGen,
@@ -32,7 +34,19 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
     private val utils = NativeUtilityFunctionGenerator(methodGenerator)
 
     context(context: Context)
+    private fun initializeImplPackageRegistry() {
+        implPackageRegistry = ImplementationPackageRegistry(
+            context.rootPackage,
+            checkNotNull(context.extensionInterface),
+        )
+        builtinClassImplGen.initialize(implPackageRegistry)
+        nativeStructure.initialize(implPackageRegistry)
+    }
+
+    context(context: Context)
     override fun generate(api: ExtensionApi): Sequence<FileSpec> = sequence {
+        initializeImplPackageRegistry()
+
         val builtinClassesPaths = context.model.builtins.asSequence().mapNotNull {
             builtinClass.generateFile(it)
         }
