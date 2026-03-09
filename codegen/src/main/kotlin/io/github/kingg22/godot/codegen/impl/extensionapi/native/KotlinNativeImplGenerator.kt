@@ -7,6 +7,7 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.*
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.impl.BuiltinClassImplGen
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.impl.ImplementationPackageRegistry
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.impl.UtilityFunctionImplGen
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 
 /** Generates Kotlin Native implementation bodies (cinterop / GDExtension bindings). */
@@ -31,7 +32,8 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
     private val engineClass = NativeEngineClassGenerator(typeResolver, bodyGenerator, methodGenerator, enumGen)
     private val variant = NativeVariantGenerator(typeResolver, enumGen)
     private val nativeStructure = KNativeStructureGenerator(typeResolver, bodyGenerator)
-    private val utils = NativeUtilityFunctionGenerator(methodGenerator)
+    private val utilFuncImplGen = UtilityFunctionImplGen(bodyGenerator)
+    private val utils = NativeUtilityFunctionGenerator(methodGenerator, utilFuncImplGen)
 
     context(context: Context)
     private fun initializeImplPackageRegistry() {
@@ -41,6 +43,7 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
         )
         builtinClassImplGen.initialize(implPackageRegistry)
         nativeStructure.initialize(implPackageRegistry)
+        utilFuncImplGen.initialize(implPackageRegistry)
     }
 
     context(context: Context)

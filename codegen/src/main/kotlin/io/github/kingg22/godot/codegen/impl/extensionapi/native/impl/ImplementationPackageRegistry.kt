@@ -18,6 +18,8 @@ class ImplementationPackageRegistry(packageStr: String, interfaceModel: GDExtens
     private val typeToPackage: Map<String, String> = buildMap {
         put("allocConstTypePtrArray", bindingPackage)
         put("allocateBuiltinStorage", bindingPackage)
+        put("allocGdBool", bindingPackage)
+        put("readGdBool", bindingPackage)
         put("allocateBuiltinStorage", builtinInternalBind)
         put("freeBuiltinStorage", builtinInternalBind)
     }

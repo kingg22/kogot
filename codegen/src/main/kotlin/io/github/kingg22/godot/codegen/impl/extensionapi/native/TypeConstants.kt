@@ -14,11 +14,6 @@ val C_FUNCTION = ClassName("kotlinx.cinterop", "CFunction")
 val C_NAME_ANNOTATION = ClassName("kotlin.native", "CName")
 val INTERPRET_C_POINTER = MemberName("kotlinx.cinterop", "interpretCPointer")
 
-val GDEXTENSION_INTERFACE_GET_PROC_ADDRESS = ClassName(
-    "io.github.kingg22.godot.internal.ffi",
-    "GDExtensionInterfaceGetProcAddress",
-)
-
 // CVar types (used for pointer targets)
 val BYTE_VAR = ClassName("kotlinx.cinterop", "ByteVar")
 val SHORT_VAR = ClassName("kotlinx.cinterop", "ShortVar")
@@ -43,14 +38,15 @@ val POSIX_FLOAT = ClassName("platform.posix", "float")
 val POSIX_DOUBLE = ClassName("platform.posix", "double")
 val POSIX_WCHAR_T = ClassName("platform.posix", "wchar_t")
 
-val LAZY_MODE = ClassName("kotlin", "LazyThreadSafetyMode")
 val lazyMethod = MemberName("kotlin", "lazy")
 
 val memScoped = MemberName("kotlinx.cinterop", "memScoped")
 val cstr = MemberName("kotlinx.cinterop", "cstr", true)
 val ptr = MemberName("kotlinx.cinterop", "ptr", true)
+val alloc = MemberName("kotlinx.cinterop", "alloc", true)
 val reinterpret = MemberName("kotlinx.cinterop", "reinterpret", true)
 val cinteropInvoke = MemberName("kotlinx.cinterop", "invoke", true)
+val cpointerValue = MemberName("kotlinx.cinterop", "value", true)
 
 val PRIMITIVE_NUMERIC_TYPES = setOf(
     "int8_t", "int8",
