@@ -38,7 +38,7 @@ class RuntimeFFIConvenienceGen {
         val convenienceParameters = buildList {
             transforms.forEachIndexed { index, transform ->
                 when {
-                    transform?.isSynthetic == true -> Unit
+                    transform?.isSynthetic == true -> {}
                     transform?.parameter != null -> add(transform.parameter)
                     else -> add(buildParameter(iface.arguments[index], index))
                 }
@@ -288,11 +288,26 @@ class RuntimeFFIConvenienceGen {
         index: Int,
         arguments: List<Arguments>,
     ): ConvenienceTransform? {
-        val name = safeIdentifier(argument.name?.takeIf(String::isNotBlank) ?: "arg$index")
+        fun safeArgName(argument: Arguments, index: Int) = safeIdentifier(
+            argument.name
+                ?.removePrefix("p")
+                ?.removePrefix("_")
+                ?.takeIf(String::isNotBlank)
+                ?: "arg$index",
+        )
+
+        val name = safeArgName(argument, index)
 
         return when {
             argument.type == "GDExtensionBool" -> ConvenienceTransform(
-                parameter = ParameterSpec.builder(name, BOOLEAN).build(),
+                parameter = ParameterSpec
+                    .builder(name, BOOLEAN)
+                    .apply {
+                        if (argument.description.isNotEmpty()) {
+                            addKdoc("%L", argument.description.joinToString("\n"))
+                        }
+                    }
+                    .build(),
                 argumentExpression = CodeBlock.of(
                     "%N.%M()",
                     name,
@@ -301,7 +316,14 @@ class RuntimeFFIConvenienceGen {
             )
 
             argument.type == "const char*" -> ConvenienceTransform(
-                parameter = ParameterSpec.builder(name, STRING).build(),
+                parameter = ParameterSpec
+                    .builder(name, STRING)
+                    .apply {
+                        if (argument.description.isNotEmpty()) {
+                            addKdoc("%L", argument.description.joinToString("\n"))
+                        }
+                    }
+                    .build(),
                 argumentExpression = CodeBlock.of("%N.%M.%M", name, cstr, ptr),
                 requiresMemScoped = true,
             )
@@ -312,6 +334,11 @@ class RuntimeFFIConvenienceGen {
                     parameter = ParameterSpec
                         .builder(name, elementType.copy(nullable = true))
                         .addModifiers(KModifier.VARARG)
+                        .apply {
+                            if (argument.description.isNotEmpty()) {
+                                addKdoc("%L", argument.description.joinToString("\n"))
+                            }
+                        }
                         .build(),
                     argumentExpression = CodeBlock.of(
                         "%L(*%N)",
@@ -328,7 +355,7 @@ class RuntimeFFIConvenienceGen {
                     "%L",
                     countExpression(
                         arguments[index].type,
-                        safeIdentifier(arguments[index - 1].name ?: "arg${index - 1}"),
+                        safeArgName(arguments[index - 1], index - 1),
                     ),
                 ),
                 isSynthetic = true,
