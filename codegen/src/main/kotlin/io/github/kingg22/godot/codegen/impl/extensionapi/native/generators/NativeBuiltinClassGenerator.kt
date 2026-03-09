@@ -377,7 +377,7 @@ class NativeBuiltinClassGenerator(
                 if (name != "equals") addModifiers(KModifier.OPERATOR)
             }.returns(returnTypeName)
             .addCode(body.todoBody())
-            .addKdocIfPresent(description)
+            .addKdocIfPresent(operator)
 
         if (rightType != null) {
             val rightTypeName = typeResolver.resolve(rightType)
