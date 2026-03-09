@@ -1,5 +1,6 @@
 package io.github.kingg22.godot.codegen.impl.extensionapi.native.generators
 
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
@@ -33,17 +34,22 @@ class NativeMethodGenerator(
     /**
      * Builds a [FunSpec] from raw method data.
      *
-     * @param name           Godot method name (will be passed through [safeIdentifier])
-     * @param returnType     Godot return type string, null → Unit
-     * @param isVararg       whether the method accepts trailing vararg Variant args
-     * @param arguments      fixed argument list
-     * @param extraModifiers additional [KModifier]s (e.g., OVERRIDE, OPERATOR)
+     * @param method         The method descriptor (builtin, engine class, or utility function).
+     * @param className      Godot class name (used for experimental annotation lookup).
+     * @param modifiers      Additional [KModifier]s (e.g., OVERRIDE, OPERATOR).
+     * @param codeBody       Optional body [CodeBlock] override. When non-null it is used
+     *                       instead of the default `TODO()` stub. Callers supply this when an
+     *                       implementation generator has
+     *                       produced a real cinterop body.
+     * @param block          Extra customisation applied to the [FunSpec.Builder] after the
+     *                       body is set (KDoc additions, annotations, etc.).
      */
     context(context: Context)
     fun buildMethod(
         method: MethodDescriptor,
         className: String,
         vararg modifiers: KModifier,
+        codeBody: CodeBlock? = null,
         block: FunSpec.Builder.() -> Unit = {},
     ): FunSpec {
         withExceptionContext({ "Generating method $className.'${method.name}'" }) {
@@ -77,7 +83,8 @@ class NativeMethodGenerator(
                 .builder(kotlinName)
                 .addModifiers(*modifiers)
                 .returns(returnTypeSpec)
-                .addCode(body.todoBody())
+                // Use the provided body override, otherwise fall back to the TODO() stub.
+                .addCode(codeBody ?: body.todoBody())
                 .addKdocIfPresent(method)
                 .apply {
                     if (name != kotlinName) {
