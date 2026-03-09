@@ -58,11 +58,13 @@ include(
     "kotlin-native-ffi",
     "kotlin-native-api",
     "kotlin-native-runtime",
+    "kotlin-native-sample",
 )
 
 project(":kotlin-native-ffi").projectDir = file("kotlin-native/ffi")
 project(":kotlin-native-api").projectDir = file("kotlin-native/api")
 project(":kotlin-native-runtime").projectDir = file("kotlin-native/runtime")
+project(":kotlin-native-sample").projectDir = file("kotlin-native/sample")
 
 // codegen and processor
 include("codegen", "processor")
