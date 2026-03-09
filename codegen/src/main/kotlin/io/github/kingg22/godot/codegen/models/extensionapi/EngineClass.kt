@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-class EngineClass private constructor(
+class EngineClass(
     override val name: String,
     @SerialName("is_refcounted") val isRefcounted: Boolean,
     @SerialName("is_instantiable") val isInstantiable: Boolean,

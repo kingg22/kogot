@@ -51,6 +51,13 @@ class NativeEnumGenerator {
 
             val constants = context.getConstantEnumNamesFor(descriptor.ownerName, descriptor.shortName)
 
+            check(descriptor.raw.values.size == constants.size) {
+                "Enum '${descriptor.name}' has ${descriptor.raw.values.size} values, but enum shortener returns " +
+                    "${constants.size} constants.\n" +
+                    "Values: [${descriptor.raw.values.joinToString { it.name }}]\n" +
+                    "Constants: [${constants.joinToString()}]"
+            }
+
             descriptor.raw.values.zip(constants) { enumConstant, entryName ->
                 withExceptionContext({ "Error generating enum constant '${enumConstant.name}' as $entryName" }) {
                     typeBuilder.addEnumConstant(

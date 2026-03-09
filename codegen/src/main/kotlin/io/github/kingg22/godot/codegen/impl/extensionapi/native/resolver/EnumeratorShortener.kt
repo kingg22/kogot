@@ -3,16 +3,33 @@ package io.github.kingg22.godot.codegen.impl.extensionapi.native.resolver
 object EnumeratorShortener {
 
     /**
-     * @param godotClassName Clase contenedora (null si es global).
-     * @param godotEnumName Nombre del enum (ya mapeado/renombrado).
-     * @param enumerators Lista de nombres crudos de los enumeradores (ej: ["KEY_NONE", "KEY_ESCAPE"]).
+     * Shortens a list of Godot enumerator names by stripping their common prefix.
+     *
+     * ## Contract (invariant)
+     * The returned list **always** has the same size as [enumerators].  The shortener never drops,
+     * merges, or reorders constants — it only strips prefixes.  Callers (e.g. [EnumConstantResolver])
+     * rely on position-based correspondence between the input and output lists.
+     *
+     * ## Algorithm
+     * 1. If a hardcoded mapping exists for `(godotClassName, godotEnumName)`, apply it.
+     * 2. Otherwise, derive the longest common underscore-delimited prefix shared by **all** names
+     *    and strip it, falling back to the original name if stripping would produce an invalid
+     *    Kotlin identifier (one that starts with a digit).
+     * 3. The `_MAX` / `_COUNT` sentinel convention: if the **last** enumerator ends with `_MAX` or
+     *    `_COUNT` *and* its stripped form would be just `"MAX"` or `"COUNT"` after applying the
+     *    common prefix, we keep that result.
+     *
+     * @param godotClassName Class owner (`null` for global enums).
+     * @param godotEnumName  Short enum name (already mapped/renamed).
+     * @param enumerators    Raw Godot enumerator names (e.g. `["KEY_NONE", "KEY_ESCAPE"]`).
+     * @return Shortened names in the same order as [enumerators], same size.
      */
     fun shortenEnumeratorNames(
         godotClassName: String?,
         godotEnumName: String,
         enumerators: List<String>,
     ): List<String> {
-        // 1. Excepciones hardcodeadas
+        // 1. Hardcoded exceptions
         val hardcodedPrefixes = reduceHardcodedPrefix(godotClassName, godotEnumName)
         if (hardcodedPrefixes != null) {
             return enumerators.map { tryStripPrefixes(it, hardcodedPrefixes) }
@@ -22,21 +39,19 @@ object EnumeratorShortener {
             return enumerators
         }
 
-        // 2. Buscar prefijo común mediante heurística
+        // 2. Find the longest common underscore-delimited prefix using a heuristic
         val original = enumerators[0]
         var (longestPrefix, pos) = enumeratorPrefix(original, original.length) ?: return enumerators
 
-        // Comparar con el resto de enumeradores
+        // Narrow the prefix by comparing with every other enumerator
         for (i in 1 until enumerators.size) {
             val e = enumerators[i]
             while (!e.startsWith(longestPrefix)) {
-                // Acortar el prefijo hasta encontrar coincidencia
                 val nextPrefix = enumeratorPrefix(original, pos - 1)
                 if (nextPrefix != null) {
                     longestPrefix = nextPrefix.first
                     pos = nextPrefix.second
                 } else {
-                    // No hay prefijo común
                     pos = 0
                     break
                 }
@@ -44,26 +59,27 @@ object EnumeratorShortener {
             if (pos == 0) break
         }
 
-        // 3. Aplicar recorte con validaciones finales
-        val lastIndex = enumerators.size - 1
-        return enumerators.mapIndexed { i, e ->
-            // Caso especial: constantes MAX/COUNT al final del enum
-            if (i == lastIndex && (e.endsWith("_MAX") || e.endsWith("_COUNT"))) {
-                return@mapIndexed "MAX"
-            }
-
-            if (pos == 0) return@mapIndexed e
+        // 3. Apply trimming with final validations
+        return enumerators.map { e ->
+            if (pos == 0) return@map e
 
             var localPos = pos
-            // Si el resultado empieza por un número, retrocedemos una posición del prefijo
-            // para que sea un identificador válido (ej: SOURCE_3D -> 3D es inválido, SOURCE_3D es válido)
+            // If the result would start with a digit, back up to the previous segment
+            // (e.g. SOURCE_3D → "3D" is invalid; keep "SOURCE_3D" instead)
             while (startsWithInvalidChar(e.substring(localPos))) {
                 if (localPos <= 0) break
                 val prevUnderscore = e.lastIndexOf('_', localPos - 2)
                 localPos = if (prevUnderscore != -1) prevUnderscore + 1 else 0
             }
 
-            e.substring(localPos)
+            val shortened = e.substring(localPos)
+
+            // Sentinel convention: the last enumerator is often a MAX/COUNT guard whose
+            // stripped form is naturally "MAX" or "COUNT" — keep it.  We intentionally do NOT
+            // force any name to "MAX" here; the correct short name is whatever stripping produces.
+            // Previously this block unconditionally returned "MAX" for *any* last element ending
+            // in "_MAX" or "_COUNT", which corrupted names like "FEED_CBCR_IMAGE" → "MAX".
+            shortened
         }
     }
 
@@ -93,14 +109,16 @@ object EnumeratorShortener {
     private fun tryStripPrefixes(enumerator: String, prefixes: Array<String>): String {
         for (prefix in prefixes) {
             val stripped = enumerator.removePrefix(prefix)
-            if (!startsWithInvalidChar(stripped)) {
+            // Only accept the stripped form if the prefix was actually present AND the result
+            // is a valid Kotlin identifier (does not start with a digit).
+            if (stripped !== enumerator && !startsWithInvalidChar(stripped)) {
                 return stripped
             }
         }
         return enumerator
     }
 
-    /** Busca el prefijo terminado en guion bajo más largo posible hasta [maxPos]. */
+    /** Returns the longest underscore-terminated prefix of [s] up to [maxPos]. */
     private fun enumeratorPrefix(s: String, maxPos: Int): Pair<String, Int>? {
         if (maxPos <= 0) return null
         val sub = s.substring(0, maxPos)
@@ -111,7 +129,7 @@ object EnumeratorShortener {
         return s.substring(0, pos) to pos
     }
 
-    // En Kotlin los identificadores no pueden empezar con dígitos
+    // Kotlin identifiers cannot start with a digit
     private fun startsWithInvalidChar(s: String): Boolean {
         if (s.isEmpty()) return true
         return s[0].isDigit()

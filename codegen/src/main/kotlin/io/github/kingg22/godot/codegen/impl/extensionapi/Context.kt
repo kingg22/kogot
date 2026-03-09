@@ -67,9 +67,6 @@ class Context(
     fun resolveEnumConstant(parentClass: String?, enumName: String, value: Long): String? =
         enumConstantResolver.resolveConstant(parentClass, enumName, value)
 
-    fun getConstantEnumsWithValueFor(parentClass: String?, enumName: String) =
-        enumConstantResolver.getAllConstantsWithValue(parentClass, enumName)
-
     fun getConstantEnumNamesFor(parentClass: String?, enumName: String) =
         enumConstantResolver.getAllConstantsNames(parentClass, enumName)
 
