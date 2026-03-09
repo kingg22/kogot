@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
-import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 
 plugins {
     id("buildlogic.kotlin-multiplatform-conventions")
@@ -8,6 +7,8 @@ plugins {
 }
 
 kotlin {
+    explicitApi()
+
     compilerOptions {
         optIn.addAll(
             "kotlinx.cinterop.ExperimentalForeignApi",

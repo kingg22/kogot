@@ -13,104 +13,111 @@ import kotlinx.cinterop.*
 import org.jetbrains.annotations.ApiStatus
 
 @ApiStatus.Internal
-inline fun CPointer<ByteVar>.at(offsetBytes: Int): CPointer<ByteVar> = requireNotNull(this + offsetBytes)
+public inline fun CPointer<ByteVar>.at(offsetBytes: Int): CPointer<ByteVar> = requireNotNull(this + offsetBytes)
 
 @ApiStatus.Internal
-inline fun getBoolean(base: CPointer<ByteVar>, offsetBytes: Int): Boolean =
+public inline fun getBoolean(base: CPointer<ByteVar>, offsetBytes: Int): Boolean =
     base.at(offsetBytes).reinterpret<UByteVar>()[0] != 0.toUByte()
 
 @ApiStatus.Internal
-inline fun setBoolean(base: CPointer<ByteVar>, offsetBytes: Int, value: Boolean) {
+public inline fun setBoolean(base: CPointer<ByteVar>, offsetBytes: Int, value: Boolean) {
     base.at(offsetBytes).reinterpret<UByteVar>()[0] = if (value) 1u else 0u
 }
 
 @ApiStatus.Internal
-inline fun getByte(base: CPointer<ByteVar>, offsetBytes: Int): Byte = base.at(offsetBytes).reinterpret<ByteVar>()[0]
+public inline fun getByte(base: CPointer<ByteVar>, offsetBytes: Int): Byte =
+    base.at(offsetBytes).reinterpret<ByteVar>()[0]
 
 @ApiStatus.Internal
-inline fun setByte(base: CPointer<ByteVar>, offsetBytes: Int, value: Byte) {
+public inline fun setByte(base: CPointer<ByteVar>, offsetBytes: Int, value: Byte) {
     base.at(offsetBytes).reinterpret<ByteVar>()[0] = value
 }
 
 @ApiStatus.Internal
-inline fun getUByte(base: CPointer<ByteVar>, offsetBytes: Int): UByte = base.at(offsetBytes).reinterpret<UByteVar>()[0]
+public inline fun getUByte(base: CPointer<ByteVar>, offsetBytes: Int): UByte =
+    base.at(offsetBytes).reinterpret<UByteVar>()[0]
 
 @ApiStatus.Internal
-inline fun setUByte(base: CPointer<ByteVar>, offsetBytes: Int, value: UByte) {
+public inline fun setUByte(base: CPointer<ByteVar>, offsetBytes: Int, value: UByte) {
     base.at(offsetBytes).reinterpret<UByteVar>()[0] = value
 }
 
 @ApiStatus.Internal
-inline fun getShort(base: CPointer<ByteVar>, offsetBytes: Int): Short = base.at(offsetBytes).reinterpret<ShortVar>()[0]
+public inline fun getShort(base: CPointer<ByteVar>, offsetBytes: Int): Short =
+    base.at(offsetBytes).reinterpret<ShortVar>()[0]
 
 @ApiStatus.Internal
-inline fun setShort(base: CPointer<ByteVar>, offsetBytes: Int, value: Short) {
+public inline fun setShort(base: CPointer<ByteVar>, offsetBytes: Int, value: Short) {
     base.at(offsetBytes).reinterpret<ShortVar>()[0] = value
 }
 
 @ApiStatus.Internal
-inline fun getUShort(base: CPointer<ByteVar>, offsetBytes: Int): UShort =
+public inline fun getUShort(base: CPointer<ByteVar>, offsetBytes: Int): UShort =
     base.at(offsetBytes).reinterpret<UShortVar>()[0]
 
 @ApiStatus.Internal
-inline fun setUShort(base: CPointer<ByteVar>, offsetBytes: Int, value: UShort) {
+public inline fun setUShort(base: CPointer<ByteVar>, offsetBytes: Int, value: UShort) {
     base.at(offsetBytes).reinterpret<UShortVar>()[0] = value
 }
 
 @ApiStatus.Internal
-inline fun getInt(base: CPointer<ByteVar>, offsetBytes: Int): Int = base.at(offsetBytes).reinterpret<IntVar>()[0]
+public inline fun getInt(base: CPointer<ByteVar>, offsetBytes: Int): Int = base.at(offsetBytes).reinterpret<IntVar>()[0]
 
 @ApiStatus.Internal
-inline fun setInt(base: CPointer<ByteVar>, offsetBytes: Int, value: Int) {
+public inline fun setInt(base: CPointer<ByteVar>, offsetBytes: Int, value: Int) {
     base.at(offsetBytes).reinterpret<IntVar>()[0] = value
 }
 
 @ApiStatus.Internal
-inline fun getUInt(base: CPointer<ByteVar>, offsetBytes: Int): UInt = base.at(offsetBytes).reinterpret<UIntVar>()[0]
+public inline fun getUInt(base: CPointer<ByteVar>, offsetBytes: Int): UInt =
+    base.at(offsetBytes).reinterpret<UIntVar>()[0]
 
 @ApiStatus.Internal
-inline fun setUInt(base: CPointer<ByteVar>, offsetBytes: Int, value: UInt) {
+public inline fun setUInt(base: CPointer<ByteVar>, offsetBytes: Int, value: UInt) {
     base.at(offsetBytes).reinterpret<UIntVar>()[0] = value
 }
 
 @ApiStatus.Internal
-inline fun getLong(base: CPointer<ByteVar>, offsetBytes: Int): Long = base.at(offsetBytes).reinterpret<LongVar>()[0]
+public inline fun getLong(base: CPointer<ByteVar>, offsetBytes: Int): Long =
+    base.at(offsetBytes).reinterpret<LongVar>()[0]
 
 @ApiStatus.Internal
-inline fun setLong(base: CPointer<ByteVar>, offsetBytes: Int, value: Long) {
+public inline fun setLong(base: CPointer<ByteVar>, offsetBytes: Int, value: Long) {
     base.at(offsetBytes).reinterpret<LongVar>()[0] = value
 }
 
 @ApiStatus.Internal
-inline fun getULong(base: CPointer<ByteVar>, offsetBytes: Int): ULong = base.at(offsetBytes).reinterpret<ULongVar>()[0]
+public inline fun getULong(base: CPointer<ByteVar>, offsetBytes: Int): ULong =
+    base.at(offsetBytes).reinterpret<ULongVar>()[0]
 
 @ApiStatus.Internal
-inline fun setULong(base: CPointer<ByteVar>, offsetBytes: Int, value: ULong) {
+public inline fun setULong(base: CPointer<ByteVar>, offsetBytes: Int, value: ULong) {
     base.at(offsetBytes).reinterpret<ULongVar>()[0] = value
 }
 
 @ApiStatus.Internal
-inline fun getFloat(base: CPointer<ByteVar>, offsetBytes: Int): Float = base.at(offsetBytes).reinterpret<FloatVar>()[0]
+public inline fun getFloat(base: CPointer<ByteVar>, offsetBytes: Int): Float =
+    base.at(offsetBytes).reinterpret<FloatVar>()[0]
 
 @ApiStatus.Internal
-inline fun setFloat(base: CPointer<ByteVar>, offsetBytes: Int, value: Float) {
+public inline fun setFloat(base: CPointer<ByteVar>, offsetBytes: Int, value: Float) {
     base.at(offsetBytes).reinterpret<FloatVar>()[0] = value
 }
 
 @ApiStatus.Internal
-inline fun getDouble(base: CPointer<ByteVar>, offsetBytes: Int): Double =
+public inline fun getDouble(base: CPointer<ByteVar>, offsetBytes: Int): Double =
     base.at(offsetBytes).reinterpret<DoubleVar>()[0]
 
 @ApiStatus.Internal
-inline fun setDouble(base: CPointer<ByteVar>, offsetBytes: Int, value: Double) {
+public inline fun setDouble(base: CPointer<ByteVar>, offsetBytes: Int, value: Double) {
     base.at(offsetBytes).reinterpret<DoubleVar>()[0] = value
 }
 
 @ApiStatus.Internal
-inline fun getPointer(base: CPointer<ByteVar>, offsetBytes: Int): COpaquePointer =
+public inline fun getPointer(base: CPointer<ByteVar>, offsetBytes: Int): COpaquePointer =
     requireNotNull(base.at(offsetBytes).reinterpret<COpaquePointerVar>()[0])
 
 @ApiStatus.Internal
-inline fun setPointer(base: CPointer<ByteVar>, offsetBytes: Int, value: COpaquePointer) {
+public inline fun setPointer(base: CPointer<ByteVar>, offsetBytes: Int, value: COpaquePointer) {
     base.at(offsetBytes).reinterpret<COpaquePointerVar>()[0] = value
 }

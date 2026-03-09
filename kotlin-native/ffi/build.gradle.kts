@@ -1,11 +1,11 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
-
 plugins {
     id("buildlogic.kotlin-multiplatform-conventions")
     id("buildlogic.kotlin-styles-conventions")
 }
 
 kotlin {
+    explicitApi()
+
     compilerOptions {
         optIn.addAll(
             "kotlinx.cinterop.ExperimentalForeignApi",
