@@ -83,8 +83,8 @@ class NativeVariantGenerator(
                 }
 
                 // ── Typed subclasses ──────────────────────────────────────────
-                val godotTypeName = subclassName.screamingToPascalCase()
-                val valueType = typeResolver.resolve(godotTypeName.renameGodotClass())
+                val godotTypeName = subclassName.screamingToPascalCase().renameGodotClass()
+                val valueType = typeResolver.resolve(godotTypeName)
 
                 val subclassBuilder = TypeSpec
                     .classBuilder(subclassName)
@@ -95,21 +95,15 @@ class NativeVariantGenerator(
                 val ctorBuilder = FunSpec.constructorBuilder()
                     .addParameter("value", valueType)
 
-                val (initBody, superCtorCall) = implGen.buildSubclassConstructorBody(
-                    subclassName = subclassName,
-                    godotTypeName = godotTypeName,
-                )
+                val initBody = implGen.buildSubclassConstructorBody(subclassName)
 
                 subclassBuilder.primaryConstructor(ctorBuilder.build())
                 subclassBuilder.addProperty(
                     PropertySpec.builder("value", valueType).initializer("value").build(),
                 )
 
-                // init block: real implementation or TODO() for unsupported types
-                subclassBuilder.addInitializerBlock(
-                    initBody ?: CodeBlock.of("%M()\n", K_TODO),
-                )
-                subclassBuilder.addSuperclassConstructorParameter(superCtorCall)
+                // init block: real implementation
+                subclassBuilder.addInitializerBlock(initBody)
 
                 typeBuilder.addType(subclassBuilder.build())
             }

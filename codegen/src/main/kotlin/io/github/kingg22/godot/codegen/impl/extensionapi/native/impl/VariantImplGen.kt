@@ -5,13 +5,11 @@ import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.*
-import io.github.kingg22.godot.codegen.impl.renameGodotClass
 
 /**
  * Native implementation generator for the `Variant` sealed class.
@@ -92,28 +90,26 @@ class VariantImplGen {
     context(context: Context)
     fun configureVariantClass(classBuilder: TypeSpec.Builder) {
         cachedVariantSize = resolveVariantSize(context)
+        val variantSize = requireCachedSize()
+        val allocStorage = implPackageRegistry.memberNameForOrDefault("allocateBuiltinStorage")
 
         val storageType = C_POINTER.parameterizedBy(BYTE_VAR)
         val storageProp = PropertySpec
             .builder("storage", storageType, KModifier.PRIVATE)
-            .initializer("storage")
+            .initializer("%M(%L)", allocStorage, variantSize)
             .build()
 
-        classBuilder.primaryConstructor(
-            FunSpec.constructorBuilder()
-                .addModifiers(KModifier.PRIVATE)
-                .addParameter(ParameterSpec.builder("storage", storageType).build())
-                .build(),
-        )
         classBuilder.addProperty(storageProp)
         classBuilder.addProperty(
-            PropertySpec.builder("closed", BOOLEAN, KModifier.PRIVATE)
+            PropertySpec
+                .builder("closed", BOOLEAN, KModifier.PRIVATE)
                 .mutable(true)
                 .initializer("false")
                 .build(),
         )
         classBuilder.addProperty(
-            PropertySpec.builder("rawPtr", COPAQUE_POINTER, KModifier.INTERNAL)
+            PropertySpec
+                .builder("rawPtr", COPAQUE_POINTER, KModifier.INTERNAL)
                 .getter(FunSpec.getterBuilder().addStatement("return %N", storageProp).build())
                 .build(),
         )
@@ -155,17 +151,14 @@ class VariantImplGen {
      * Must be called after [configureVariantClass].
      */
     fun buildNilSubclass(variantClassName: ClassName): TypeSpec.Builder {
-        val variantSize = requireCachedSize()
-        val allocStorage = implPackageRegistry.memberNameForOrDefault("allocateBuiltinStorage")
         val variantBinding = implPackageRegistry.classNameForOrDefault("VariantBinding")
 
-        return TypeSpec.classBuilder("NIL")
+        return TypeSpec
+            .classBuilder("NIL")
             .superclass(variantClassName)
-            .addSuperclassConstructorParameter(
-                CodeBlock.of("%M(%L)", allocStorage, variantSize),
-            )
             .addInitializerBlock(
-                CodeBlock.builder()
+                CodeBlock
+                    .builder()
                     .addStatement("%T.instance.newNilRaw(rawPtr)", variantBinding)
                     .build(),
             )
@@ -185,96 +178,58 @@ class VariantImplGen {
      * @param godotTypeName  The PascalCase Godot type name, e.g. `"Bool"`, `"String"`.
      * @return The body block to use as the constructor's `init` block and the super call
      */
-    context(context: Context)
-    fun buildSubclassConstructorBody(subclassName: String, godotTypeName: String): Pair<CodeBlock?, CodeBlock> {
-        val variantSize = requireCachedSize()
-        val allocStorage = implPackageRegistry.memberNameForOrDefault("allocateBuiltinStorage")
+    fun buildSubclassConstructorBody(subclassName: String): CodeBlock {
         val variantBinding = implPackageRegistry.classNameForOrDefault("VariantBinding")
-        val allocConstTypePtrArray = implPackageRegistry.memberNameForOrDefault("allocConstTypePtrArray")
-        val allocGdBool = implPackageRegistry.memberNameForOrDefault("allocGdBool")
 
-        val bodyCode = when (subclassName) {
-            // ── Primitives ────────────────────────────────────────────────────
+        return CodeBlock.builder().apply {
+            val variantTypeConst = "GDEXTENSION_VARIANT_TYPE_$subclassName"
 
-            "BOOL" -> CodeBlock.builder()
-                .beginControlFlow("%M", memScoped)
-                .addStatement("val boolVar = %M(value)", allocGdBool)
-                .addStatement(
-                    "%T.instance.constructRaw(%L, rawPtr, %M(boolVar), 1, null)",
-                    variantBinding,
-                    "GDEXTENSION_VARIANT_TYPE_BOOL",
-                    allocConstTypePtrArray,
-                )
-                .endControlFlow()
-                .build()
-
-            "INT" -> CodeBlock.builder()
-                .beginControlFlow("%M", memScoped)
-                .addStatement(
-                    "val intVar = %M<%T>().also { it.%M = value.toLong() }",
-                    cinteropAlloc,
-                    LONG_VAR,
-                    cinteropValue,
-                )
-                .addStatement(
-                    "%T.instance.constructRaw(%L, rawPtr, %M(intVar.%M.%M()), 1, null)",
-                    variantBinding,
-                    "GDEXTENSION_VARIANT_TYPE_INT",
-                    allocConstTypePtrArray,
-                    cinteropPtr,
-                    cinteropReinterpret,
-                )
-                .endControlFlow()
-                .build()
-
-            "FLOAT" -> CodeBlock.builder()
-                .beginControlFlow("%M", memScoped)
-                .addStatement(
-                    "val floatVar = %M<%T>().also { it.%M = value.toDouble() }",
-                    cinteropAlloc,
-                    DOUBLE_VAR,
-                    cinteropValue,
-                )
-                .addStatement(
-                    "%T.instance.constructRaw(%L, rawPtr, %M(floatVar.%M.%M()), 1, null)",
-                    variantBinding,
-                    "GDEXTENSION_VARIANT_TYPE_FLOAT",
-                    allocConstTypePtrArray,
-                    cinteropPtr,
-                    cinteropReinterpret,
-                )
-                .endControlFlow()
-                .build()
-
-            // ── GodotObject — deferred ────────────────────────────────────────
-            "OBJECT" -> null
-
-            // ── All builtin class subclasses (STRING, VECTOR2, …, PACKED_*) ─
-            else -> {
-                // Verify the resolved Kotlin type exposes rawPtr (i.e. it's a builtin class).
-                // Types that DON'T have rawPtr: primitives already handled above, enums, etc.
-                val resolvedGodotName = godotTypeName.renameGodotClass()
-                val isKnownBuiltin =
-                    context.isBuiltin(resolvedGodotName) || context.isBuiltin(godotTypeName)
-
-                if (!isKnownBuiltin) return null to CodeBlock.of("%M(%L)", allocStorage, variantSize)
-
-                val variantTypeConst = "GDEXTENSION_VARIANT_TYPE_$subclassName"
-                CodeBlock.builder()
-                    .beginControlFlow("%M", memScoped)
-                    .addStatement(
-                        "%T.instance.constructRaw(%L, rawPtr, %M(value.rawPtr), 1, null)",
-                        variantBinding,
-                        variantTypeConst,
-                        allocConstTypePtrArray,
-                    )
-                    .endControlFlow()
-                    .build()
+            fun CodeBlock.Builder.addConstructCall(
+                variantBinding: ClassName,
+                valueExpression: String,
+                vararg args: Any?,
+            ) {
+                addStatement("%T.instance.construct(", variantBinding)
+                indent()
+                addStatement("%L,", variantTypeConst)
+                addStatement("rawPtr,")
+                addStatement("%L,", CodeBlock.of(valueExpression, *args))
+                unindent()
+                addStatement(")")
             }
-        }
 
-        // Wire constructor → super(allocateBuiltinStorage(variantSize))
-        return bodyCode to CodeBlock.of("%M(%L)", allocStorage, variantSize)
+            when (subclassName) {
+                "BOOL" -> {
+                    beginControlFlow("%M", memScoped)
+                        .addStatement(
+                            "val boolVar = %M(value)",
+                            implPackageRegistry.memberNameForOrDefault("allocGdBool"),
+                        )
+                        .addConstructCall(variantBinding, "boolVar")
+                    endControlFlow()
+                }
+
+                "INT", "FLOAT" -> {
+                    val isInt = subclassName == "INT"
+                    val varName = if (isInt) "intVar" else "floatVar"
+                    val cType = if (isInt) LONG_VAR else DOUBLE_VAR
+                    val conversion = if (isInt) "toLong()" else "toDouble()"
+
+                    beginControlFlow("%M", memScoped)
+                        .addStatement("val %L = %M<%T>()", varName, cinteropAlloc, cType)
+                        .addStatement("%L.%M = value.%L", varName, cinteropValue, conversion)
+                        .addConstructCall(
+                            variantBinding,
+                            "$varName.%M.%M()",
+                            cinteropPtr,
+                            cinteropReinterpret,
+                        )
+                    endControlFlow()
+                }
+
+                else -> addConstructCall(variantBinding, "value.rawPtr")
+            }
+        }.build()
     }
 
     // ── Variant size ──────────────────────────────────────────────────────────
