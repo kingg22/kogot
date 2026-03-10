@@ -18,6 +18,15 @@ class KDocFormatterTest {
     }
 
     @Test
+    fun `converts inline code skip lints`() {
+        val input = "Returns [code skip-lint]true[/code] if successful."
+        val expected = "Returns `true` if successful."
+        context(context) {
+            assertEquals(expected, KDocFormatter.format(input))
+        }
+    }
+
+    @Test
     fun `converts codeblocks`() {
         val input = """
             Example:

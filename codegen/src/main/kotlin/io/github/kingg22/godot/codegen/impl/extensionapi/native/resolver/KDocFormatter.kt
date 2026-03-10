@@ -134,11 +134,6 @@ object KDocFormatter {
     context(packageRegistry: PackageRegistry)
     private fun processTag(tag: String, sb: StringBuilder): Boolean = when {
         // Estilos simples
-        tag == "code" || tag == "/code" -> {
-            sb.append('`')
-            true
-        }
-
         tag == "b" || tag == "/b" -> {
             sb.append("**")
             true
@@ -189,6 +184,11 @@ object KDocFormatter {
         tag == "/codeblock" -> {
             sb.ensureNewLine()
             sb.append("```\n")
+            true
+        }
+
+        tag.startsWith("code") || tag == "/code" -> {
+            sb.append('`')
             true
         }
 
