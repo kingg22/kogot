@@ -12,6 +12,7 @@ import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.PRIMITIVE_NUMERIC_TYPES
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.impl.EngineClassImplGen
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.lazyMethod
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
@@ -24,6 +25,7 @@ class NativeEngineClassGenerator(
     private val body: BodyGenerator,
     private val methodGen: NativeMethodGenerator,
     private val enumGenerator: NativeEnumGenerator,
+    private val engineClassImplGen: EngineClassImplGen,
 ) {
 
     context(context: Context)
@@ -41,7 +43,12 @@ class NativeEngineClassGenerator(
             val packageName = context.packageForOrDefault(cls.name)
             val className = ClassName(packageName, classNameStr)
             val isSingleton = cls.isSingleton
-            val classBuilder = buildBaseClass(raw, className, isSingleton)
+            val classBuilder = buildBaseClass(cls, className, isSingleton)
+
+            // Companion Object para Statics y Singleton Instance
+            val companionBuilder = TypeSpec.companionObjectBuilder()
+
+            engineClassImplGen.configureConstructor(cls, classBuilder, companionBuilder, className)
 
             val (staticMethods, instanceMethods) = raw.methods.partition { it.isStatic }
 
@@ -52,13 +59,6 @@ class NativeEngineClassGenerator(
             standaloneMethods.forEach {
                 val modifiers = Array(if (it.isVirtual) 1 else 0) { KModifier.OPEN }
                 classBuilder.addFunction(methodGen.buildMethod(it, cls.name, *modifiers))
-            }
-
-            // Companion Object para Statics y Singleton Instance
-            val companionBuilder = TypeSpec.companionObjectBuilder()
-
-            if (isSingleton) {
-                companionBuilder.addSingletonInstance(className)
             }
 
             raw.constants.forEach { constant ->
@@ -318,10 +318,10 @@ class NativeEngineClassGenerator(
     }
 
     context(_: Context)
-    private fun buildBaseClass(cls: EngineClass, className: ClassName, isSingleton: Boolean): TypeSpec.Builder {
-        val builder = TypeSpec.classBuilder(className)
+    private fun buildBaseClass(cls: ResolvedEngineClass, className: ClassName, isSingleton: Boolean): TypeSpec.Builder {
+        val builder = TypeSpec
+            .classBuilder(className)
             .experimentalApiAnnotation(cls.name)
-        val constructorSpec = FunSpec.constructorBuilder()
 
         // Modificadores de clase
         when {
@@ -329,12 +329,9 @@ class NativeEngineClassGenerator(
 
             isSingleton -> {
                 // Final class, internal constructor
-                if (cls.name == "PhysicsServer2D" || cls.name == "PhysicsServer3D") {
+                if (cls.isSingletonExtensible) {
                     builder.addAnnotation(API_STATUS_NON_EXTENSIBLE)
                     builder.addModifiers(KModifier.OPEN)
-                    constructorSpec.addModifiers(KModifier.INTERNAL)
-                } else {
-                    constructorSpec.addModifiers(KModifier.PRIVATE)
                 }
             }
 
@@ -342,29 +339,10 @@ class NativeEngineClassGenerator(
         }
 
         // Herencia
-        cls.inherits?.let { superClassType ->
+        cls.raw.inherits?.let { superClassType ->
             builder.superclass(typeResolver.resolve(superClassType))
         }
 
-        return builder
-            .primaryConstructor(constructorSpec.build())
-            .addKdocIfPresent(cls)
-    }
-
-    /** @receiver Companion Builder */
-    private fun TypeSpec.Builder.addSingletonInstance(className: ClassName) = apply {
-        addProperty(
-            PropertySpec
-                .builder("instance", className)
-                .delegate(
-                    CodeBlock
-                        .builder()
-                        .beginControlFlow("%M(PUBLICATION)", lazyMethod)
-                        .addStatement("%T()", className)
-                        .endControlFlow()
-                        .build(),
-                )
-                .build(),
-        )
+        return builder.addKdocIfPresent(cls.raw)
     }
 }

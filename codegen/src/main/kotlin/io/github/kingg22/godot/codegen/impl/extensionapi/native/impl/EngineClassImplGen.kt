@@ -1,0 +1,258 @@
+package io.github.kingg22.godot.codegen.impl.extensionapi.native.impl
+
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeSpec
+import io.github.kingg22.godot.codegen.impl.extensionapi.Context
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.COPAQUE_POINTER
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.lazyMethod
+import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngineClass
+
+/**
+ * Generates the constructor binding and `nativePtr` property for Godot engine classes.
+ *
+ * ## The fundamental model
+ *
+ * Engine classes generated from the extension API JSON are **wrappers** around a
+ * `GDExtensionObjectPtr` (`COpaquePointer`). They do **not** construct Godot objects
+ * themselves — the pointer always originates from Godot's side, delivered via:
+ * - A method return value (e.g. `get_node()` returning a `Node`)
+ * - A singleton accessor (`global_get_singleton`)
+ * - A signal argument, a typed property getter, etc.
+ *
+ * `classdb_construct_object2` + `object_set_instance` are meant for **user-defined extension
+ * classes** that are first registered with `classdb_register_extension_class5`. The classes
+ * in the JSON are Godot's built-in classes — they already live in ClassDB and only need to be
+ * *wrapped*, not constructed from our side.
+ *
+ * ## Constructor strategy
+ *
+ * | Class nature                       | Constructor generated                                      |
+ * |------------------------------------|------------------------------------------------------------|
+ * | **Singleton**                      | `private(nativePtr)` + companion `instance` lazy          |
+ * | **Root (no inherits)**             | `internal(nativePtr)` — owns the property declaration     |
+ * | **Derived instantiable**           | `internal(nativePtr) : super(nativePtr)`                  |
+ * | **Non-instantiable (abstract)**    | `protected(nativePtr)` or `: super(nativePtr)`            |
+ *
+ * All constructors are non-public (internal/protected/private). The pointer is always
+ * supplied externally by Godot, never created from Kotlin for these wrapper classes.
+ *
+ * ## `nativePtr` property
+ *
+ * Declared **only on the root** of the engine-class hierarchy (the class with no `inherits`,
+ * currently `Object`). All other classes inherit it — no re-declaration needed.
+ *
+ * ## Singletons
+ *
+ * Singletons are the one case where we *do* call a GDExtension function at construction time,
+ * but that function is `global_get_singleton` — it retrieves an **already-existing** Godot
+ * singleton, it does not create anything new. The companion `instance` lazy delegates to
+ * `GlobalBinding.instance.getSingletonRaw` using the high-level `StringName(...).use { }` API.
+ *
+ * ## RefCounted
+ *
+ * `RefCounted` and its subclasses are `isRefcounted == true` in the JSON. Reference counting
+ * is a Godot-side concern managed automatically when Godot constructs/destroys the object;
+ * our wrapper simply holds the pointer. No special constructor logic is needed here beyond
+ * what every other derived class gets.
+ */
+class EngineClassImplGen {
+    private lateinit var implPackageRegistry: ImplementationPackageRegistry
+
+    fun initialize(implRegistry: ImplementationPackageRegistry) {
+        implPackageRegistry = implRegistry
+    }
+
+    // ── Public entry point ────────────────────────────────────────────────────
+
+    /**
+     * Configures the primary constructor and the `nativePtr` property on [classBuilder],
+     * and fills [companionBuilder] if the class is a singleton.
+     *
+     * Must be called after
+     * [io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.NativeEngineClassGenerator.buildBaseClass]
+     * has already set the class modifiers and superclass type.
+     *
+     * @param cls             The resolved engine class being generated.
+     * @param classBuilder    The class [TypeSpec.Builder] to configure.
+     * @param className       The [ClassName] of the class under generation.
+     * @param companionBuilder The companion object builder, populated only for singletons.
+     */
+    context(_: Context)
+    fun configureConstructor(
+        cls: ResolvedEngineClass,
+        classBuilder: TypeSpec.Builder,
+        companionBuilder: TypeSpec.Builder,
+        className: ClassName,
+    ) {
+        val isRoot = cls.raw.inherits == null
+        when {
+            cls.isSingleton -> configureSingleton(cls, classBuilder, className, companionBuilder)
+            isRoot -> configureRoot(classBuilder)
+            else -> configureDerived(classBuilder)
+        }
+    }
+
+    // ── Singleton ─────────────────────────────────────────────────────────────
+
+    /**
+     * Singletons use a private constructor and expose a single lazy `instance`.
+     *
+     * The pointer is obtained via `GlobalBinding.instance.getSingletonRaw` — this retrieves an
+     * **already-existing** Godot singleton object, it does not create anything new.
+     *
+     * Generated output for e.g. `Engine`:
+     * ```kotlin
+     * private constructor(nativePtr: COpaquePointer)
+     * internal val nativePtr: COpaquePointer
+     *
+     * // inside companion object (filled via companionBuilder):
+     * val instance: Engine by lazy(PUBLICATION) {
+     *     StringName("Engine").use { sn ->
+     *         Engine(GlobalBinding.instance.getSingletonRaw(sn.rawPtr)
+     *             ?: error("Singleton 'Engine' not found in Godot"))
+     *     }
+     * }
+     * ```
+     */
+    context(_: Context)
+    private fun configureSingleton(
+        cls: ResolvedEngineClass,
+        classBuilder: TypeSpec.Builder,
+        className: ClassName,
+        companionBuilder: TypeSpec.Builder,
+    ) {
+        val nativePtrParam = nativePtrParam()
+        classBuilder.primaryConstructor(
+            FunSpec
+                .constructorBuilder()
+                .apply {
+                    if (cls.isSingletonExtensible) {
+                        addModifiers(KModifier.INTERNAL)
+                    } else {
+                        addModifiers(KModifier.PRIVATE)
+                    }
+                }
+                .addParameter(nativePtrParam)
+                .build(),
+        )
+        classBuilder.addSuperclassConstructorParameter("%N", nativePtrParam)
+        companionBuilder.addProperty(buildSingletonInstanceProp(cls, className))
+    }
+
+    context(context: Context)
+    private fun buildSingletonInstanceProp(cls: ResolvedEngineClass, className: ClassName): PropertySpec {
+        val stringNameClass = context.classNameForOrDefault("StringName")
+        val globalBinding = implPackageRegistry.classNameForOrDefault("GlobalBinding")
+
+        val body = CodeBlock
+            .builder()
+            .beginControlFlow("%T(%S).use { sn ->", stringNameClass, cls.name)
+            .addStatement("val nativePtr = %T.instance.getSingletonRaw(sn.rawPtr)", globalBinding)
+            .indent()
+            .addStatement("?: error(%S)", "Singleton '${cls.name}' not found in Godot")
+            .unindent()
+            .addStatement("%T(nativePtr)", className)
+            .endControlFlow()
+            .build()
+
+        return PropertySpec
+            .builder("instance", className)
+            .delegate(
+                CodeBlock
+                    .builder()
+                    .beginControlFlow("%M(PUBLICATION)", lazyMethod)
+                    .add(body)
+                    .endControlFlow()
+                    .build(),
+            )
+            .build()
+    }
+
+    // ── Root (no inherits) ────────────────────────────────────────────────────
+
+    /**
+     * Root engine class — no Godot parent (currently only `Object`).
+     *
+     * Declares the `nativePtr` property and an `internal` constructor that receives it.
+     * All other classes in the hierarchy will call `super(nativePtr)` via their own constructor.
+     *
+     * Generated output:
+     * ```kotlin
+     * internal constructor(nativePtr: COpaquePointer)
+     * internal val nativePtr: COpaquePointer
+     * ```
+     */
+    private fun configureRoot(classBuilder: TypeSpec.Builder) {
+        classBuilder.primaryConstructor(
+            FunSpec
+                .constructorBuilder()
+                .addParameter(nativePtrParam("rawPtr"))
+                .build(),
+        )
+        classBuilder.addProperty(nativePtrProp())
+    }
+
+    // ── Derived (has inherits) ────────────────────────────────────────────────
+
+    /**
+     * Derived engine class — inherits from another engine class.
+     *
+     * Generates an `internal` constructor that simply forwards `nativePtr` to the superclass.
+     * The `nativePtr` property is **not** re-declared — it lives on the root class.
+     *
+     * KotlinPoet emits `: super(nativePtr)` automatically because `buildBaseClass` calls
+     * `builder.superclass(...)` and this constructor's parameter name matches the
+     * `superclassConstructorParameter` set there.
+     *
+     * Visibility follows the class nature:
+     * - Instantiable → `internal` (Godot or other Kotlin code can hand us a pointer)
+     * - Non-instantiable (abstract) → `protected` (only subclasses call this)
+     *
+     * Generated output for `Node` (instantiable, inherits `Object`):
+     * ```kotlin
+     * internal constructor(nativePtr: COpaquePointer) : super(nativePtr)
+     * ```
+     *
+     * Generated output for `VisualInstance3D` (non-instantiable, inherits `Node3D`):
+     * ```kotlin
+     * protected constructor(nativePtr: COpaquePointer) : super(nativePtr)
+     * ```
+     */
+    private fun configureDerived(classBuilder: TypeSpec.Builder) {
+        // Visibility is already on classBuilder via addModifiers in buildBaseClass;
+        // mirror it on the constructor: abstract → protected, open → internal.
+        // We inspect the already-added modifiers to stay consistent.
+        val isAbstract = classBuilder.modifiers.contains(KModifier.ABSTRACT)
+        val nativePtrParam = nativePtrParam()
+
+        classBuilder.primaryConstructor(
+            FunSpec
+                .constructorBuilder()
+                .apply { if (isAbstract) addModifiers(KModifier.PROTECTED) }
+                .addParameter(nativePtrParam)
+                .build(),
+        )
+        classBuilder.addSuperclassConstructorParameter("%N", nativePtrParam)
+        // KotlinPoet will emit `: super(nativePtr)` because buildBaseClass calls
+        // builder.superclass(...) and addSuperclassConstructorParameter("nativePtr").
+    }
+
+    // ── Shared helpers ────────────────────────────────────────────────────────
+
+    private fun nativePtrParam(name: String = "nativePtr"): ParameterSpec =
+        ParameterSpec.builder(name, COPAQUE_POINTER).build()
+
+    /**
+     * `internal val nativePtr: COpaquePointer` initialized from the constructor param.
+     * Only emitted on the root class (no `inherits`).
+     */
+    private fun nativePtrProp(): PropertySpec = PropertySpec
+        .builder("rawPtr", COPAQUE_POINTER, KModifier.INTERNAL)
+        .initializer("rawPtr")
+        .build()
+}

@@ -6,6 +6,7 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.generators.*
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.impl.BuiltinClassImplGen
+import io.github.kingg22.godot.codegen.impl.extensionapi.native.impl.EngineClassImplGen
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.impl.ImplementationPackageRegistry
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.impl.UtilityFunctionImplGen
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.impl.VariantImplGen
@@ -30,7 +31,9 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
         genericInterceptor,
         typeAliasGen,
     )
-    private val engineClass = NativeEngineClassGenerator(typeResolver, bodyGenerator, methodGenerator, enumGen)
+    private val engineClassImplGen = EngineClassImplGen()
+    private val engineClass =
+        NativeEngineClassGenerator(typeResolver, bodyGenerator, methodGenerator, enumGen, engineClassImplGen)
     private val variantImplGen = VariantImplGen()
     private val variant = NativeVariantGenerator(typeResolver, enumGen, variantImplGen)
     private val nativeStructure = KNativeStructureGenerator(typeResolver, bodyGenerator)
@@ -49,6 +52,7 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
         utilFuncImplGen.initialize(implPackageRegistry)
         variantImplGen.initialize(implPackageRegistry)
         nativeStructure.initialize(implPackageRegistry)
+        engineClassImplGen.initialize(implPackageRegistry)
 
         val builtinClassesPaths = context.model.builtins.asSequence().mapNotNull {
             builtinClass.generateFile(it)
