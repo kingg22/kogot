@@ -91,3 +91,21 @@ public fun MemScope.allocConstVariantPtrArray(
         }
     }
 }
+
+/**
+ * Throws [IllegalStateException] if the call did not succeed with [GDExtensionCallErrorType.GDEXTENSION_CALL_OK].
+ *
+ * Designed for call sites that are "guaranteed correct" at codegen time but should
+ * still surface any mismatch as a clear, actionable error instead of a silent bad state.
+ */
+@ApiStatus.Internal
+public inline fun checkCallError(context: String, info: BindingCallErrorInfo) {
+    check(info.error == GDEXTENSION_CALL_OK) {
+        buildString {
+            append("[Kogot] GDExtension call failed — $context. ")
+            append("error=${info.error}")
+            if (info.argument >= 0) append(", argument=${info.argument}")
+            if (info.expected >= 0) append(", expected=${info.expected}")
+        }
+    }
+}

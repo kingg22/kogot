@@ -175,7 +175,6 @@ class VariantImplGen {
      * caller can fall back to `TODO()`.
      *
      * @param subclassName   The screaming-snake subclass name, e.g. `"BOOL"`, `"STRING"`.
-     * @param godotTypeName  The PascalCase Godot type name, e.g. `"Bool"`, `"String"`.
      * @return The body block to use as the constructor's `init` block and the super call
      */
     fun buildSubclassConstructorBody(subclassName: String): CodeBlock {
@@ -189,13 +188,20 @@ class VariantImplGen {
                 valueExpression: String,
                 vararg args: Any?,
             ) {
-                addStatement("%T.instance.construct(", variantBinding)
+                val errorInfo = "errorInfo"
+                addStatement("val %N = %T.instance.construct(", errorInfo, variantBinding)
                 indent()
                 addStatement("%L,", variantTypeConst)
                 addStatement("rawPtr,")
                 addStatement("%L,", CodeBlock.of(valueExpression, *args))
                 unindent()
                 addStatement(")")
+                addStatement(
+                    "%M(%S, %N)",
+                    implPackageRegistry.memberNameForOrDefault("checkCallError"),
+                    "Variant.$subclassName constructor",
+                    errorInfo,
+                )
             }
 
             when (subclassName) {

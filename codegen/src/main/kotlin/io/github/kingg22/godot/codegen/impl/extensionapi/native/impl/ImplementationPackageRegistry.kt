@@ -20,6 +20,7 @@ class ImplementationPackageRegistry(packageStr: String, interfaceModel: GDExtens
         put("allocateBuiltinStorage", bindingPackage)
         put("allocGdBool", bindingPackage)
         put("readGdBool", bindingPackage)
+        put("checkCallError", bindingPackage)
         put("allocateBuiltinStorage", builtinInternalBind)
         put("freeBuiltinStorage", builtinInternalBind)
     }
