@@ -215,9 +215,11 @@ class Context(
         private fun resolveEngineClasses(api: ExtensionApi): List<ResolvedEngineClass> {
             val singletonNames = api.singletons.mapTo(hashSetOf()) { it.name }
             return api.classes.map { cls ->
+                val isSingleton = cls.name in singletonNames
                 ResolvedEngineClass(
                     raw = cls,
-                    isSingleton = cls.name in singletonNames,
+                    isSingleton = isSingleton,
+                    isSingletonExtensible = isSingleton && api.classes.any { it.inherits == cls.name },
                     enums = cls.enums.map { enum ->
                         ResolvedEnum(
                             name = "${cls.name}.${enum.name}",
