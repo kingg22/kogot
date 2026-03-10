@@ -1,6 +1,7 @@
 package io.github.kingg22.godot.codegen.impl.extensionapi.native.impl
 
 import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
@@ -26,15 +27,12 @@ private const val VARIANT_TYPE_NODE_PATH = "GDEXTENSION_VARIANT_TYPE_NODE_PATH"
  */
 private val STORAGE_BACKED_BUILTINS = setOf(
     "String", "StringName", "NodePath",
-    // Math types — no destructor, but need rawPtr
     "Vector2", "Vector2i", "Rect2", "Rect2i",
     "Vector3", "Vector3i", "Transform2D",
     "Vector4", "Vector4i", "Plane", "Quaternion",
     "Aabb", "AABB", "Basis", "Transform3D", "Projection",
     "Color",
-    // Misc — have destructors
     "Rid", "RID", "Callable", "Signal", "Dictionary", "Array",
-    // Packed arrays — all have destructors
     "PackedByteArray", "PackedInt32Array", "PackedInt64Array",
     "PackedFloat32Array", "PackedFloat64Array", "PackedStringArray",
     "PackedVector2Array", "PackedVector3Array", "PackedColorArray",
@@ -112,8 +110,7 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
             .build()
 
         classBuilder.primaryConstructor(
-            FunSpec
-                .constructorBuilder()
+            FunSpec.constructorBuilder()
                 .addParameter("storage", storageType)
                 .addModifiers(KModifier.PRIVATE)
                 .build(),
@@ -122,8 +119,7 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
 
         if (builtinClass.hasDestructor) {
             classBuilder.addProperty(
-                PropertySpec
-                    .builder("closed", BOOLEAN, KModifier.PRIVATE)
+                PropertySpec.builder("closed", BOOLEAN, KModifier.PRIVATE)
                     .mutable(true)
                     .initializer("false")
                     .build(),
@@ -132,11 +128,7 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
 
         classBuilder.addProperty(
             PropertySpec.builder("rawPtr", COPAQUE_POINTER, KModifier.INTERNAL)
-                .getter(
-                    FunSpec.getterBuilder()
-                        .addStatement("return %N", storageProperty)
-                        .build(),
-                )
+                .getter(FunSpec.getterBuilder().addStatement("return %N", storageProperty).build())
                 .build(),
         )
     }
@@ -152,19 +144,13 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
      */
     fun buildCloseFunction(builtinClass: ResolvedBuiltinClass): FunSpec {
         if (!builtinClass.hasDestructor || builtinClass.name !in STORAGE_BACKED_BUILTINS) {
-            return FunSpec
-                .builder("close")
-                .addModifiers(KModifier.OVERRIDE)
-                .addCode(todoBody())
-                .build()
+            error("Builtin class doesn't have a close() function: $builtinClass")
         }
 
-        return FunSpec
-            .builder("close")
+        return FunSpec.builder("close")
             .addModifiers(KModifier.OVERRIDE)
             .addCode(
-                CodeBlock
-                    .builder()
+                CodeBlock.builder()
                     .beginControlFlow("if (!closed)")
                     .add(destroyCallFor(builtinClass))
                     .addStatement(
@@ -187,7 +173,9 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
         ctor: ResolvedBuiltinConstructor,
         ctorBuilder: FunSpec.Builder,
     ): CodeBlock {
-        if (builtinClass.name !in STORAGE_BACKED_BUILTINS) return todoBody()
+        if (builtinClass.name !in STORAGE_BACKED_BUILTINS) {
+            error("Class is not storage-backed: $builtinClass")
+        }
 
         ctorBuilder.callThisConstructor(
             CodeBlock.of(
@@ -197,14 +185,7 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
             ),
         )
 
-        // Any constructor arg that requires an engine class (e.g., Object in Signal/Callable)
-        // cannot be handled yet — those classes are not builtin and have no rawPtr defined.
-        if (ctor.arguments.any { isEngineClass(it, context) }) return todoBody()
-
-        return CodeBlock
-            .builder()
-            .add(constructorInvocation(builtinClass, ctor))
-            .build()
+        return constructorInvocation(builtinClass, ctor)
     }
 
     context(context: Context)
@@ -219,20 +200,14 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
             )
         }
 
+        val stringBinding = implPackageRegistry.classNameForOrDefault("StringBinding")
+
         return when (builtinClass.name) {
-            "String" -> CodeBlock.builder()
-                .addStatement(
-                    "%T.instance.newWithUtf8Chars(rawPtr, value)",
-                    implPackageRegistry.classNameForOrDefault("StringBinding"),
-                )
+            "String" -> CodeBlock.builder().addStatement("%T.instance.newWithUtf8Chars(rawPtr, value)", stringBinding)
                 .build()
 
             "StringName" -> CodeBlock.builder()
-                .addStatement(
-                    "%T.instance.nameNewWithUtf8Chars(rawPtr, value)",
-                    implPackageRegistry.classNameForOrDefault("StringBinding"),
-                )
-                .build()
+                .addStatement("%T.instance.nameNewWithUtf8Chars(rawPtr, value)", stringBinding).build()
 
             "NodePath" -> CodeBlock.builder()
                 .beginControlFlow(
@@ -243,9 +218,7 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
                 .endControlFlow()
                 .build()
 
-            else -> error(
-                "Unreachable, the following builtin class doesn't support synthetic kotlin.String constructor: $builtinClass",
-            )
+            else -> error("Synthetic String constructor not supported for: $builtinClass")
         }
     }
 
@@ -291,55 +264,63 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
     private fun constructorInvocation(
         builtinClass: ResolvedBuiltinClass,
         ctor: ResolvedBuiltinConstructor,
-    ): CodeBlock = when {
-        ctor.usesKotlinStringBridge -> when (builtinClass.name) {
-            "String" -> CodeBlock.of(
-                "%T.instance.newWithUtf8Chars(rawPtr, value)",
-                implPackageRegistry.classNameForOrDefault("StringBinding"),
+    ): CodeBlock {
+        val stringBinding = implPackageRegistry.classNameForOrDefault("StringBinding")
+
+        if (ctor.usesKotlinStringBridge) {
+            return when (builtinClass.name) {
+                "String" -> CodeBlock.builder()
+                    .addStatement("%T.instance.newWithUtf8Chars(rawPtr, value)", stringBinding).build()
+
+                "StringName" -> CodeBlock.builder()
+                    .addStatement("%T.instance.nameNewWithUtf8Chars(rawPtr, value)", stringBinding).build()
+
+                "NodePath" -> CodeBlock.builder()
+                    .beginControlFlow(
+                        "%T(value).use { godotString ->",
+                        context.classNameForOrDefault("String", "GodotString"),
+                    )
+                    .add(callBuiltinConstructorSimple(VARIANT_TYPE_NODE_PATH, 2, "godotString.rawPtr"))
+                    .endControlFlow()
+                    .build()
+
+                else -> error("String bridge not supported for: $builtinClass")
+            }
+        }
+
+        return when (builtinClass.name) {
+            "String" -> callBuiltinConstructorSimple(
+                VARIANT_TYPE_STRING,
+                ctor.index,
+                *if (ctor.index > 0) {
+                    arrayOf("from.rawPtr")
+                } else {
+                    emptyArray()
+                },
             )
 
-            "StringName" -> CodeBlock.of(
-                "%T.instance.nameNewWithUtf8Chars(rawPtr, value)",
-                implPackageRegistry.classNameForOrDefault("StringBinding"),
+            "StringName" -> callBuiltinConstructorSimple(
+                VARIANT_TYPE_STRING_NAME,
+                ctor.index,
+                *if (ctor.index > 0) {
+                    arrayOf("from.rawPtr")
+                } else {
+                    emptyArray()
+                },
             )
 
-            "NodePath" -> CodeBlock.builder()
-                .beginControlFlow(
-                    "%T(value).use { godotString ->",
-                    context.classNameForOrDefault("String", "GodotString"),
-                )
-                .add(callBuiltinConstructorSimple(VARIANT_TYPE_NODE_PATH, 2, "godotString.rawPtr"))
-                .endControlFlow()
-                .build()
+            "NodePath" -> callBuiltinConstructorSimple(
+                VARIANT_TYPE_NODE_PATH,
+                ctor.index,
+                *if (ctor.index > 0) {
+                    arrayOf("from.rawPtr")
+                } else {
+                    emptyArray()
+                },
+            )
 
-            else -> todoBody()
+            else -> callBuiltinConstructorGeneric(variantTypeConst(builtinClass.name), ctor.index, ctor.arguments)
         }
-
-        // String-type specific cases (rawPtr args only, no primitives)
-        builtinClass.name == "String" -> when (ctor.index) {
-            0 -> callBuiltinConstructorSimple(VARIANT_TYPE_STRING, 0)
-            1, 2, 3 -> callBuiltinConstructorSimple(VARIANT_TYPE_STRING, ctor.index, "from.rawPtr")
-            else -> todoBody()
-        }
-
-        builtinClass.name == "StringName" -> when (ctor.index) {
-            0 -> callBuiltinConstructorSimple(VARIANT_TYPE_STRING_NAME, 0)
-            1, 2 -> callBuiltinConstructorSimple(VARIANT_TYPE_STRING_NAME, ctor.index, "from.rawPtr")
-            else -> todoBody()
-        }
-
-        builtinClass.name == "NodePath" -> when (ctor.index) {
-            0 -> callBuiltinConstructorSimple(VARIANT_TYPE_NODE_PATH, 0)
-            1, 2 -> callBuiltinConstructorSimple(VARIANT_TYPE_NODE_PATH, ctor.index, "from.rawPtr")
-            else -> todoBody()
-        }
-
-        // Generic path for all other storage-backed builtins
-        else -> callBuiltinConstructorGeneric(
-            variantTypeConst(builtinClass.name),
-            ctor.index,
-            ctor.arguments,
-        )
     }
 
     /**
@@ -360,157 +341,68 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
         variantType: String,
         constructorIndex: Int,
         args: List<MethodArg>,
-    ): CodeBlock {
-        val variantBinding = implPackageRegistry.classNameForOrDefault("VariantBinding")
-        val allocConstTypePtrArray = implPackageRegistry.memberNameForOrDefault("allocConstTypePtrArray")
-        val allocGdBool = implPackageRegistry.memberNameForOrDefault("allocGdBool")
-
-        val block = CodeBlock.builder().beginControlFlow("%M", memScoped)
-
-        // Resolve each arg's Kotlin type and emit stack-alloc if needed
+    ): CodeBlock = CodeBlock.builder().beginControlFlow("%M", memScoped).apply {
         val ptrExprs = args.map { arg ->
             val kotlinName = safeIdentifier(arg.name)
             val varName = "${kotlinName}Var"
-            val kotlinType = typeResolver.resolve(arg)
-
-            when (kotlinType) {
-                FLOAT -> {
-                    block.addStatement(
-                        "val $varName = %M<%T>().also·{ it.%M = $kotlinName }",
-                        cinteropAlloc,
-                        FLOAT_VAR,
-                        cinteropValue,
-                    )
-                    CodeBlock.of("%N.%M.%M()", varName, cinteropPtr, cinteropReinterpret)
-                }
-
-                DOUBLE -> {
-                    block.addStatement(
-                        "val $varName = %M<%T>().also·{ it.%M = $kotlinName }",
-                        cinteropAlloc,
-                        DOUBLE_VAR,
-                        cinteropValue,
-                    )
-                    CodeBlock.of("%N.%M.%M()", varName, cinteropPtr, cinteropReinterpret)
-                }
-
-                INT -> {
-                    block.addStatement(
-                        "val $varName = %M<%T>().also·{ it.%M = $kotlinName }",
-                        cinteropAlloc,
-                        INT_VAR,
-                        cinteropValue,
-                    )
-                    CodeBlock.of("%N.%M.%M()", varName, cinteropPtr, cinteropReinterpret)
-                }
-
-                LONG -> {
-                    block.addStatement(
-                        "val $varName = %M<%T>().also·{ it.%M = $kotlinName }",
-                        cinteropAlloc,
-                        LONG_VAR,
-                        cinteropValue,
-                    )
-                    CodeBlock.of("%N.%M.%M()", varName, cinteropPtr, cinteropReinterpret)
-                }
-
-                BYTE -> {
-                    block.addStatement(
-                        "val $varName = %M<%T>().also·{ it.%M = $kotlinName }",
-                        cinteropAlloc,
-                        BYTE_VAR,
-                        cinteropValue,
-                    )
-                    CodeBlock.of("%N.%M.%M()", varName, cinteropPtr, cinteropReinterpret)
-                }
-
-                SHORT -> {
-                    block.addStatement(
-                        "val $varName = %M<%T>().also·{ it.%M = $kotlinName }",
-                        cinteropAlloc,
-                        SHORT_VAR,
-                        cinteropValue,
-                    )
-                    CodeBlock.of("%N.%M.%M()", varName, cinteropPtr, cinteropReinterpret)
-                }
-
-                U_BYTE -> {
-                    block.addStatement(
-                        "val $varName = %M<%T>().also·{ it.%M = $kotlinName }",
-                        cinteropAlloc,
-                        U_BYTE_VAR,
-                        cinteropValue,
-                    )
-                    CodeBlock.of("%N.%M.%M()", varName, cinteropPtr, cinteropReinterpret)
-                }
-
-                U_SHORT -> {
-                    block.addStatement(
-                        "val $varName = %M<%T>().also·{ it.%M = $kotlinName }",
-                        cinteropAlloc,
-                        U_SHORT_VAR,
-                        cinteropValue,
-                    )
-                    CodeBlock.of("%N.%M.%M()", varName, cinteropPtr, cinteropReinterpret)
-                }
-
-                U_INT -> {
-                    block.addStatement(
-                        "val $varName = %M<%T>().also·{ it.%M = $kotlinName }",
-                        cinteropAlloc,
-                        U_INT_VAR,
-                        cinteropValue,
-                    )
-                    CodeBlock.of("%N.%M.%M()", varName, cinteropPtr, cinteropReinterpret)
-                }
-
-                U_LONG -> {
-                    block.addStatement(
-                        "val $varName = %M<%T>().also·{ it.%M = $kotlinName }",
-                        cinteropAlloc,
-                        U_LONG_VAR,
-                        cinteropValue,
-                    )
-                    CodeBlock.of("%N.%M.%M()", varName, cinteropPtr, cinteropReinterpret)
-                }
-
+            when (val kotlinType = typeResolver.resolve(arg)) {
                 BOOLEAN -> {
-                    block.addStatement(
+                    addStatement(
                         "val $varName = %M($kotlinName)",
-                        allocGdBool,
+                        implPackageRegistry.memberNameForOrDefault("allocGdBool"),
                     )
                     CodeBlock.of("%N", varName)
                 }
 
-                else -> CodeBlock.of("%N.rawPtr", kotlinName) // builtin class with rawPtr
+                FLOAT, DOUBLE, INT, LONG, BYTE, SHORT, U_BYTE, U_SHORT, U_INT, U_LONG -> {
+                    val cVarType = when (kotlinType) {
+                        FLOAT -> FLOAT_VAR
+                        DOUBLE -> DOUBLE_VAR
+                        INT -> INT_VAR
+                        LONG -> LONG_VAR
+                        BYTE -> BYTE_VAR
+                        SHORT -> SHORT_VAR
+                        U_BYTE -> U_BYTE_VAR
+                        U_SHORT -> U_SHORT_VAR
+                        U_INT -> U_INT_VAR
+                        U_LONG -> U_LONG_VAR
+                        else -> error("Unknown type: $kotlinType")
+                    }
+                    addStatement("val $varName = %M<%T>()", cinteropAlloc, cVarType)
+                    addStatement("$varName.%M = $kotlinName", cinteropValue)
+                    CodeBlock.of("%N.%M.%M()", varName, cinteropPtr, cinteropReinterpret)
+                }
+
+                else -> CodeBlock.of("%N.rawPtr", kotlinName)
             }
         }
 
-        // Constructor lookup + invocation
-        block.addStatement(
-            "val constructor = %T.instance.getPtrConstructorRaw(%N, %L)",
-            variantBinding,
-            variantType,
-            constructorIndex,
-        )
-            .indent()
-            .addStatement("?: error(%S)", "Missing builtin constructor for $variantType[$constructorIndex]")
-            .unindent()
+        // Constructor lookup
+        addStatement("val constructor = %T.instance", implPackageRegistry.classNameForOrDefault("VariantBinding"))
+        indent()
+        addStatement(".getPtrConstructorRaw(")
+        indent()
+        addStatement("%N,", variantType)
+        addStatement("%L,", constructorIndex)
+        unindent()
+        addStatement(")")
+        addStatement("?: error(%S)", "Missing builtin constructor for $variantType[$constructorIndex]")
+        unindent()
 
+        val allocConstTypePtrArray = implPackageRegistry.memberNameForOrDefault("allocConstTypePtrArray")
+
+        // Invocation
         if (ptrExprs.isEmpty()) {
-            block.addStatement("constructor.%M(rawPtr, %M())", cinteropInvoke, allocConstTypePtrArray)
+            addStatement("constructor.%M(rawPtr, %M())", cinteropInvoke, allocConstTypePtrArray)
         } else {
-            block
-                .addStatement("constructor.%M(", cinteropInvoke)
-                .indent()
-                .addStatement("rawPtr, ")
-                .addStatement("%M(%L),", allocConstTypePtrArray, ptrExprs.joinToCode())
-                .unindent()
-                .addStatement(")")
+            addStatement("constructor.%M(", cinteropInvoke)
+            indent()
+            addStatement("rawPtr,")
+            addStatement("%M(%L),", allocConstTypePtrArray, ptrExprs.joinToCode())
+            unindent()
+            addStatement(")")
         }
-
-        return block.endControlFlow().build()
-    }
+    }.endControlFlow().build()
 
     /**
      * Simple variant for constructors whose args are all pre-built pointer expressions
@@ -520,41 +412,38 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
         variantType: String,
         constructorIndex: Int,
         vararg argExprs: String,
-    ): CodeBlock = CodeBlock
-        .builder()
-        .beginControlFlow("%M", memScoped)
-        .addStatement(
-            "val constructor = %T.instance.getPtrConstructorRaw(%N, %L)",
-            implPackageRegistry.classNameForOrDefault("VariantBinding"),
-            variantType,
-            constructorIndex,
-        )
-        .indent()
-        .addStatement("?: error(%S)", "Missing builtin constructor")
-        .unindent()
-        .addStatement("constructor.%M(", cinteropInvoke)
-        .indent()
-        .addStatement("rawPtr, ")
-        .addStatement(
-            "%M(%L),",
-            implPackageRegistry.memberNameForOrDefault("allocConstTypePtrArray"),
-            argExprs.joinToString(),
-        )
-        .unindent()
-        .addStatement(")")
-        .endControlFlow()
-        .build()
+    ): CodeBlock {
+        val variantBinding = implPackageRegistry.classNameForOrDefault("VariantBinding")
+        val allocConstTypePtrArray = implPackageRegistry.memberNameForOrDefault("allocConstTypePtrArray")
 
-    private fun destroyBuiltin(variantType: String): CodeBlock = CodeBlock.builder()
-        .addStatement(
-            "val %N = %T.instance.getPtrDestructorRaw(%N)",
-            "destructor",
-            implPackageRegistry.classNameForOrDefault("VariantBinding"),
-            variantType,
-        )
-        .indent()
-        .addStatement("?: error(%S)", "Missing builtin destructor")
-        .unindent()
-        .addStatement("%N.%M(rawPtr)", "destructor", cinteropInvoke)
-        .build()
+        return CodeBlock
+            .builder()
+            .beginControlFlow("%M", memScoped)
+            .addStatement("val constructor = %T.instance", variantBinding)
+            .indent()
+            .addStatement(".getPtrConstructorRaw(%N, %L)", variantType, constructorIndex)
+            .addStatement("?: error(%S)", "Missing builtin constructor")
+            .unindent()
+            .addStatement("constructor.%M(", cinteropInvoke)
+            .indent()
+            .addStatement("rawPtr,")
+            .addStatement("%M(%L),", allocConstTypePtrArray, argExprs.joinToString())
+            .unindent()
+            .addStatement(")")
+            .endControlFlow()
+            .build()
+    }
+
+    private fun destroyBuiltin(variantType: String): CodeBlock {
+        val variantBinding = implPackageRegistry.classNameForOrDefault("VariantBinding")
+        return CodeBlock
+            .builder()
+            .addStatement("val destructor = %T.instance", variantBinding)
+            .indent()
+            .addStatement(".getPtrDestructorRaw(%N)", variantType)
+            .addStatement("?: error(%S)", "Missing builtin destructor")
+            .unindent()
+            .addStatement("destructor.%M(rawPtr)", cinteropInvoke)
+            .build()
+    }
 }
