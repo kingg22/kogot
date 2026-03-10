@@ -13,6 +13,7 @@ kotlin {
     compilerOptions {
         languageVersion.set(KotlinVersion.fromVersion(kotlinVersion.get()))
         apiVersion.set(languageVersion)
+        optIn.add("kotlin.contracts.ExperimentalContracts")
     }
 }
 

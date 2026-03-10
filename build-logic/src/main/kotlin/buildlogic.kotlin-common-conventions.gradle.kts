@@ -17,6 +17,7 @@ kotlin {
         languageVersion.set(KotlinVersion.fromVersion(kotlinVersion.get()))
         apiVersion.set(languageVersion)
         jvmDefault.set(JvmDefaultMode.NO_COMPATIBILITY)
+        optIn.add("kotlin.contracts.ExperimentalContracts")
     }
 }
 
