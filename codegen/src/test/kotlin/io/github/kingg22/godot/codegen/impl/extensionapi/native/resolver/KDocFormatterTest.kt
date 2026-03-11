@@ -2,6 +2,7 @@ package io.github.kingg22.godot.codegen.impl.extensionapi.native.resolver
 
 import io.github.kingg22.godot.codegen.impl.extensionapi.EmptyContext
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -257,6 +258,33 @@ class KDocFormatterTest {
 
         assertTrue(result.contains("```csharp"))
         assertTrue(result.contains("GD.Print"))
+    }
+
+    @Test
+    fun `skip lint on multiple languages inside codeblocks`() {
+        val input = """
+            [codeblocks]
+            [gdscript skip-lint]
+            print_rich("[color=green][b]Hello world![/b][/color]") # Prints "Hello world!", in green with a bold font.
+            [/gdscript]
+            [csharp skip-lint]
+            GD.PrintRich("[color=green][b]Hello world![/b][/color]"); // Prints "Hello world!", in green with a bold font.
+            [/csharp]
+            [/codeblocks]
+        """.trimIndent()
+
+        val result = context(context) {
+            KDocFormatter.format(input)!!
+        }
+
+        assertTrue(result.contains("```gdscript"))
+        assertTrue(result.contains("print_rich(\"[color=green]"), "Output: \n$result")
+
+        assertTrue(result.contains("```csharp"))
+        assertTrue(result.contains("GD.PrintRich"))
+
+        assertFalse(result.contains("skip-lint"))
+        assertFalse(result.contains("codeblocks"))
     }
 
     @Test

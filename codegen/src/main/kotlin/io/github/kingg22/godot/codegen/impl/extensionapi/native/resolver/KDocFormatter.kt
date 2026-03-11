@@ -145,7 +145,7 @@ object KDocFormatter {
         }
 
         // Bloques de código
-        tag == "gdscript" -> {
+        tag.startsWith("gdscript") -> {
             sb.ensureNewLine()
             sb.append("```gdscript")
             true
@@ -157,7 +157,7 @@ object KDocFormatter {
             true
         }
 
-        tag == "csharp" -> {
+        tag.startsWith("csharp") -> {
             sb.ensureNewLine()
             sb.append("```csharp")
             true
