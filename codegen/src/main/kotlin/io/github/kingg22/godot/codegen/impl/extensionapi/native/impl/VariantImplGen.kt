@@ -200,62 +200,57 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
      * @return The body block to use as the constructor's `init` block and the super call
      */
     fun buildSubclassConstructorBody(subclassName: String): CodeBlock {
-        val variantBinding = implPackageRegistry.classNameForOrDefault("VariantBinding")
+        val getBinding = implPackageRegistry.classNameForOrDefault("GetBinding")
+        val variantTypeConst = "GDEXTENSION_VARIANT_TYPE_$subclassName"
 
         return CodeBlock.builder().apply {
-            val variantTypeConst = "GDEXTENSION_VARIANT_TYPE_$subclassName"
+            // Paso 1: obtener el converter (igual para todos los casos)
+            addStatement("val converter = %T.instance", getBinding)
+            indent()
+            addStatement(".variantFromTypeConstructorRaw(%L)", variantTypeConst)
+            addStatement(
+                "?: error(%S)",
+                "Missing variant-from-type constructor for '$subclassName'",
+            )
+            unindent()
 
-            fun CodeBlock.Builder.addConstructCall(
-                variantBinding: ClassName,
-                valueExpression: String,
-                vararg args: Any?,
-            ) {
-                val errorInfo = "errorInfo"
-                addStatement("val %N = %T.instance.construct(", errorInfo, variantBinding)
-                indent()
-                addStatement("%L,", variantTypeConst)
-                addStatement("rawPtr,")
-                addStatement("%L,", CodeBlock.of(valueExpression, *args))
-                unindent()
-                addStatement(")")
-                addStatement(
-                    "%M(%S, %N)",
-                    implPackageRegistry.memberNameForOrDefault("checkCallError"),
-                    "Variant.$subclassName constructor",
-                    errorInfo,
-                )
-            }
-
+            // Paso 2: invocar converter(variantPtr, typePtr)
+            // La firma es siempre: (GDExtensionVariantPtr, GDExtensionTypePtr) → Unit
             when (subclassName) {
                 "BOOL" -> {
+                    // Boolean necesita stack alloc como GDExtensionBool (UByte)
                     beginControlFlow("%M", memScoped)
-                        .addStatement(
-                            "val boolVar = %M(value)",
-                            implPackageRegistry.memberNameForOrDefault("allocGdBool"),
-                        )
-                        .addConstructCall(variantBinding, "boolVar")
+                    addStatement(
+                        "val boolVar = %M(value)",
+                        implPackageRegistry.memberNameForOrDefault("allocGdBool"),
+                    )
+                    addStatement("converter.%M(rawPtr, boolVar)", cinteropInvoke)
                     endControlFlow()
                 }
 
-                "INT", "FLOAT" -> {
-                    val isInt = subclassName == "INT"
-                    val varName = if (isInt) "intVar" else "floatVar"
-                    val cType = if (isInt) LONG_VAR else DOUBLE_VAR
-                    val conversion = if (isInt) "toLong()" else "toDouble()"
-
+                "INT" -> {
+                    // Long — stack alloc LongVar
                     beginControlFlow("%M", memScoped)
-                        .addStatement("val %L = %M<%T>()", varName, cinteropAlloc, cType)
-                        .addStatement("%L.%M = value.%L", varName, cinteropValue, conversion)
-                        .addConstructCall(
-                            variantBinding,
-                            "$varName.%M.%M()",
-                            cinteropPtr,
-                            cinteropReinterpret,
-                        )
+                    addStatement("val intVar = %M<%T>()", cinteropAlloc, LONG_VAR)
+                    addStatement("intVar.%M = value.toLong()", cinteropValue)
+                    addStatement("converter.%M(rawPtr, intVar.%M)", cinteropInvoke, cinteropPtr)
                     endControlFlow()
                 }
 
-                else -> addConstructCall(variantBinding, "value.rawPtr")
+                "FLOAT" -> {
+                    // Double — stack alloc DoubleVar
+                    beginControlFlow("%M", memScoped)
+                    addStatement("val floatVar = %M<%T>()", cinteropAlloc, DOUBLE_VAR)
+                    addStatement("floatVar.%M = value.toDouble()", cinteropValue)
+                    addStatement("converter.%M(rawPtr, floatVar.%M)", cinteropInvoke, cinteropPtr)
+                    endControlFlow()
+                }
+
+                else -> {
+                    // STRING, VECTOR2, STRING_NAME, etc.
+                    // value ya es un builtin con rawPtr — el converter copia directamente
+                    addStatement("converter.%M(rawPtr, value.rawPtr)", cinteropInvoke)
+                }
             }
         }.build()
     }
