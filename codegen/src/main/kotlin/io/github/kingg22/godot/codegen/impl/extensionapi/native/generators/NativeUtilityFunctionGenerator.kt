@@ -5,6 +5,7 @@ import com.squareup.kotlinpoet.TypeSpec
 import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.native.impl.UtilityFunctionImplGen
+import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.withExceptionContext
 import io.github.kingg22.godot.codegen.models.extensionapi.UtilityFunction
 
@@ -45,6 +46,17 @@ class NativeUtilityFunctionGenerator(
                         codeBody = implBody,
                     ) {
                         addKdoc("\n\n**Category**: `%S`", fn.category)
+                    }.let { methodSpec ->
+                        // FIXME Godot JSON needs to provides all nullable information
+                        // Patch return type to nullable for engine class returns
+                        if (fn.name == "instance_from_id" && fn.returnType == "Object") {
+                            val nonNullReturnType = methodSpec.returnType
+                            return@let methodSpec
+                                .toBuilder()
+                                .returns(nonNullReturnType.copy(nullable = true))
+                                .build()
+                        }
+                        methodSpec
                     }
                 }
             }
