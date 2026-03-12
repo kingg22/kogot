@@ -232,8 +232,8 @@ object KDocFormatter {
         // Primitivos
         tag == "int" || tag == "float" || tag == "bool" -> {
             val kType = when (tag) {
-                "int" -> "Int"
-                "float" -> "Float"
+                "int" -> "Long"
+                "float" -> "Double"
                 else -> "Boolean"
             }
             sb.append("[${tag.replaceFirstChar { it.uppercase() }}][kotlin.$kType]")

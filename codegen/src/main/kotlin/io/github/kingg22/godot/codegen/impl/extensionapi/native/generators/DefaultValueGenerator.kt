@@ -189,55 +189,25 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
             } else {
                 // Inferencia básica para llamadas recursivas sin TypeResolver a mano
                 if (value.contains('.') || value.contains('e', ignoreCase = true)) {
-                    CodeBlock.of("${value}f")
+                    CodeBlock.of("%L", value)
                 } else {
-                    CodeBlock.of(value)
+                    CodeBlock.of("%L.0", value)
                 }
             }
         }
     }
 
-    private fun parseInfinityConstant(value: String, type: String): CodeBlock {
-        // Determinar si es float o double
-        val isDouble = type == "double"
+    private fun parseInfinityConstant(value: String, type: String): CodeBlock = when {
+        // Positivo: inf, INF, 1.#INF
+        value.matches(INF_LITERAL_REGEX) && !value.startsWith("-") -> CodeBlock.of("%T.POSITIVE_INFINITY", DOUBLE)
 
-        return when {
-            // Positivo: inf, INF, 1.#INF
-            value.matches(INF_LITERAL_REGEX) && !value.startsWith("-") -> {
-                if (isDouble) {
-                    CodeBlock.of("%T.POSITIVE_INFINITY", DOUBLE)
-                } else {
-                    CodeBlock.of("%T.POSITIVE_INFINITY", FLOAT)
-                }
-            }
+        // Negativo: -inf, -INF, -1.#INF
+        value.startsWith("-") -> CodeBlock.of("%T.NEGATIVE_INFINITY", DOUBLE)
 
-            // Negativo: -inf, -INF, -1.#INF
-            value.startsWith("-") -> {
-                if (isDouble) {
-                    CodeBlock.of("%T.NEGATIVE_INFINITY", DOUBLE)
-                } else {
-                    CodeBlock.of("%T.NEGATIVE_INFINITY", FLOAT)
-                }
-            }
-
-            else -> {
-                if (isDouble) {
-                    CodeBlock.of("%T.POSITIVE_INFINITY", DOUBLE)
-                } else {
-                    CodeBlock.of("%T.POSITIVE_INFINITY", FLOAT)
-                }
-            }
-        }
+        else -> CodeBlock.of("%T.POSITIVE_INFINITY", DOUBLE)
     }
 
-    private fun parseNaNConstant(value: String, type: String): CodeBlock {
-        val isDouble = type == "double"
-        return if (isDouble) {
-            CodeBlock.of("%T.NaN", DOUBLE)
-        } else {
-            CodeBlock.of("%T.NaN", FLOAT)
-        }
-    }
+    private fun parseNaNConstant(value: String, type: String): CodeBlock = CodeBlock.of("%T.NaN", DOUBLE)
 
     // Enum from numeric value
     context(context: Context)
@@ -284,11 +254,11 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
         return if (hasDecimal) {
             // Variant.FLOAT(value)
             val floatSubclass = ClassName(variantClass.packageName, variantClass.simpleName, "FLOAT")
-            CodeBlock.of("%T(%Lf)", floatSubclass, value.toFloat())
+            CodeBlock.of("%T(%L)", floatSubclass, value.toDouble())
         } else {
             // Variant.INT(value)
             val intSubclass = ClassName(variantClass.packageName, variantClass.simpleName, "INT")
-            CodeBlock.of("%T(%L)", intSubclass, value.toInt())
+            CodeBlock.of("%T(%LL)", intSubclass, value.toLong())
         }
     }
 
@@ -301,9 +271,9 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
         // Floating point
         FLOAT -> {
             if (value.contains('.') || value.contains('e', ignoreCase = true)) {
-                CodeBlock.of("${value}f")
+                CodeBlock.of("%L", value)
             } else {
-                CodeBlock.of("$value.0f")
+                CodeBlock.of("%L.0", value)
             }
         }
 
@@ -486,14 +456,14 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
 
         val groupedArgs = rawArgs.chunked(mapping.groupingSize).map { group ->
             val groupArgsStr = group.joinToString { arg ->
-                // Convertir cada valor a float
+                // Convertir cada valor a Double
                 if (arg.contains('.') || arg.contains('e', ignoreCase = true)) {
-                    "${arg}f"
+                    arg
                 } else {
-                    "$arg.0f"
+                    "$arg.0"
                 }
             }
-            CodeBlock.of("%T($groupArgsStr)", groupType)
+            CodeBlock.of("%T(%L)", groupType, groupArgsStr)
         }
 
         val finalArgsCode = groupedArgs.joinToCode()
@@ -510,7 +480,7 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
                 println(
                     "WARNING: Unable to parse default value '$value' for ${expectedParam.name}: ${expectedParam.type} on constructor args, using raw value",
                 )
-                CodeBlock.of(value)
+                CodeBlock.of("%L", value)
             }
     }
 

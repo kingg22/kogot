@@ -71,8 +71,8 @@ class KotlinNativeTypeResolverTest {
 private val TYPES_EXPECTED = mapOf(
     // ── Primitivos ya testeados ───────────────────────────────────────────────
     "String" to ClassName("", "GodotString"),
-    "float" to FLOAT,
-    "int" to INT,
+    "float" to DOUBLE,
+    "int" to LONG,
     "Variant" to ClassName("", "Variant"),
     "bool" to BOOLEAN,
 
@@ -124,7 +124,7 @@ private val TYPES_EXPECTED = mapOf(
     "typedarray::String" to ClassName("", "GodotArray")
         .parameterizedBy(ClassName("", "GodotString")),
     "typedarray::int" to ClassName("", "GodotArray")
-        .parameterizedBy(INT),
+        .parameterizedBy(LONG),
     "typedarray::RegExMatch" to ClassName("", "GodotArray")
         .parameterizedBy(ClassName("", "RegExMatch")),
     "typedarray::RDPipelineSpecializationConstant" to ClassName("", "GodotArray")
@@ -132,7 +132,7 @@ private val TYPES_EXPECTED = mapOf(
 
     // typeddictionary
     "typeddictionary::int;String" to ClassName("", "Dictionary")
-        .parameterizedBy(INT, ClassName("", "GodotString")),
+        .parameterizedBy(LONG, ClassName("", "GodotString")),
     "typeddictionary::Color;Color" to ClassName("", "Dictionary")
         .parameterizedBy(ClassName("", "Color"), ClassName("", "Color")),
 
@@ -156,7 +156,7 @@ private val TYPES_EXPECTED = mapOf(
     "const void*" to COPAQUE_POINTER,
     "const Glyph*" to COPAQUE_POINTER,
     "AudioFrame*" to COPAQUE_POINTER,
-    "float*" to C_POINTER.parameterizedBy(FLOAT_VAR),
+    "float*" to C_POINTER.parameterizedBy(DOUBLE_VAR),
     "int32_t*" to C_POINTER.parameterizedBy(INT_VAR),
     "uint8_t*" to C_POINTER.parameterizedBy(U_BYTE_VAR),
     "const uint8_t*" to C_POINTER.parameterizedBy(U_BYTE_VAR),

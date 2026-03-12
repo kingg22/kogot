@@ -245,7 +245,7 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                     // Long — stack alloc LongVar
                     beginControlFlow("%M", memScoped)
                     addStatement("val intVar = %M<%T>()", cinteropAlloc, LONG_VAR)
-                    addStatement("intVar.%M = value.toLong()", cinteropValue)
+                    addStatement("intVar.%M = value", cinteropValue)
                     addStatement("converter.%M(rawPtr, intVar.%M)", cinteropInvoke, cinteropPtr)
                     endControlFlow()
                 }
@@ -254,7 +254,7 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                     // Double — stack alloc DoubleVar
                     beginControlFlow("%M", memScoped)
                     addStatement("val floatVar = %M<%T>()", cinteropAlloc, DOUBLE_VAR)
-                    addStatement("floatVar.%M = value.toDouble()", cinteropValue)
+                    addStatement("floatVar.%M = value", cinteropValue)
                     addStatement("converter.%M(rawPtr, floatVar.%M)", cinteropInvoke, cinteropPtr)
                     endControlFlow()
                 }

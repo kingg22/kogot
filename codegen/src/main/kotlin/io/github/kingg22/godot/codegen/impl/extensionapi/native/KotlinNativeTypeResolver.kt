@@ -227,9 +227,10 @@ class KotlinNativeTypeResolver : TypeResolver {
 
             "short", "int16_t", "int16" -> SHORT
 
-            "int", "int32_t", "int32" -> INT
+            "int32_t", "int32" -> INT
 
-            "long long", "int64_t", "int64", "long", "intptr_t" -> LONG
+            // Godot int = int64
+            "int", "long long", "int64_t", "int64", "long", "intptr_t" -> LONG
 
             // Unsigned integers
             "uchar", "unsigned char", "uint8_t", "uint8" -> U_BYTE
@@ -243,7 +244,8 @@ class KotlinNativeTypeResolver : TypeResolver {
             -> U_LONG
 
             // Floating point
-            "float" -> FLOAT
+            // Godot float = double
+            "float" -> DOUBLE
 
             "double" -> DOUBLE
 
@@ -279,7 +281,7 @@ class KotlinNativeTypeResolver : TypeResolver {
         "uint16" -> U_SHORT
         "uint32" -> U_INT
         "uint64" -> U_LONG
-        "float" -> FLOAT
+        "float" -> DOUBLE
         "double" -> DOUBLE
         "char16" -> U_SHORT
         "char32" -> U_INT
@@ -301,9 +303,9 @@ class KotlinNativeTypeResolver : TypeResolver {
 
             "short", "int16_t", "int16" -> SHORT_VAR
 
-            "int", "int32_t", "int32" -> INT_VAR
+            "int32_t", "int32" -> INT_VAR
 
-            "long long", "int64_t", "int64", "long",
+            "int", "long long", "int64_t", "int64", "long",
             "intptr_t",
             -> LONG_VAR
 
@@ -322,9 +324,7 @@ class KotlinNativeTypeResolver : TypeResolver {
             "uintptr_t", "size_t",
             -> U_LONG_VAR
 
-            "float" -> FLOAT_VAR
-
-            "double" -> DOUBLE_VAR
+            "float", "double" -> DOUBLE_VAR
 
             // fallback
             else -> error("Unknown primitive: $type")

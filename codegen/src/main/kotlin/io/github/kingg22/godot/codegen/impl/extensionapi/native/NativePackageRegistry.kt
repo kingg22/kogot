@@ -64,8 +64,8 @@ class NativePackageRegistry private constructor(private val typeToPackage: Map<S
             model.builtinTypes.forEach { cls ->
                 if (cls in NativeBuiltinClassGenerator.SKIPPED_TYPES) {
                     val kotlinName = when (cls.lowercase()) {
-                        "int" -> "kotlin.Int"
-                        "float" -> "kotlin.Float"
+                        "int" -> "kotlin.Long"
+                        "float" -> "kotlin.Double"
                         "bool" -> "kotlin.Boolean"
                         "nil" -> "null"
                         else -> error("Unexpected builtin type: $cls")

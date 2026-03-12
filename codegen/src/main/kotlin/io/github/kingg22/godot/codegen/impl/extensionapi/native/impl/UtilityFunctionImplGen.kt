@@ -179,9 +179,8 @@ class UtilityFunctionImplGen {
         when (arg.type) {
             "float", "double", "int" -> {
                 val cType = when (arg.type) {
-                    "float" -> FLOAT_VAR
-                    "double" -> DOUBLE_VAR
-                    "int" -> INT_VAR
+                    "float", "double" -> DOUBLE_VAR
+                    "int" -> LONG_VAR
                     else -> error("Invalid type: ${arg.type}")
                 }
                 addStatement("val %LVar = %M<%T>()", name, cinteropAlloc, cType)
@@ -224,11 +223,13 @@ class UtilityFunctionImplGen {
     context(ctx: Context)
     private fun buildReturnAlloc(returnType: String): CodeBlock = CodeBlock.builder().apply {
         when {
-            returnType == "float" -> addStatement("val retPtr = %M<%T>()", cinteropAlloc, FLOAT_VAR)
+            returnType == "float" || returnType == "double" -> addStatement(
+                "val retPtr = %M<%T>()",
+                cinteropAlloc,
+                DOUBLE_VAR,
+            )
 
-            returnType == "double" -> addStatement("val retPtr = %M<%T>()", cinteropAlloc, DOUBLE_VAR)
-
-            returnType == "int" -> addStatement("val retPtr = %M<%T>()", cinteropAlloc, INT_VAR)
+            returnType == "int" -> addStatement("val retPtr = %M<%T>()", cinteropAlloc, LONG_VAR)
 
             returnType == "bool" -> addStatement(
                 "val retPtr = %M()",
