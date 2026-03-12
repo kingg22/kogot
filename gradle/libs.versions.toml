@@ -6,13 +6,13 @@
 apache-commons-compress = "1.28.0"
 
 # https://github.com/google/error-prone/releases
-errorprone-core = "2.47.0"
+errorprone-core = "2.48.0"
 
 # https://github.com/tbroyer/gradle-errorprone-plugin/releases
-errorprone-gradle = "5.0.0"
+errorprone-gradle = "5.1.0"
 
 # https://github.com/JetBrains/java-annotations/releases
-jetbrains-jvm-annotations = "26.0.2"
+jetbrains-jvm-annotations = "26.1.0"
 
 # https://github.com/jspecify/jspecify/releases
 jspecify = "1.0.0"
@@ -37,7 +37,7 @@ nullaway-gradle = "3.0.0"
 
 # https://github.com/diffplug/spotless/blob/main/plugin-gradle/CHANGES.md
 # https://github.com/diffplug/spotless/releases
-spotless = "8.2.1"
+spotless = "8.3.0"
 
 # https://github.com/palantir/palantir-java-format/releases
 palantir = "2.86.0"
