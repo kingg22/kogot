@@ -34,3 +34,8 @@ dependencies {
 application {
     mainClass.set("io.github.kingg22.godot.codegen.GenerateGodotApiKt")
 }
+
+tasks.test {
+    // Expone el root del repo como system property accesible desde los tests
+    systemProperty("kogot.repo.root", rootProject.projectDir.absolutePath)
+}
