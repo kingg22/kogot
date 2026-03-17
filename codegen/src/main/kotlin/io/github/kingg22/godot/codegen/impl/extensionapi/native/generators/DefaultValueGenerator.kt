@@ -8,7 +8,6 @@ import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 
 private val TYPED_ARRAY_REGEX = Regex("""Array\[[\w:]+]\(.*\)""")
 private val NUMERIC_LITERAL_REGEX = Regex("""-?\d+(\.\d+)?([eE][+-]?\d+)?""", RegexOption.IGNORE_CASE)
-private val INF_LITERAL_REGEX = Regex("""(?i).*inf.*""")
 private val EMPTY_ARRAY_REGEX = Regex("""Packed\w+Array\(\)""")
 private val CLASS_CONSTRUCTOR_REGEX = Regex("""[A-Z][a-zA-Z0-9]*\(.*\)""")
 private val NUMERIC_RAW_REGEX = Regex("""-?\d+(\.\d+)?([eE][+-]?\d+)?""")
@@ -197,17 +196,34 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
         }
     }
 
-    private fun parseInfinityConstant(value: String, type: String): CodeBlock = when {
-        // Positivo: inf, INF, 1.#INF
-        value.matches(INF_LITERAL_REGEX) && !value.startsWith("-") -> CodeBlock.of("%T.POSITIVE_INFINITY", DOUBLE)
+    private fun parseInfinityConstant(value: String, type: String): CodeBlock {
+        // Determinar si es float o double
+        val isDouble = type == "double"
 
-        // Negativo: -inf, -INF, -1.#INF
-        value.startsWith("-") -> CodeBlock.of("%T.NEGATIVE_INFINITY", DOUBLE)
+        return when {
+            // Negativo: -inf, -INF, -1.#INF
+            value.startsWith("-") -> {
+                if (isDouble) {
+                    CodeBlock.of("%T.NEGATIVE_INFINITY", DOUBLE)
+                } else {
+                    CodeBlock.of("%T.NEGATIVE_INFINITY", FLOAT)
+                }
+            }
 
-        else -> CodeBlock.of("%T.POSITIVE_INFINITY", DOUBLE)
+            else -> {
+                if (isDouble) {
+                    CodeBlock.of("%T.POSITIVE_INFINITY", DOUBLE)
+                } else {
+                    CodeBlock.of("%T.POSITIVE_INFINITY", FLOAT)
+                }
+            }
+        }
     }
 
-    private fun parseNaNConstant(value: String, type: String): CodeBlock = CodeBlock.of("%T.NaN", DOUBLE)
+    private fun parseNaNConstant(value: String, type: String): CodeBlock = CodeBlock.of(
+        "%T.NaN",
+        if (type == "double") DOUBLE else FLOAT,
+    )
 
     // Enum from numeric value
     context(context: Context)
@@ -264,30 +280,18 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
 
     // Numeric Literals (primitivos puros)
     private fun parseNumericLiteral(value: String, kotlinType: TypeName): CodeBlock = when (kotlinType) {
-        U_BYTE, U_SHORT, U_INT -> CodeBlock.of("${value}u")
+        U_BYTE, U_SHORT, U_INT -> CodeBlock.of("%Lu", value.toUInt())
 
-        U_LONG -> CodeBlock.of("${value}uL")
+        U_LONG -> CodeBlock.of("%LuL", value.toULong())
 
         // Floating point
-        FLOAT -> {
-            if (value.contains('.') || value.contains('e', ignoreCase = true)) {
-                CodeBlock.of("%L", value)
-            } else {
-                CodeBlock.of("%L.0", value)
-            }
-        }
+        FLOAT -> CodeBlock.of("%Lf", value.toFloat())
 
-        DOUBLE -> {
-            if (value.contains('.') || value.contains('e', ignoreCase = true)) {
-                CodeBlock.of(value)
-            } else {
-                CodeBlock.of("$value.0")
-            }
-        }
+        DOUBLE -> CodeBlock.of("%L", value.toDouble())
 
-        LONG -> CodeBlock.of("${value}L")
+        LONG -> CodeBlock.of("%LL", value.toLong())
 
-        BYTE, SHORT, INT -> CodeBlock.of(value)
+        BYTE, SHORT, INT -> CodeBlock.of("%L", value.toInt())
 
         // Fallback
         else -> {
@@ -403,6 +407,7 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
     private fun isConstructorCall(value: String): Boolean = value.matches(CLASS_CONSTRUCTOR_REGEX)
 
     // Constructor Calls (mejorado con constructor resolution)
+    // TODO add indent and format output
     context(context: Context)
     private fun parseConstructorCall(value: String): CodeBlock {
         val className = value.substringBefore('(')
@@ -435,12 +440,15 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
         }
 
         val convertedArgs = rawArgs.zip(constructor.arguments) { rawArg, expectedParam ->
-            convertConstructorArgument(rawArg.trim(), expectedParam)
+            convertConstructorArgument(rawArg.trim(), expectedParam, className)
         }
 
-        val argsCode = convertedArgs.joinToCode()
-
-        return CodeBlock.of("%T(%L)", kotlinClass, argsCode)
+        return CodeBlock
+            .builder()
+            .add("%T(", kotlinClass)
+            .add(convertedArgs.joinToCode())
+            .add(")")
+            .build()
     }
 
     context(context: Context)
@@ -455,26 +463,40 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
         val groupType = context.classNameForOrDefault(mapping.groupType)
 
         val groupedArgs = rawArgs.chunked(mapping.groupingSize).map { group ->
-            val groupArgsStr = group.joinToString { arg ->
-                // Convertir cada valor a Double
-                if (arg.contains('.') || arg.contains('e', ignoreCase = true)) {
-                    arg
-                } else {
-                    "$arg.0"
-                }
+            // FIXME move joinToString to joinToCode
+            val groupArgsStr = group.joinToCode { arg ->
+                // Convertir cada valor a Float
+                CodeBlock.of("%Lf", arg.toFloat())
             }
-            CodeBlock.of("%T(%L)", groupType, groupArgsStr)
+            CodeBlock
+                .builder()
+                .add("%T(", groupType)
+                .indent()
+                .add(groupArgsStr)
+                .unindent()
+                .add(")")
+                .build()
         }
 
-        val finalArgsCode = groupedArgs.joinToCode()
-
-        return CodeBlock.of("%T(%L)", kotlinClass, finalArgsCode)
+        return CodeBlock
+            .builder()
+            .add("%T(", kotlinClass)
+            .indent()
+            .add(groupedArgs.joinToCode())
+            .unindent()
+            .add(")")
+            .build()
     }
 
-    context(context: Context)
-    private fun convertConstructorArgument(value: String, expectedParam: MethodArg): CodeBlock {
-        val expectedType = typeResolver.resolve(expectedParam)
-        return parseDefaultValue(value, expectedType, expectedParam.type)
+    context(ctx: Context)
+    private fun convertConstructorArgument(value: String, expectedParam: MethodArg, className: String): CodeBlock {
+        val expectedType = if (ctx.isBuiltin(className)) {
+            typeResolver.resolveBuiltin(expectedParam.type, expectedParam.meta)
+        } else {
+            typeResolver.resolve(expectedParam)
+        }
+
+        return parseDefaultValue(value, expectedType, expectedParam.meta ?: expectedParam.type)
             ?: run {
                 // Fallback al valor crudo si parseDefaultValue devuelve null
                 println(
@@ -487,28 +509,30 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
     // Fallback cuando no encontramos el constructor
     context(context: Context)
     private fun parseConstructorWithRawArgs(kotlinClass: ClassName, rawArgs: List<String>): CodeBlock {
-        val convertedArgs = rawArgs.map { arg ->
+        val convertedArgs: List<CodeBlock> = rawArgs.map { arg ->
             when {
                 arg.matches(NUMERIC_RAW_REGEX) -> {
                     if (arg.contains('.') || arg.contains('e', ignoreCase = true)) {
-                        "${arg}f"
+                        CodeBlock.of("%Lf", arg.toFloat())
                     } else {
-                        arg
+                        CodeBlock.of("%L", arg.toDouble())
                     }
                 }
 
-                arg.startsWith('"') -> arg
+                isConstructorCall(arg) -> parseConstructorCall(arg)
 
-                arg == "true" || arg == "false" -> arg
-
-                isConstructorCall(arg) -> parseConstructorCall(arg).toString()
-
-                else -> arg
+                else -> CodeBlock.of(arg)
             }
         }
 
-        val argsCode = convertedArgs.joinToString()
-        return CodeBlock.of("%T(%L)", kotlinClass, argsCode)
+        return CodeBlock
+            .builder()
+            .add("%T(", kotlinClass)
+            .indent()
+            .add(convertedArgs.joinToCode())
+            .unindent()
+            .add(")")
+            .build()
     }
 
     // Helper: split respetando paréntesis anidados
