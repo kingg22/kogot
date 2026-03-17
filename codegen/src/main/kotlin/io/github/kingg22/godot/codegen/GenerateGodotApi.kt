@@ -27,6 +27,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.StructuredTaskScope
 import kotlin.time.Duration
 import kotlin.time.measureTime
 
@@ -110,19 +111,23 @@ private class CodegenCommand : CliktCommand("Generador de Extension API para God
                     }
                 }
 
-                Executors.newVirtualThreadPerTaskExecutor().use { executor: ExecutorService ->
-                    // El hilo principal recorre la secuencia (Lazy)
-                    for (fileSpec in sequenceFiles) {
-                        // El hilo principal solo envía la tarea, no espera.
-                        // El 'writeTo' ocurre DENTRO del Virtual Thread.
-                        executor.execute {
-                            val path = fileSpec.writeTo(outputDir)
-                            // Actualización segura del primer path para el log
-                            if (firstPathParent == null) firstPathParent = path.parent.toString()
+                StructuredTaskScope
+                    .ShutdownOnFailure("Godot CodeGen", Thread.ofVirtual().factory())
+                    .use { scope ->
+                        // El hilo principal recorre la secuencia (Lazy)
+                        for (fileSpec in sequenceFiles) {
+                            // El hilo principal solo envía la tarea, no espera aquí
+                            // El 'writeTo' ocurre DENTRO del Virtual Thread.
+                            scope.fork {
+                                val path = fileSpec.writeTo(outputDir)
+                                if (firstPathParent == null) firstPathParent = path.parent.toString()
+                            }
+                            generatedFilesCount++
                         }
-                        generatedFilesCount++
+
+                        scope.join() // espera
+                        scope.exception().ifPresent { throw it } // lanza si algún thread falló
                     }
-                }
             }
         } finally {
             echo("---Total generated: $generatedFilesCount in $time to => $firstPathParent ---")
