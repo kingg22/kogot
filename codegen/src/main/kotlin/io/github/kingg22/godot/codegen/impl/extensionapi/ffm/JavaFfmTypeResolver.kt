@@ -5,6 +5,6 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 
 class JavaFfmTypeResolver : TypeResolver {
-    context(context: Context)
-    override fun resolve(godotType: String, metaType: String?): TypeName = context.classNameForOrDefault(godotType)
+    context(ctx: Context)
+    override fun resolve(godotType: String, metaType: String?): TypeName = ctx.classNameForOrDefault(godotType)
 }

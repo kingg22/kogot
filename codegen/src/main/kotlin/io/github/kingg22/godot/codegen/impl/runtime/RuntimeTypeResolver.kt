@@ -28,7 +28,7 @@ class RuntimeTypeResolver(interfaceModel: GDExtensionInterface, packageName: Str
         }
     }
 
-    context(_: Context)
+    context(ctx: Context)
     override fun resolve(godotType: String, metaType: String?): TypeName = resolveType(godotType)
 
     fun resolveInterfaceAlias(iface: Interface): ClassName = ClassName(

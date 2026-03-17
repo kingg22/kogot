@@ -44,19 +44,19 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
         val typeVariables: List<TypeVariableName>
 
         /** Typealias para versión untyped (ej: VariantArray = GodotArray<Variant>) */
-        context(_: Context)
+        context(context: Context)
         val untypedAlias: Pair<String, ParameterizedTypeName>?
 
         /** Modifica el tipo de retorno de un método si usa type variables */
-        context(_: Context)
+        context(context: Context)
         fun transformReturnType(method: BuiltinClass.BuiltinMethod, originalType: TypeName?): TypeName?
 
         /** Modifica el tipo de un parámetro si usa type variables */
-        context(_: Context)
+        context(context: Context)
         fun transformParameterType(method: BuiltinClass.BuiltinMethod, argIndex: Int, originalType: TypeName): TypeName
 
         /** Modifica el tipo de retorno de un operator si usa type variables */
-        context(_: Context)
+        context(context: Context)
         fun transformOperatorReturnType(operator: BuiltinClass.Operator, originalType: TypeName): TypeName
     }
 

@@ -11,7 +11,7 @@ class CachedTypeResolver(private val delegate: TypeResolver) : TypeResolver {
 
     // computeIfAbsent realiza la lógica: si existe devuelve el valor,
     // si no, ejecuta el bloque, guarda el resultado y lo devuelve.
-    context(_: Context)
+    context(ctx: Context)
     override fun resolve(godotType: String, metaType: String?): TypeName {
         // La clave aquí es crear una clave única compuesta si es necesario.
         // Si hay meta, incluimos la meta en la clave.
