@@ -70,9 +70,8 @@ class KotlinNativeTypeResolverTest {
     // meta "float" → FLOAT (C float in member_offsets = 32-bit)
     @Test
     fun `resolveWithMeta float`() {
-        val holder = MethodReturn("float", meta = "float")
         context(testContext) {
-            assertEquals(FLOAT, resolver.resolve(holder))
+            assertEquals(FLOAT, resolver.resolveBuiltin("float", "float"))
         }
     }
 }

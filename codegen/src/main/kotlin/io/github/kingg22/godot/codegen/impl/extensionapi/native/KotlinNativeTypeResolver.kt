@@ -7,7 +7,6 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.sanitizeTypeName
-import io.github.kingg22.godot.codegen.models.extensionapi.TypeMetaHolder
 
 private val PRIMITIVE_TYPES = PRIMITIVE_NUMERIC_TYPES + setOf(
     "char", "int8_t", "int8",
@@ -55,7 +54,7 @@ private val PRIMITIVE_TYPES = PRIMITIVE_NUMERIC_TYPES + setOf(
  */
 class KotlinNativeTypeResolver : TypeResolver {
 
-    context(_: Context)
+    context(ctx: Context)
     override fun resolve(godotType: String, metaType: String?): TypeName {
         if (metaType != null && metaType != "required") {
             runCatching { resolveWithMeta(godotType, metaType) }
@@ -75,6 +74,15 @@ class KotlinNativeTypeResolver : TypeResolver {
         }
 
         return resolvePlain(stripped)
+    }
+
+    context(ctx: Context)
+    override fun resolveBuiltin(godotType: String, metaType: String?): TypeName = when {
+        metaType?.removePrefix("const ")?.trim()?.equals("float", ignoreCase = true) == true ||
+            godotType.removePrefix("const ").trim().equals("float", ignoreCase = true) ->
+            if (ctx.isDoublePrecision) DOUBLE else FLOAT
+
+        else -> resolve(godotType, metaType)
     }
 
     // ── Pointer resolution ────────────────────────────────────────────────────
@@ -265,7 +273,7 @@ class KotlinNativeTypeResolver : TypeResolver {
      * Uses Godot's `meta` hint to pick a more precise Kotlin primitive.
      * Only called when meta is non-null and the type is not marked required.
      */
-    context(_: Context)
+    context(ctx: Context)
     private fun resolveWithMeta(baseType: String, meta: String): TypeName = when (meta.lowercase()) {
         "int8" -> BYTE
 
@@ -283,7 +291,7 @@ class KotlinNativeTypeResolver : TypeResolver {
 
         "uint64" -> U_LONG
 
-        "float" -> FLOAT
+        "float" -> if (ctx.isDoublePrecision) DOUBLE else FLOAT
 
         "double" -> DOUBLE
 

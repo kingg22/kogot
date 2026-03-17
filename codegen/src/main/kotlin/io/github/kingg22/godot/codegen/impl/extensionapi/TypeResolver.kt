@@ -20,7 +20,7 @@ interface TypeResolver {
      * Resolves a raw Godot type string (e.g. `"int"`, `"Node"`, `"typedarray::Vector2"`)
      * to a KotlinPoet [TypeName] suitable for the target backend.
      */
-    context(_: Context)
+    context(ctx: Context)
     fun resolve(godotType: String, metaType: String? = null): TypeName
 
     /**
@@ -30,7 +30,7 @@ interface TypeResolver {
      * if [TypeMetaHolder.isRequired] or meta is null, resolves the base type;
      * otherwise applies backend-specific meta mapping.
      */
-    context(_: Context)
+    context(ctx: Context)
     fun resolve(holder: TypeMetaHolder): TypeName {
         if (holder.meta == null || holder.isRequired()) return resolve(holder.type)
         return runCatching { resolve(holder.meta!!) }
@@ -41,4 +41,13 @@ interface TypeResolver {
             }
             .getOrDefault(resolve(holder.type))
     }
+
+    /**
+     * Resolves a type string in the context of a builtin class member/constructor/method.
+     *
+     * "float" in builtin context = real_t (build-config-dependent), not GDScript float (always double).
+     * Default implementation delegates to [resolve] — backends override when needed.
+     */
+    context(ctx: Context)
+    fun resolveBuiltin(godotType: String, metaType: String? = null): TypeName = resolve(godotType, metaType)
 }
