@@ -92,6 +92,20 @@ class Context(
     fun findEngineClass(name: String): EngineClass? = model.engineClassesByName[name]?.raw
     fun findResolvedEngineClass(name: String): ResolvedEngineClass? = model.engineClassesByName[name]
 
+    /**
+     * Returns the raw meta string for a member of a builtin class as recorded in
+     * `builtin_class_member_offsets` for the active build configuration.
+     *
+     * Examples (float_64):
+     * - resolveBuiltinMemberMeta("Vector3", "x") = "float"   → kotlin.Float
+     * - resolveBuiltinMemberMeta("Vector2i", "x") = "int32"  → kotlin.Int
+     * - resolveBuiltinMemberMeta("Color", "r")    = "float"   → kotlin.Float
+     *
+     * Returns null for opaque builtins (String, StringName, etc.) that have no member offsets.
+     */
+    fun resolveBuiltinMemberMeta(className: String, member: String): String? =
+        findResolvedBuiltinClass(className)?.layout?.memberMeta?.get(member)
+
     fun findConstructor(className: String, argCount: Int): BuiltinClass.Constructor? =
         findResolvedBuiltinClass(className)
             ?.constructors

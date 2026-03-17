@@ -301,7 +301,7 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
         val ptrExprs = args.map { arg ->
             val kotlinName = safeIdentifier(arg.name)
             val varName = "${kotlinName}Var"
-            when (val kotlinType = typeResolver.resolve(arg)) {
+            when (val kotlinType = typeResolver.resolveBuiltin(arg.type, arg.meta)) {
                 BOOLEAN -> {
                     addStatement(
                         "val $varName = %M($kotlinName)",
