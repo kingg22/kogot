@@ -26,9 +26,16 @@ class ImplementationPackageRegistry(packageStr: String, interfaceModel: GDExtens
         put("allocGdBool", bindingPackage)
         put("readGdBool", bindingPackage)
         put("checkCallError", bindingPackage)
+        put("toGdBool", bindingPackage)
+        put("toBoolean", bindingPackage)
         put("toGDExtensionVariantOperator", builtinInternalBind)
         put("toGDExtensionVariantType", builtinInternalBind)
         put("GDExtensionPtrUtilityFunction", ffiPackage)
+        put("GDExtensionPtrGetter", ffiPackage)
+        put("GDExtensionPtrSetter", ffiPackage)
+        put("GDExtensionPtrConstructor", ffiPackage)
+        put("GDExtensionPtrDestructor", ffiPackage)
+        put("GDExtensionVariantFromTypeConstructorFunc", ffiPackage)
     }
 
     override fun packageFor(godotName: String): String? = typeToPackage[godotName]

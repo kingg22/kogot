@@ -112,9 +112,13 @@ class NativeBuiltinClassGenerator(
     fun generateFile(builtinClass: ResolvedBuiltinClass): FileSpec? {
         val spec = generate(builtinClass) ?: return null
         val godotName = builtinClass.name
+        // Members that have no storage offset → need fptr lazy props
+        val offsetMembers = builtinClass.layout?.memberOffsets?.keys ?: emptySet()
+        val utilMembers = builtinClass.raw.members.filter { it.name !in offsetMembers }
         return createFile(spec.name!!, context.packageForOrDefault(godotName)) {
             typeAliasGenerator.generateTypeAliasSpec(builtinClass.raw)?.let { addTypeAlias(it) }
             addType(spec)
+            addProperties(body.buildTopLevelFptrProperties(builtinClass, utilMembers))
         }
     }
 
@@ -162,19 +166,25 @@ class NativeBuiltinClassGenerator(
                 .experimentalApiAnnotation(builtinClass.name, member.name)
                 .addKdocIfPresent(member)
 
-            val getter = memberMeta?.let { body.buildMemberGetter(member.name, memberMeta, memberType) }
-                ?: body.todoGetter()
+            if (memberMeta != null) {
+                // Has direct storage offset → fast path
+                val getter = body.buildMemberGetter(member.name, memberMeta, memberType)
+                propBuilder.getter(getter ?: body.todoGetter())
 
-            propBuilder.getter(getter)
+                val setter = body.buildMemberSetter(member.name, memberMeta, memberType)
+                propBuilder.setter(
+                    setter ?: FunSpec
+                        .setterBuilder()
+                        .addParameter("value", memberType)
+                        .addCode(body.todoBody())
+                        .build(),
+                )
+            } else {
+                // No storage offset → fptr path (utility/computed member)
+                propBuilder.getter(body.buildMemberGetterViaFptr(member.name, memberType))
+                propBuilder.setter(body.buildMemberSetterViaFptr(member.name, memberType))
+            }
 
-            val setter = memberMeta?.let { body.buildMemberSetter(member.name, memberMeta, memberType) }
-                ?: FunSpec
-                    .setterBuilder()
-                    .addParameter("value", memberType)
-                    .addCode(body.todoBody())
-                    .build()
-
-            propBuilder.setter(setter)
             classBuilder.addProperty(propBuilder.build())
         }
 

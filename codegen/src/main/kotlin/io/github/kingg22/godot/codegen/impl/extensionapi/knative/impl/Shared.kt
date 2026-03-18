@@ -1,7 +1,10 @@
 package io.github.kingg22.godot.codegen.impl.extensionapi.knative.impl
 
 import com.squareup.kotlinpoet.*
+import io.github.kingg22.godot.codegen.impl.extensionapi.knative.*
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinLayout
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 fun buildLayoutConstants(layout: ResolvedBuiltinLayout): List<PropertySpec> =
     layout.memberOffsets.map { (member, offset) ->
@@ -71,15 +74,41 @@ fun metaToStorageInfo(meta: String, type: String): Pair<String, TypeName>? {
 }
 
 /** Widening conversion from physical storage type to API property type. */
-fun storageToPropertyConv(storage: TypeName, property: TypeName): String? = when {
-    storage == FLOAT && property == DOUBLE -> ".toDouble()"
-    storage == DOUBLE && property == FLOAT -> ".toFloat()"
-    storage == INT && property == LONG -> ".toLong()"
-    storage == LONG && property == INT -> ".toInt()"
-    storage == U_INT && property == U_LONG -> ".toULong()"
-    storage == U_LONG && property == U_INT -> ".toUInt()"
+fun storageToPropertyConv(storage: TypeName, property: TypeName): String? = when (storage) {
+    FLOAT if property == DOUBLE -> ".toDouble()"
+    DOUBLE if property == FLOAT -> ".toFloat()"
+    INT if property == LONG -> ".toLong()"
+    LONG if property == INT -> ".toInt()"
+    U_INT if property == U_LONG -> ".toULong()"
+    U_LONG if property == U_INT -> ".toUInt()"
     else -> null
 }
 
 /** Narrowing conversion from API property type to physical storage type (setter path). */
 fun propertyToStorageConv(property: TypeName, storage: TypeName): String? = storageToPropertyConv(property, storage)
+
+/** Maps a Kotlin primitive TypeName to its CVar equivalent for stack allocation, or null for builtin classes. */
+fun primitiveKotlinToCVar(type: TypeName): TypeName? = when (type) {
+    BOOLEAN -> U_BYTE_VAR
+    FLOAT -> FLOAT_VAR
+    DOUBLE -> DOUBLE_VAR
+    INT -> INT_VAR
+    LONG -> LONG_VAR
+    BYTE -> BYTE_VAR
+    SHORT -> SHORT_VAR
+    U_BYTE -> U_BYTE_VAR
+    U_SHORT -> U_SHORT_VAR
+    U_INT -> U_INT_VAR
+    U_LONG -> U_LONG_VAR
+    else -> null // builtin class
+}
+
+inline fun buildLazyBlock(body: CodeBlock.Builder.() -> Unit): CodeBlock {
+    contract { callsInPlace(body, InvocationKind.EXACTLY_ONCE) }
+    return CodeBlock
+        .builder()
+        .beginControlFlow("%M(PUBLICATION)", lazyMethod)
+        .apply(body)
+        .endControlFlow()
+        .build()
+}

@@ -8,6 +8,7 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.*
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.generators.BodyGenerator
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
+import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinClass
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinConstructor
@@ -170,7 +171,7 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
                 CodeBlock
                     .builder()
                     .beginControlFlow("if (!closed)")
-                    .add(destroyCallFor(builtinClass))
+                    .addStatement("destructorFptr.%M(rawPtr)", cinteropInvoke)
                     .addStatement("%T.free(%N.rawValue)", cinteropNativeHeap, "storage")
                     .addStatement("closed = true")
                     .endControlFlow()
@@ -203,7 +204,7 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
                     "%T(value).use { godotString ->",
                     context.classNameForOrDefault("String", "GodotString"),
                 )
-                .add(callBuiltinConstructorSimple(VARIANT_TYPE_NODE_PATH, 2, "godotString.rawPtr"))
+                .add(callBuiltinConstructorSimple(2, "godotString.rawPtr"))
                 .endControlFlow()
                 .build()
 
@@ -211,10 +212,216 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
         }
     }
 
-    // ── Destructor call ───────────────────────────────────────────────────────
+    // ── Top-level fptr lazy properties ────────────────────────────────────────
 
-    fun destroyCallFor(builtinClass: ResolvedBuiltinClass): CodeBlock =
-        destroyBuiltin(variantTypeConst(builtinClass.name))
+    /**
+     * Emits top-level `private val` lazy properties for all function pointers that
+     * the class file needs: constructors, destructor (if any), and per-member getter/setter
+     * for members that have NO direct storage offset (utility/computed members).
+     *
+     * These are file-scoped so they are shared across all instances without a class-level lock.
+     *
+     * @param builtinClass the class being generated
+     * @param utilMembers members from [BuiltinClass.members] whose name is NOT present in
+     * [io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinLayout.memberOffsets] —
+     * i.e., utility/computed members
+     */
+    context(ctx: Context)
+    fun buildTopLevelFptrProperties(
+        builtinClass: ResolvedBuiltinClass,
+        utilMembers: List<BuiltinClass.BuiltinClassMember>,
+    ): List<PropertySpec> {
+        if (builtinClass.name !in STORAGE_BACKED_BUILTINS) return emptyList()
+
+        val variantType = variantTypeConst(builtinClass.name)
+        val variantBinding = implPackageRegistry.classNameForOrDefault("VariantBinding")
+        val stringNameClass = ctx.classNameForOrDefault("StringName")
+
+        return buildList {
+            // ── Constructors ──────────────────────────────────────────────────
+            builtinClass.constructors.filter { it.raw != null && !it.usesKotlinStringBridge }.forEach { ctor ->
+                add(
+                    PropertySpec
+                        .builder(
+                            "constructorFptr_${ctor.index}",
+                            implPackageRegistry.classNameForOrDefault("GDExtensionPtrConstructor"),
+                            KModifier.PRIVATE,
+                        )
+                        .delegate(
+                            buildLazyBlock {
+                                addStatement(
+                                    "%T.instance.getPtrConstructorRaw(%N, %L)",
+                                    variantBinding,
+                                    variantType,
+                                    ctor.index,
+                                )
+                                withIndent {
+                                    addStatement(
+                                        "?: error(%S)",
+                                        "Missing builtin constructor for ${builtinClass.name}[${ctor.index}]",
+                                    )
+                                }
+                            },
+                        )
+                        .build(),
+                )
+            }
+
+            // ── Destructor ────────────────────────────────────────────────────
+            if (builtinClass.hasDestructor) {
+                add(
+                    PropertySpec
+                        .builder(
+                            "destructorFptr",
+                            implPackageRegistry.classNameForOrDefault("GDExtensionPtrDestructor"),
+                            KModifier.PRIVATE,
+                        )
+                        .delegate(
+                            buildLazyBlock {
+                                addStatement("%T.instance.getPtrDestructorRaw(%N)", variantBinding, variantType)
+                                withIndent {
+                                    addStatement("?: error(%S)", "Missing builtin destructor for ${builtinClass.name}")
+                                }
+                            },
+                        )
+                        .build(),
+                )
+            }
+
+            // ── Utility member getters/setters ────────────────────────────────
+            utilMembers.forEach { member ->
+                val safeName = safeIdentifier(member.name)
+                add(
+                    PropertySpec
+                        .builder(
+                            "memberGetterFptr_$safeName",
+                            implPackageRegistry.classNameForOrDefault("GDExtensionPtrGetter"),
+                            KModifier.PRIVATE,
+                        )
+                        .delegate(
+                            buildLazyBlock {
+                                beginControlFlow("%T(%S).use { sn ->", stringNameClass, member.name)
+                                    .addStatement(
+                                        "%T.instance.getPtrGetterRaw(%N, sn.rawPtr)",
+                                        variantBinding,
+                                        variantType,
+                                    )
+                                    .withIndent {
+                                        addStatement(
+                                            "?: error(%S)",
+                                            "Missing getter for ${builtinClass.name}.$safeName",
+                                        )
+                                    }
+                                endControlFlow()
+                            },
+                        )
+                        .build(),
+                )
+                add(
+                    PropertySpec
+                        .builder(
+                            "memberSetterFptr_$safeName",
+                            implPackageRegistry.classNameForOrDefault("GDExtensionPtrSetter"),
+                            KModifier.PRIVATE,
+                        )
+                        .delegate(
+                            buildLazyBlock {
+                                beginControlFlow("%T(%S).use { sn ->", stringNameClass, member.name)
+                                    .addStatement(
+                                        "%T.instance.getPtrSetterRaw(%N, sn.rawPtr)",
+                                        variantBinding,
+                                        variantType,
+                                    )
+                                    .withIndent {
+                                        addStatement(
+                                            "?: error(%S)",
+                                            "Missing setter for ${builtinClass.name}.$safeName",
+                                        )
+                                    }
+                                endControlFlow()
+                            },
+                        )
+                        .build(),
+                )
+            }
+        }
+    }
+
+    // ── Member getters/setters via fptr (utility members) ─────────────────────
+
+    /**
+     * Generates a getter for a utility member (no storage offset) using the cached
+     * `_memberGetterFptr_$memberName` top-level lazy val.
+     *
+     * Signature of GDExtensionPtrGetter: `(p_base: COpaquePointer, r_value: COpaquePointer) → Unit`
+     * - p_base = rawPtr (self)
+     * - r_value = output buffer
+     *
+     * For primitive types, allocates a stack CVar to receive the value.
+     * For builtin class types, constructs a new instance and uses its rawPtr as output.
+     */
+    fun buildMemberGetterViaFptr(memberName: String, memberType: TypeName): FunSpec {
+        val safeName = safeIdentifier(memberName)
+        val fptrVal = "memberGetterFptr_$safeName"
+        val getter = FunSpec.getterBuilder()
+
+        val cVarType = primitiveKotlinToCVar(memberType)
+        if (cVarType != null) {
+            // Primitive: alloc stack var, invoke, read value
+            getter.beginControlFlow("%M", memScoped)
+                .addStatement("val buf = %M<%T>()", cinteropAlloc, cVarType)
+                .addStatement("%L.%M(rawPtr, buf.%M)", fptrVal, cinteropInvoke, cinteropPtr)
+                .addStatement(
+                    "return buf.%M%L",
+                    cinteropValue,
+                    if (memberType == BOOLEAN) {
+                        implPackageRegistry.memberNameForOrDefault("toBoolean")
+                    } else {
+                        ""
+                    },
+                )
+            getter.endControlFlow()
+        } else {
+            // Builtin class: construct an empty instance, invoke into its rawPtr
+            getter.addStatement("val result = %T()", memberType)
+            getter.addStatement("%L.%M(rawPtr, result.rawPtr)", fptrVal, cinteropInvoke)
+            getter.addStatement("return result")
+        }
+
+        return getter.build()
+    }
+
+    /**
+     * Generates a setter for a utility member using `_memberSetterFptr_$memberName`.
+     *
+     * Signature of GDExtensionPtrSetter: `(p_base: COpaquePointer, p_value: COpaquePointer) → Unit`
+     */
+    fun buildMemberSetterViaFptr(memberName: String, memberType: TypeName): FunSpec {
+        val safeName = safeIdentifier(memberName)
+        val fptrVal = "memberSetterFptr_$safeName"
+        val setter = FunSpec.setterBuilder().addParameter("value", memberType)
+
+        val cVarType = primitiveKotlinToCVar(memberType)
+        if (cVarType != null) {
+            setter.beginControlFlow("%M", memScoped)
+                .addStatement("val buf = %M<%T>()", cinteropAlloc, cVarType)
+                .addStatement(
+                    "buf.%M = value%L",
+                    cinteropValue,
+                    if (memberType == BOOLEAN) {
+                        implPackageRegistry.memberNameForOrDefault("toGdBool")
+                    } else {
+                        ""
+                    },
+                )
+                .addStatement("%L.%M(rawPtr, buf.%M)", fptrVal, cinteropInvoke, cinteropPtr)
+            setter.endControlFlow()
+        } else {
+            setter.addStatement("%L.%M(rawPtr, value.rawPtr)", fptrVal, cinteropInvoke)
+        }
+
+        return setter.build()
+    }
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
@@ -248,7 +455,7 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
                         "%T(value).use { godotString ->",
                         context.classNameForOrDefault("String", "GodotString"),
                     )
-                    .add(callBuiltinConstructorSimple(VARIANT_TYPE_NODE_PATH, 2, "godotString.rawPtr"))
+                    .add(callBuiltinConstructorSimple(2, "godotString.rawPtr"))
                     .endControlFlow()
                     .build()
 
@@ -258,24 +465,21 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
 
         return when (builtinClass.name) {
             "String" -> callBuiltinConstructorSimple(
-                VARIANT_TYPE_STRING,
                 ctor.index,
                 if (ctor.index > 0) "from.rawPtr" else "",
             )
 
             "StringName" -> callBuiltinConstructorSimple(
-                VARIANT_TYPE_STRING_NAME,
                 ctor.index,
                 if (ctor.index > 0) "from.rawPtr" else "",
             )
 
             "NodePath" -> callBuiltinConstructorSimple(
-                VARIANT_TYPE_NODE_PATH,
                 ctor.index,
                 if (ctor.index > 0) "from.rawPtr" else "",
             )
 
-            else -> callBuiltinConstructorGeneric(variantTypeConst(builtinClass.name), ctor.index, ctor.arguments)
+            else -> callBuiltinConstructorGeneric(ctor.index, ctor.arguments)
         }
     }
 
@@ -293,113 +497,72 @@ class BuiltinClassImplGen(private val delegate: BodyGenerator, private val typeR
      * - everything else → assumed to be a builtin class with `rawPtr`
      */
     context(context: Context)
-    private fun callBuiltinConstructorGeneric(
-        variantType: String,
-        constructorIndex: Int,
-        args: List<MethodArg>,
-    ): CodeBlock = CodeBlock.builder().beginControlFlow("%M", memScoped).apply {
-        val ptrExprs = args.map { arg ->
-            val kotlinName = safeIdentifier(arg.name)
-            val varName = "${kotlinName}Var"
-            when (val kotlinType = typeResolver.resolve(arg.type, arg.meta)) {
-                BOOLEAN -> {
-                    addStatement(
-                        "val $varName = %M($kotlinName)",
-                        implPackageRegistry.memberNameForOrDefault("allocGdBool"),
-                    )
-                    CodeBlock.builder().addStatement("%N,", varName).build()
-                }
-
-                FLOAT, DOUBLE, INT, LONG, BYTE, SHORT, U_BYTE, U_SHORT, U_INT, U_LONG -> {
-                    val cVarType = when (kotlinType) {
-                        FLOAT -> FLOAT_VAR
-                        DOUBLE -> DOUBLE_VAR
-                        INT -> INT_VAR
-                        LONG -> LONG_VAR
-                        BYTE -> BYTE_VAR
-                        SHORT -> SHORT_VAR
-                        U_BYTE -> U_BYTE_VAR
-                        U_SHORT -> U_SHORT_VAR
-                        U_INT -> U_INT_VAR
-                        U_LONG -> U_LONG_VAR
-                        else -> error("Unknown type: $kotlinType")
+    private fun callBuiltinConstructorGeneric(constructorIndex: Int, args: List<MethodArg>): CodeBlock =
+        CodeBlock.builder().beginControlFlow("%M", memScoped).apply {
+            val ptrExprs = args.map { arg ->
+                val kotlinName = safeIdentifier(arg.name)
+                val varName = "${kotlinName}Var"
+                when (val kotlinType = typeResolver.resolve(arg.type, arg.meta)) {
+                    BOOLEAN -> {
+                        addStatement(
+                            "val %N = %M(%N)",
+                            varName,
+                            implPackageRegistry.memberNameForOrDefault("allocGdBool"),
+                            kotlinName,
+                        )
+                        CodeBlock.builder().addStatement("%N,", varName).build()
                     }
-                    addStatement("val $varName = %M<%T>()", cinteropAlloc, cVarType)
-                    addStatement("$varName.%M = $kotlinName", cinteropValue)
-                    CodeBlock.builder().addStatement("%N.%M,", varName, cinteropPtr).build()
+
+                    FLOAT, DOUBLE, INT, LONG, BYTE, SHORT, U_BYTE, U_SHORT, U_INT, U_LONG -> {
+                        val cVarType = primitiveKotlinToCVar(kotlinType) ?: error("Unsupported type: $kotlinType")
+                        addStatement("val %N = %M<%T>()", varName, cinteropAlloc, cVarType)
+                        addStatement("%N.%M = %N", varName, cinteropValue, kotlinName)
+                        CodeBlock.builder().addStatement("%N.%M,", varName, cinteropPtr).build()
+                    }
+
+                    else -> CodeBlock.builder().addStatement("%N.rawPtr,", kotlinName).build()
                 }
-
-                else -> CodeBlock.builder().addStatement("%N.rawPtr,", kotlinName).build()
             }
-        }
 
-        // Constructor lookup
-        addStatement("val constructor = %T.instance", implPackageRegistry.classNameForOrDefault("VariantBinding"))
-        indent()
-        addStatement(".getPtrConstructorRaw(")
-        indent()
-        addStatement("%N,", variantType)
-        addStatement("%L,", constructorIndex)
-        unindent()
-        addStatement(") ?: error(%S)", "Missing builtin constructor for $variantType[$constructorIndex]")
-        unindent()
+            val allocConstTypePtrArray = implPackageRegistry.memberNameForOrDefault("allocConstTypePtrArray")
 
-        val allocConstTypePtrArray = implPackageRegistry.memberNameForOrDefault("allocConstTypePtrArray")
-
-        // Invocation
-        if (ptrExprs.isEmpty()) {
-            addStatement("constructor.%M(rawPtr, %M())", cinteropInvoke, allocConstTypePtrArray)
-        } else {
-            addStatement("constructor.%M(", cinteropInvoke)
-            indent()
-            addStatement("rawPtr,")
-            addStatement("%M(", allocConstTypePtrArray)
-            indent()
-            add(ptrExprs.joinToCode(""))
-            unindent()
-            addStatement("),")
-            unindent()
-            addStatement(")")
-        }
-    }.endControlFlow().build()
+            // Reference the pre-cached top-level lazy val instead of inline lookup
+            // Invocation
+            if (ptrExprs.isEmpty()) {
+                addStatement(
+                    "constructorFptr_%L.%M(rawPtr, %M())",
+                    constructorIndex,
+                    cinteropInvoke,
+                    allocConstTypePtrArray,
+                )
+            } else {
+                addStatement("constructorFptr_%L.%M(", constructorIndex, cinteropInvoke)
+                withIndent {
+                    addStatement("rawPtr,")
+                    addStatement("%M(", allocConstTypePtrArray)
+                    withIndent {
+                        add(ptrExprs.joinToCode(""))
+                    }
+                    addStatement("),")
+                }
+                addStatement(")")
+            }
+        }.endControlFlow().build()
 
     /**
      * Simple variant for constructors whose args are all pre-built pointer expressions
      * (e.g. `rawPtr` of another builtin). No stack allocs needed.
      */
-    private fun callBuiltinConstructorSimple(
-        variantType: String,
-        constructorIndex: Int,
-        argExprs: String = "",
-    ): CodeBlock = CodeBlock
+    private fun callBuiltinConstructorSimple(constructorIndex: Int, argExprs: String = ""): CodeBlock = CodeBlock
         .builder()
         .beginControlFlow("%M", memScoped)
-        .addStatement(
-            "val constructor = %T.instance.getPtrConstructorRaw(",
-            implPackageRegistry.classNameForOrDefault("VariantBinding"),
-        )
-        .indent()
-        .addStatement("%N,", variantType)
-        .addStatement("%L,", constructorIndex)
-        .unindent()
-        .addStatement(") ?: error(%S)", "Missing builtin constructor for $variantType[$constructorIndex]")
-        .addStatement("constructor.%M(", cinteropInvoke)
+        .addStatement("constructorFptr_%L.%M(", constructorIndex, cinteropInvoke)
         .indent()
         .addStatement("rawPtr,")
         .addStatement("%M(%L),", implPackageRegistry.memberNameForOrDefault("allocConstTypePtrArray"), argExprs)
         .unindent()
         .addStatement(")")
         .endControlFlow()
-        .build()
-
-    private fun destroyBuiltin(variantType: String): CodeBlock = CodeBlock
-        .builder()
-        .addStatement("val destructor = %T.instance", implPackageRegistry.classNameForOrDefault("VariantBinding"))
-        .indent()
-        .addStatement(".getPtrDestructorRaw(%N)", variantType)
-        .addStatement("?: error(%S)", "Missing builtin destructor for $variantType")
-        .unindent()
-        .addStatement("destructor.%M(rawPtr)", cinteropInvoke)
         .build()
 
     // ── Member getters / setters ──────────────────────────────────────────────
