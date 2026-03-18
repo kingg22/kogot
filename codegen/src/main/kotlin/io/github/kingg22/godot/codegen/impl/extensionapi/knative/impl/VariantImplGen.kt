@@ -290,34 +290,29 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
         val variantOperatorClass = variantClassName.nestedClass("Operator")
 
         // ── getType() ─────────────────────────────────────────────────────────
-        classBuilder.addFunction(
-            FunSpec
-                .builder("getType")
-                .returns(variantTypeClass)
-                .addCode(
-                    CodeBlock
-                        .builder()
-                        .addStatement("val raw = %T.instance.getTypeRaw(rawPtr)", variantBinding)
-                        .addStatement(
-                            "return %T.entries.firstOrNull { it.value.toUInt() == raw.value } ?: %T.NIL",
-                            variantTypeClass,
-                            variantTypeClass,
-                        )
-                        .build(),
-                )
-                .build(),
-        )
+        val getTypeFun = FunSpec
+            .builder("getType")
+            .returns(variantTypeClass)
+            .addCode(
+                CodeBlock
+                    .builder()
+                    .addStatement("val raw = %T.instance.getTypeRaw(rawPtr)", variantBinding)
+                    .addStatement(
+                        "return %T.entries.firstOrNull { it.value.toUInt() == raw.value } ?: %T.NIL",
+                        variantTypeClass,
+                        variantTypeClass,
+                    )
+                    .build(),
+            )
+            .build()
+        classBuilder.addFunction(getTypeFun)
 
         // ── isNil() ───────────────────────────────────────────────────────────
         classBuilder.addFunction(
             FunSpec
                 .builder("isNil")
                 .returns(BOOLEAN)
-                .addStatement(
-                    "return %T.instance.getTypeRaw(rawPtr).value == %T.NIL.value.toUInt()",
-                    variantBinding,
-                    variantTypeClass,
-                )
+                .addStatement("return %N() == %T.NIL", getTypeFun, variantTypeClass)
                 .build(),
         )
 
