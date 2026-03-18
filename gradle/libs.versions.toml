@@ -37,7 +37,7 @@ nullaway-gradle = "3.0.0"
 
 # https://github.com/diffplug/spotless/blob/main/plugin-gradle/CHANGES.md
 # https://github.com/diffplug/spotless/releases
-spotless = "8.3.0"
+spotless = "8.4.0"
 
 # https://github.com/palantir/palantir-java-format/releases
 palantir = "2.86.0"
