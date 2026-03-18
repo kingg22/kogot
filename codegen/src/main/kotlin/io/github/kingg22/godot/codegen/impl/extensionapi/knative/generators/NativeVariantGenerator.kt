@@ -46,6 +46,7 @@ class NativeVariantGenerator(
         return createFile("Variant", context.packageForOrDefault("Variant")) {
             addType(spec.build())
             addFunctions(utilitiesFunctions)
+            addProperties(implGen.buildTopLevelFptrProperties(variantTypes))
         }
     }
 

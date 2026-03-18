@@ -10,6 +10,7 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.withIndent
 import io.github.kingg22.godot.codegen.impl.K_AUTOCLOSEABLE
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
@@ -201,72 +202,85 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
 
     // ── Typed subclass constructors ───────────────────────────────────────────
 
+    // Paso 1: obtener el constructorVariant (igual para todos los casos)
+    fun buildTopLevelFptrProperties(variantTypes: ResolvedEnum): List<PropertySpec> =
+        variantTypes.raw.values.mapNotNull { enumValue ->
+            val subclassName = enumValue.name.removePrefix("TYPE_")
+                .takeUnless { it == "MAX" || it == "NIL" } ?: return@mapNotNull null
+
+            PropertySpec
+                .builder(
+                    "constructorVariant$subclassName",
+                    implPackageRegistry.classNameForOrDefault("GDExtensionVariantFromTypeConstructorFunc"),
+                    KModifier.PRIVATE,
+                )
+                .delegate(
+                    buildLazyBlock {
+                        addStatement(
+                            "%T.instance.variantFromTypeConstructorRaw(%L)",
+                            implPackageRegistry.classNameForOrDefault("GetBinding"),
+                            "GDEXTENSION_VARIANT_TYPE_$subclassName",
+                        )
+                        withIndent {
+                            addStatement(
+                                "?: error(%S)",
+                                "Missing variant-from-type constructor for '$subclassName'",
+                            )
+                        }
+                    },
+                )
+                .build()
+        }
+
     /**
      * Augments a typed subclass builder's constructor with:
      * 1. A `callSuperConstructor(allocateBuiltinStorage(variantSize))` delegation.
      * 2. Returns a [CodeBlock] to use as the constructor's `init` block (or body).
      *
-     * Returns `null` for [subclassName]s that are not yet supported (e.g. `OBJECT`), so the
-     * caller can fall back to `TODO()`.
-     *
      * @param subclassName   The screaming-snake subclass name, e.g. `"BOOL"`, `"STRING"`.
      * @return The body block to use as the constructor's `init` block and the super call
      */
-    fun buildSubclassConstructorBody(subclassName: String): CodeBlock {
-        val getBinding = implPackageRegistry.classNameForOrDefault("GetBinding")
-        val variantTypeConst = "GDEXTENSION_VARIANT_TYPE_$subclassName"
-
-        return CodeBlock.builder().apply {
-            // Paso 1: obtener el converter (igual para todos los casos)
-            addStatement("val converter = %T.instance", getBinding)
-            indent()
-            addStatement(".variantFromTypeConstructorRaw(%L)", variantTypeConst)
-            addStatement(
-                "?: error(%S)",
-                "Missing variant-from-type constructor for '$subclassName'",
-            )
-            unindent()
-
-            // Paso 2: invocar converter(variantPtr, typePtr)
-            // La firma es siempre: (GDExtensionVariantPtr, GDExtensionTypePtr) → Unit
-            when (subclassName) {
-                "BOOL" -> {
-                    // Boolean necesita stack alloc como GDExtensionBool (UByte)
-                    beginControlFlow("%M", memScoped)
-                    addStatement(
-                        "val boolVar = %M(value)",
-                        implPackageRegistry.memberNameForOrDefault("allocGdBool"),
-                    )
-                    addStatement("converter.%M(rawPtr, boolVar)", cinteropInvoke)
-                    endControlFlow()
-                }
-
-                "INT" -> {
-                    // Long — stack alloc LongVar
-                    beginControlFlow("%M", memScoped)
-                    addStatement("val intVar = %M<%T>()", cinteropAlloc, LONG_VAR)
-                    addStatement("intVar.%M = value", cinteropValue)
-                    addStatement("converter.%M(rawPtr, intVar.%M)", cinteropInvoke, cinteropPtr)
-                    endControlFlow()
-                }
-
-                "FLOAT" -> {
-                    // Double — stack alloc DoubleVar
-                    beginControlFlow("%M", memScoped)
-                    addStatement("val floatVar = %M<%T>()", cinteropAlloc, DOUBLE_VAR)
-                    addStatement("floatVar.%M = value", cinteropValue)
-                    addStatement("converter.%M(rawPtr, floatVar.%M)", cinteropInvoke, cinteropPtr)
-                    endControlFlow()
-                }
-
-                else -> {
-                    // STRING, VECTOR2, STRING_NAME, etc.
-                    // value ya es un builtin con rawPtr — el converter copia directamente
-                    addStatement("converter.%M(rawPtr, value.rawPtr)", cinteropInvoke)
-                }
+    fun buildSubclassConstructorBody(subclassName: String): CodeBlock = CodeBlock.builder().apply {
+        // Paso 2: invocar constructorVariant(variantPtr, typePtr)
+        // La firma es siempre: (GDExtensionVariantPtr, GDExtensionTypePtr) → Unit
+        val constructor = "constructorVariant$subclassName"
+        when (subclassName) {
+            "BOOL" -> {
+                // Boolean necesita stack alloc como GDExtensionBool (UByte)
+                beginControlFlow("%M", memScoped)
+                addStatement(
+                    "val boolVar = %M(value)",
+                    implPackageRegistry.memberNameForOrDefault("allocGdBool"),
+                )
+                addStatement("%N.%M(rawPtr, boolVar)", constructor, cinteropInvoke)
+                endControlFlow()
             }
-        }.build()
-    }
+
+            "INT" -> {
+                // Long — stack alloc LongVar
+                beginControlFlow("%M", memScoped)
+                addStatement("val intVar = %M<%T>()", cinteropAlloc, LONG_VAR)
+                addStatement("intVar.%M = value", cinteropValue)
+                addStatement("%N.%M(rawPtr, intVar.%M)", constructor, cinteropInvoke, cinteropPtr)
+                endControlFlow()
+            }
+
+            "FLOAT" -> {
+                // Double — stack alloc DoubleVar
+                beginControlFlow("%M", memScoped)
+                addStatement("val floatVar = %M<%T>()", cinteropAlloc, DOUBLE_VAR)
+                addStatement("floatVar.%M = value", cinteropValue)
+                addStatement("%N.%M(rawPtr, floatVar.%M)", constructor, cinteropInvoke, cinteropPtr)
+                endControlFlow()
+            }
+
+            else -> {
+                // STRING, VECTOR2, STRING_NAME, etc.
+                // value ya es un builtin con rawPtr — el constructorVariant copia directamente
+                addStatement("%N.%M(rawPtr, value.rawPtr)", constructor, cinteropInvoke)
+            }
+        }
+    }.build()
 
     // ── Utility members ───────────────────────────────────────────────────────
 
