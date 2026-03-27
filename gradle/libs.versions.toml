@@ -24,7 +24,7 @@ kotlin = "2.3.20"
 kotlinx-serialization = "1.10.0"
 
 # https://github.com/square/kotlinpoet/releases
-kotlinpoet = "2.2.0"
+kotlinpoet = "2.3.0"
 
 # https://github.com/pinterest/ktlint/releases
 ktlint-pinterest = "1.8.0"
