@@ -365,9 +365,10 @@ class RuntimeFFIConvenienceGen {
         }
     }
 
-    private fun convenienceReturnTypeFor(iface: Interface): TypeName? = when (iface.returnValue?.type) {
+    context(resolver: RuntimeTypeResolver)
+    private fun convenienceReturnTypeFor(iface: Interface): TypeName? = when (val typeStr = iface.returnValue?.type) {
         "GDExtensionBool" -> BOOLEAN
-        else -> null
+        else -> typeStr?.let { resolver.resolveType(it) }
     }
 
     private fun booleanOutputArguments(arguments: List<Arguments>) = arguments.mapIndexedNotNull { index, argument ->
