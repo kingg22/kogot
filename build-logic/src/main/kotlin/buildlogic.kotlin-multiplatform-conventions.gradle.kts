@@ -14,6 +14,7 @@ kotlin {
         languageVersion.set(KotlinVersion.fromVersion(kotlinVersion.get()))
         apiVersion.set(languageVersion)
         optIn.add("kotlin.contracts.ExperimentalContracts")
+        freeCompilerArgs.addAll("-Xcontext-sensitive-resolution", "-Xreturn-value-checker=full")
         allWarningsAsErrors.set(true)
         extraWarnings.set(true)
     }

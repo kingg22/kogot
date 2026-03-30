@@ -15,7 +15,6 @@ kotlin {
             "io.github.kingg22.godot.api.ExperimentalGodotApi",
             "io.github.kingg22.godot.api.ExperimentalGodotKotlin",
         )
-        freeCompilerArgs.addAll("-Xcontext-sensitive-resolution")
     }
 
     @OptIn(ExperimentalKotlinGradlePluginApi::class)

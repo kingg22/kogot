@@ -18,6 +18,7 @@ kotlin {
         apiVersion.set(languageVersion)
         jvmDefault.set(JvmDefaultMode.NO_COMPATIBILITY)
         optIn.add("kotlin.contracts.ExperimentalContracts")
+        freeCompilerArgs.addAll("-Xcontext-sensitive-resolution", "-Xreturn-value-checker=full")
         allWarningsAsErrors.set(true)
         extraWarnings.set(true)
     }

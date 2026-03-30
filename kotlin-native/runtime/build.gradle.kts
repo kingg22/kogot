@@ -14,7 +14,6 @@ kotlin {
             "kotlinx.cinterop.ExperimentalForeignApi",
             "kotlin.experimental.ExperimentalNativeApi",
         )
-        freeCompilerArgs.addAll("-Xcontext-sensitive-resolution")
     }
 
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
