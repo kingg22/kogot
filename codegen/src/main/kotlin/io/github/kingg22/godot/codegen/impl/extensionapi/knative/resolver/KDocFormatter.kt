@@ -284,6 +284,7 @@ object KDocFormatter {
         return result.toString().trim()
     }
 
+    @IgnorableReturnValue
     private fun StringBuilder.ensureNewLine() = apply {
         if (isNotEmpty() && last() != '\n') append('\n')
     }

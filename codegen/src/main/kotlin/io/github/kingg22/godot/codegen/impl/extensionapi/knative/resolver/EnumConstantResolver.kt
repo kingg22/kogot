@@ -151,9 +151,10 @@ class EnumConstantResolver(
                 }
 
                 // Use a list — NOT a map — so duplicate numeric values are preserved in order.
-                enum.values.zip(constants) { constant, name ->
-                    enumList.add(constant.value to name)
+                val enumValues = enum.values.zip(constants) { constant, name ->
+                    constant.value to name
                 }
+                enumList.addAll(enumValues)
             }
 
             api.globalEnums.forEach { enum ->

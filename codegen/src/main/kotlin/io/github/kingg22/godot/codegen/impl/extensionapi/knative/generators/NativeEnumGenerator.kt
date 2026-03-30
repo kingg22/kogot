@@ -58,7 +58,7 @@ class NativeEnumGenerator {
                     "Constants: [${constants.joinToString()}]"
             }
 
-            descriptor.raw.values.zip(constants) { enumConstant, entryName ->
+            val _ = descriptor.raw.values.zip(constants) { enumConstant, entryName ->
                 withExceptionContext({ "Error generating enum constant '${enumConstant.name}' as $entryName" }) {
                     typeBuilder.addEnumConstant(
                         sanitizeTypeName(entryName),

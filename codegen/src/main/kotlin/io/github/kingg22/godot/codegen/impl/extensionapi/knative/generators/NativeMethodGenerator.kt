@@ -1,7 +1,6 @@
 package io.github.kingg22.godot.codegen.impl.extensionapi.knative.generators
 
 import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.Dynamic.isNullable
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
