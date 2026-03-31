@@ -92,7 +92,7 @@ class BuiltinClassImplGen(
 ) {
     private lateinit var implPackageRegistry: ImplementationPackageRegistry
 
-    fun todoBody() = delegate.todoBody()
+    fun todoBody(message: String?) = delegate.todoBody(message)
 
     fun initialize(implementationPackageRegistry: ImplementationPackageRegistry) {
         implPackageRegistry = implementationPackageRegistry

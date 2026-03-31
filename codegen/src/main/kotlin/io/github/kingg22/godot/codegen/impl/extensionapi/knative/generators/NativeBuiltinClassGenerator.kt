@@ -400,7 +400,7 @@ class NativeBuiltinClassGenerator(
             .apply {
                 if (name != "equals") addModifiers(KModifier.OPERATOR)
             }.returns(returnTypeName)
-            .addCode(body.todoBody())
+            .addCode(body.todoBody("Missing operator implementation: $name"))
             .addKdocIfPresent(operator)
 
         if (rightType != null) {
@@ -424,7 +424,7 @@ class NativeBuiltinClassGenerator(
             .addParameter("other", selfType)
             .returns(INT)
             .addKdoc("Supports `<`, `<=`, `>`, `>=` operators via Kotlin compareTo convention.")
-            .addCode(body.todoBody())
+            .addCode(body.todoBody("Missing operator implementation: compareTo"))
             .build()
     }
 
@@ -441,7 +441,7 @@ class NativeBuiltinClassGenerator(
         val builder = FunSpec
             .builder(safeName)
             .returns(returnTypeName)
-            .addCode(body.todoBody())
+            .addCode(body.todoBody("Missing operator implementation: $safeName"))
             .experimentalApiAnnotation(className, op.name)
             .addKdocIfPresent(op)
             .addKdoc("\nGodot operator: `%L`", op.name)
