@@ -2,7 +2,11 @@ package io.github.kingg22.godot.codegen.impl.extensionapi
 
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.resolver.EnumConstantResolver
 import io.github.kingg22.godot.codegen.impl.runtime.prefixOf
-import io.github.kingg22.godot.codegen.models.extensionapi.*
+import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
+import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClassMemberOffsets
+import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
+import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
+import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.GodotVersion
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedApiModel
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinClass
@@ -28,7 +32,6 @@ class Context(
     val extensionApi: ExtensionApi,
     val extensionInterface: GDExtensionInterface?,
     val model: ResolvedApiModel,
-    private val inheritanceTree: InheritanceTree,
     private val enumConstantResolver: EnumConstantResolver,
     private val experimentalTypesRegistry: ExperimentalTypesRegistry,
     val godotVersion: GodotVersion,
@@ -59,10 +62,6 @@ class Context(
         godotName in model.engineClassesByName || godotName in globalEnumsTypes
 
     fun isSpecializedClass(godotName: String): Boolean = godotName.endsWith('i') && isGodotType(godotName.dropLast(1))
-
-    fun directBase(godotName: String): String? = inheritanceTree.directBase(godotName)
-    fun allBases(godotName: String): List<String> = inheritanceTree.collectAllBases(godotName)
-    fun inherits(godotName: String, baseName: String): Boolean = inheritanceTree.inherits(godotName, baseName)
 
     fun resolveEnumConstant(parentClass: String?, enumName: String, value: Long): String? =
         enumConstantResolver.resolveConstant(parentClass, enumName, value)
@@ -132,7 +131,6 @@ class Context(
         ): Context {
             val godotVersion = GodotVersion(api.header)
             val buildConfiguration = options.resolveBuildConfiguration(api.header.precision)
-            val inheritanceTree = buildInheritanceTree(api)
             val enumResolver = EnumConstantResolver.build(api)
             val model = ResolvedApiModel(
                 buildConfiguration = buildConfiguration,
@@ -154,19 +152,12 @@ class Context(
                 extensionApi = api,
                 extensionInterface = extensionInterface,
                 model = model,
-                inheritanceTree = inheritanceTree,
                 enumConstantResolver = enumResolver,
                 experimentalTypesRegistry = experimentalTypesRegistry,
                 godotVersion = godotVersion,
                 packageRegistry = packageRegistry,
                 options = options,
             )
-        }
-
-        private fun buildInheritanceTree(api: ExtensionApi): InheritanceTree = InheritanceTree().also { tree ->
-            api.classes.forEach { cls ->
-                cls.inherits?.takeIf(String::isNotBlank)?.let { base -> tree.insert(derived = cls.name, base = base) }
-            }
         }
 
         private fun resolveBuiltins(
@@ -235,11 +226,39 @@ class Context(
             }
         }
 
+        /**
+         * Resuelve las clases de la API, recolectando recursivamente todos los miembros
+         * heredados de las clases padre.
+         */
         private fun resolveEngineClasses(api: ExtensionApi): List<ResolvedEngineClass> {
             val singletonNames = api.singletons.mapTo(hashSetOf()) { it.name }
-            return api.classes.map { cls ->
+
+            // Crear un mapa para búsqueda rápida por nombre
+            val classMap = api.classes.associateBy { it.name }
+
+            // Cache para evitar procesar la misma jerarquía múltiples veces
+            val resolvedCache = mutableMapOf<String, ResolvedEngineClass>()
+
+            fun resolveClass(cls: EngineClass): ResolvedEngineClass {
+                // Si ya está en cache (por ser padre de otra clase procesada antes), lo devolvemos
+                resolvedCache[cls.name]?.let { return it }
+
+                // 1. Resolver el padre primero (si existe)
+                val parent = cls.inherits?.let { parentName ->
+                    classMap[parentName]?.let { resolveClass(it) }
+                }
+
+                // 2. Combinar miembros: Miembros del padre + Miembros de la clase actual
+                // Nota: En Godot, usualmente no hay "overriding" en el JSON de la API que requiera
+                // filtrado complejo, pero usamos listas distintas para asegurar el orden (padre primero)
+
+                val allMethods = (parent?.allMethods ?: emptyList()) + cls.methods
+                val allProperties = (parent?.allProperties ?: emptyList()) + cls.properties
+                val allSignals = (parent?.allSignals ?: emptyList()) + cls.signals
+
                 val isSingleton = cls.name in singletonNames
-                ResolvedEngineClass(
+
+                val resolved = ResolvedEngineClass(
                     raw = cls,
                     isSingleton = isSingleton,
                     isSingletonExtensible = isSingleton && api.classes.any { it.inherits == cls.name },
@@ -251,8 +270,17 @@ class Context(
                             raw = enum,
                         )
                     },
+                    allMethods = allMethods,
+                    allProperties = allProperties,
+                    allSignals = allSignals,
                 )
+
+                resolvedCache[cls.name] = resolved
+                return resolved
             }
+
+            // Mapear todas las clases originales usando la función recursiva
+            return api.classes.map { resolveClass(it) }
         }
 
         private fun resolveGlobalEnums(api: ExtensionApi): List<ResolvedEnum> = api.globalEnums.map { enum ->

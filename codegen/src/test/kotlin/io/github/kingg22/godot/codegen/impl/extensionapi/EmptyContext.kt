@@ -11,16 +11,12 @@ import io.github.kingg22.godot.codegen.models.internal.CodegenOptions
 
 /** Special context for test */
 @Suppress("ktlint:standard:function-naming", "TestFunctionName")
-fun EmptyContext(
-    packageRegistry: PackageRegistry = StubsPackageRegistry(""),
-    tree: InheritanceTree = InheritanceTree(),
-): Context {
+fun EmptyContext(packageRegistry: PackageRegistry = StubsPackageRegistry("")): Context {
     val header = Header(0, 0, 0, "test", "test", "Test version", "single")
     return Context(
         extensionApi = ExtensionApi(header = header),
         enumConstantResolver = EnumConstantResolver.empty(),
         experimentalTypesRegistry = ExperimentalTypesRegistry.empty,
-        inheritanceTree = tree,
         godotVersion = GodotVersion(header),
         packageRegistry = packageRegistry,
         extensionInterface = null,
