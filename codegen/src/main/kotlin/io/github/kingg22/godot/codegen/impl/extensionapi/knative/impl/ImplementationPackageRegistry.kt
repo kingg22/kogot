@@ -45,6 +45,7 @@ class ImplementationPackageRegistry(packageStr: String, interfaceModel: GDExtens
         put("GDExtensionVariantFromTypeConstructorFunc", ffiPackage)
         put("GDExtensionPtrBuiltInMethod", ffiPackage)
         put("GDExtensionMethodBindPtr", ffiPackage)
+        put("GDExtensionPtrOperatorEvaluator", ffiPackage)
         put("checkGodotError", apiInternalPackage)
     }
 

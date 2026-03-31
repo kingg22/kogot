@@ -2,12 +2,15 @@ package io.github.kingg22.godot.codegen.impl.extensionapi.knative.impl
 
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.STAR
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.joinToCode
 import com.squareup.kotlinpoet.withIndent
 import io.github.kingg22.godot.codegen.impl.K_REQUIRE_NOT_NULL
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
+import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.C_OPAQUE_POINTER_VAR
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.DOUBLE_VAR
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.LONG_VAR
@@ -15,11 +18,13 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.knative.cinteropAlloc
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.cinteropInvoke
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.cinteropPtr
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.cinteropValue
+import io.github.kingg22.godot.codegen.impl.extensionapi.knative.generators.NativeBuiltinClassGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.memScoped
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
+import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinClass
 
 /**
  * Generates lazy-loaded fptr properties and invocation bodies for builtin class methods.
@@ -33,7 +38,7 @@ import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
  * The fptr is loaded via `VariantBinding.instance.getPtrBuiltinMethodRaw(variantType, name, hash)`.
  * Properties are emitted as top-level `private val` lazy delegates in the class file.
  */
-class BuiltinMethodImplGen {
+class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
     private lateinit var implPackageRegistry: ImplementationPackageRegistry
 
     fun initialize(implRegistry: ImplementationPackageRegistry) {
@@ -94,6 +99,292 @@ class BuiltinMethodImplGen {
         return buildFixedArgsBody(method, propName)
     }
 
+    // ── Operator bodies & fptr naming ────────────────────────────────────────
+
+    /**
+     * Stable name for the top-level lazy fptr property of a Godot operator evaluator.
+     * Format: `operatorFptr_<OP>_<RIGHT>` — e.g. `operatorFptr_ADD_Vector2`, `operatorFptr_NEGATE_NIL`.
+     */
+    fun operatorFptrName(op: BuiltinClass.Operator): String {
+        val opPart = when (op.name) {
+            "==" -> "EQUAL"
+            "!=" -> "NOT_EQUAL"
+            "<" -> "LESS"
+            "<=" -> "LESS_EQUAL"
+            ">" -> "GREATER"
+            ">=" -> "GREATER_EQUAL"
+            "+" -> "ADD"
+            "-" -> "SUBTRACT"
+            "*" -> "MULTIPLY"
+            "/" -> "DIVIDE"
+            "%" -> "MODULE"
+            "unary-" -> "NEGATE"
+            "unary+" -> "POSITIVE"
+            "not" -> "NOT"
+            "in" -> "IN"
+            else -> safeIdentifier(op.name)
+        }
+        if (opPart == "EQUAL" || opPart == "NOT_EQUAL") return "operatorFptr_$opPart"
+        val rightPart = op.rightType?.let { safeIdentifier(it) } ?: "NIL"
+        return "operatorFptr_${opPart}_$rightPart"
+    }
+
+    fun godotOpToVariantOp(symbol: String): String? = when (symbol) {
+        "==" -> "GDEXTENSION_VARIANT_OP_EQUAL"
+        "<" -> "GDEXTENSION_VARIANT_OP_LESS"
+        "<=" -> "GDEXTENSION_VARIANT_OP_LESS_EQUAL"
+        ">" -> "GDEXTENSION_VARIANT_OP_GREATER"
+        ">=" -> "GDEXTENSION_VARIANT_OP_GREATER_EQUAL"
+        "+" -> "GDEXTENSION_VARIANT_OP_ADD"
+        "-" -> "GDEXTENSION_VARIANT_OP_SUBTRACT"
+        "*" -> "GDEXTENSION_VARIANT_OP_MULTIPLY"
+        "/" -> "GDEXTENSION_VARIANT_OP_DIVIDE"
+        "%" -> "GDEXTENSION_VARIANT_OP_MODULE"
+        "unary-" -> "GDEXTENSION_VARIANT_OP_NEGATE"
+        "unary+" -> "GDEXTENSION_VARIANT_OP_POSITIVE"
+        "not" -> "GDEXTENSION_VARIANT_OP_NOT"
+        "in" -> "GDEXTENSION_VARIANT_OP_IN"
+        else -> null
+    }
+
+    /**
+     * Builds the invocation body for a Godot operator evaluator.
+     *
+     * GDExtension evaluator signature: `(p_left, p_right, r_return) → Unit`
+     *
+     * - **equals**: emits `if (other !is T) return false` before `memScoped` (Kotlin's `Any?` signature).
+     * - **Unary** (`rightType == null`): passes `null` for `p_right`.
+     * - **Primitive right** (`int`, `float`, `bool`): stack-allocates a `*Var` inside `memScoped`.
+     * - **Builtin right**: passes `other.rawPtr`.
+     *
+     * `memScoped` is `inline`, so `return` inside the block returns from the enclosing Kotlin fun.
+     */
+    context(ctx: Context)
+    fun buildOperatorBody(
+        op: BuiltinClass.Operator,
+        kotlinOpName: String,
+        resolvedClass: ResolvedBuiltinClass,
+    ): CodeBlock = buildCodeBlock {
+        // equals guard must be outside memScoped (early return, different type)
+        if (kotlinOpName == "equals") {
+            requireNotNull(op.rightType) { "equals operator must have a right type" }
+
+            // Find all valid right types for comparison (the primary one + any overloads)
+            val validTypes = mutableListOf(op.rightType)
+            resolvedClass.raw.operators
+                .filter { it.name == "==" && it.rightType != null && it.rightType != op.rightType }
+                .forEach { validTypes.add(it.rightType!!) }
+
+            // Combine all types into a single "if (!(other is Type1 || other is Type2)) return false" check
+            val condition = validTypes.joinToCode(" || ") { type ->
+                val otherType = when {
+                    type.equals("Array", true) ->
+                        ctx.classNameForOrDefault("Array", typedClass = true).parameterizedBy(STAR)
+
+                    type.equals("Dictionary", true) ->
+                        ctx.classNameForOrDefault("Dictionary", typedClass = true).parameterizedBy(STAR, STAR)
+
+                    else -> typeResolver.resolve(type)
+                }
+                CodeBlock.of("other is %T", otherType)
+            }
+
+            addStatement("if (!(%L)) return false", condition)
+        }
+
+        beginControlFlow("return %M", memScoped)
+
+        // ── r_return allocation ───────────────────────────────────────────
+        when {
+            op.returnType == "bool" -> addStatement(
+                "val retPtr = %M()",
+                implPackageRegistry.memberNameForOrDefault("allocGdBool"),
+            )
+
+            op.returnType == "float" || op.returnType == "double" -> addStatement(
+                "val retPtr = %M<%T>()",
+                cinteropAlloc,
+                DOUBLE_VAR,
+            )
+
+            op.returnType == "int" -> addStatement("val retPtr = %M<%T>()", cinteropAlloc, LONG_VAR)
+
+            ctx.isBuiltin(op.returnType) -> addStatement(
+                "val retPtr = %T()",
+                ctx.classNameForOrDefault(op.returnType.renameGodotClass()),
+            )
+
+            else -> addStatement("val retPtr = %M<%T>()", cinteropAlloc, C_OPAQUE_POINTER_VAR)
+        }
+
+        // ── p_right allocation & expression ──────────────────────────────
+        // pRightExpr: the literal to pass as p_right in the invoke call.
+        // Sentinel "otherVar.PTR" means we need cinteropPtr substitution in invoke.
+        val pRightNeedsPtr: Boolean
+        val pRightLiteral: String
+        when (op.rightType) {
+            null -> {
+                pRightNeedsPtr = false
+                pRightLiteral = "null"
+            }
+
+            "float", "double" -> {
+                addStatement("val otherVar = %M<%T>()", cinteropAlloc, DOUBLE_VAR)
+                addStatement("otherVar.%M = other", cinteropValue)
+                pRightNeedsPtr = true
+                pRightLiteral = "otherVar"
+            }
+
+            "int" -> {
+                addStatement("val otherVar = %M<%T>()", cinteropAlloc, LONG_VAR)
+                addStatement("otherVar.%M = other", cinteropValue)
+                pRightNeedsPtr = true
+                pRightLiteral = "otherVar"
+            }
+
+            "bool" -> {
+                addStatement(
+                    "val otherVar = %M(other)",
+                    implPackageRegistry.memberNameForOrDefault("allocGdBool"),
+                )
+                pRightNeedsPtr = false
+                pRightLiteral = "otherVar"
+            }
+
+            else -> {
+                pRightNeedsPtr = false
+                pRightLiteral = "other.rawPtr"
+            }
+        }
+
+        // ── r_return expression ───────────────────────────────────────────
+        val rReturnNeedsPtr: Boolean
+        val rReturnLiteral: String
+
+        when {
+            op.returnType == "bool" -> {
+                rReturnNeedsPtr = false
+                rReturnLiteral = "retPtr"
+            }
+
+            op.returnType == "float" || op.returnType == "double" || op.returnType == "int" -> {
+                rReturnNeedsPtr = true
+                rReturnLiteral = "retPtr"
+            }
+
+            ctx.isBuiltin(op.returnType) -> {
+                rReturnNeedsPtr = false
+                rReturnLiteral = "retPtr.rawPtr"
+            }
+
+            else -> {
+                rReturnNeedsPtr = true
+                rReturnLiteral = "retPtr"
+            }
+        }
+
+        val fptrName = operatorFptrName(op)
+
+        // ── invoke ────────────────────────────────────────────────────────
+        when {
+            pRightNeedsPtr && rReturnNeedsPtr -> addStatement(
+                "%N.%M(rawPtr, %L.%M, %L.%M)",
+                fptrName,
+                cinteropInvoke,
+                pRightLiteral,
+                cinteropPtr,
+                rReturnLiteral,
+                cinteropPtr,
+            )
+
+            pRightNeedsPtr && !rReturnNeedsPtr -> addStatement(
+                "%N.%M(rawPtr, %L.%M, %L)",
+                fptrName,
+                cinteropInvoke,
+                pRightLiteral,
+                cinteropPtr,
+                rReturnLiteral,
+            )
+
+            !pRightNeedsPtr && rReturnNeedsPtr -> addStatement(
+                "%N.%M(rawPtr, %L, %L.%M)",
+                fptrName,
+                cinteropInvoke,
+                pRightLiteral,
+                rReturnLiteral,
+                cinteropPtr,
+            )
+
+            else -> addStatement(
+                "%N.%M(rawPtr, %L, %L)",
+                fptrName,
+                cinteropInvoke,
+                pRightLiteral,
+                rReturnLiteral,
+            )
+        }
+
+        // ── return ────────────────────────────────────────────────────────
+        when {
+            op.returnType == "bool" -> addStatement(
+                "retPtr.%M()",
+                implPackageRegistry.memberNameForOrDefault("readGdBool"),
+            )
+
+            op.returnType == "float" || op.returnType == "double" || op.returnType == "int" -> addStatement(
+                "retPtr.%M",
+                cinteropValue,
+            )
+
+            ctx.isBuiltin(op.returnType) -> addStatement("retPtr")
+
+            else -> addStatement("retPtr.%M", cinteropValue)
+        }
+
+        endControlFlow()
+    }
+
+    /**
+     * Builds the `compareTo(other: T): Int` body using only the `<` (LESS) fptr.
+     *
+     * Invokes the same LESS evaluator twice — once normal, once with args swapped — to
+     * determine ordering without loading all four comparison fptrs. `memScoped` is `inline`,
+     * so `return -1` / `return 1` return directly from the enclosing `compareTo` function.
+     *
+     * ```kotlin
+     * memScoped {
+     *     val retPtr = allocGdBool()
+     *     operatorFptr_LESS_T.invoke(rawPtr, other.rawPtr, retPtr)   // this < other?
+     *     if (retPtr.readGdBool()) return -1
+     *     operatorFptr_LESS_T.invoke(other.rawPtr, rawPtr, retPtr)   // other < this?
+     *     if (retPtr.readGdBool()) return 1
+     *     0
+     * }
+     * ```
+     */
+    context(_: Context)
+    fun buildCompareToBody(builtinClass: ResolvedBuiltinClass): CodeBlock {
+        // Prefer homogeneous same-type < operator; fall back to any < operator
+        val lessOp = builtinClass.raw.operators.firstOrNull {
+            it.name == "<" && it.rightType == builtinClass.name
+        } ?: builtinClass.raw.operators.firstOrNull { it.name == "<" }
+            ?: error("No '<' operator found for ${builtinClass.name} — cannot generate compareTo body")
+
+        val fptrName = operatorFptrName(lessOp)
+        requireNotNull(lessOp.rightType) { "Expected '<' operator with right type for ${builtinClass.name}" }
+
+        return buildCodeBlock {
+            beginControlFlow("return %M", memScoped)
+                .addStatement("val retPtr = %M()", implPackageRegistry.memberNameForOrDefault("allocGdBool"))
+                .addStatement("%N.%M(rawPtr, other.rawPtr, retPtr)", fptrName, cinteropInvoke)
+                .addStatement("if (retPtr.%M()) return -1", implPackageRegistry.memberNameForOrDefault("readGdBool"))
+                .addStatement("%N.%M(other.rawPtr, rawPtr, retPtr)", fptrName, cinteropInvoke)
+                .addStatement("if (retPtr.%M()) return 1", implPackageRegistry.memberNameForOrDefault("readGdBool"))
+                .addStatement("0")
+            endControlFlow()
+        }
+    }
+
     context(ctx: Context)
     private fun buildFixedArgsBody(method: BuiltinClass.BuiltinMethod, propName: String): CodeBlock = buildCodeBlock {
         val returnType = method.returnType
@@ -128,9 +419,15 @@ class BuiltinMethodImplGen {
         }
 
         // 4. Invoke
-        val argExpressions = method.arguments.joinToCode("") { arg -> argPointerExpression(arg) }
+        val argExpressions = method.arguments.joinToCode("") { arg -> argPointerExpression(arg) }.let {
+            if (method.isVararg) {
+                it.toBuilder().addStatement("*args.map·{·it.rawPtr·}.toTypedArray(),").build()
+            } else {
+                it
+            }
+        }
 
-        if (method.arguments.isEmpty()) {
+        if (argExpressions.isEmpty()) {
             if (rReturn == "retPtr.%M" || rReturn == "retPtr.%M.%M()") {
                 addStatement(
                     "%N.%M(%L, null, retPtr.%M, 0)",
@@ -274,8 +571,8 @@ class BuiltinMethodImplGen {
         else -> CodeBlock.ofStatement("retPtr")
     }
 
-    private fun isGodotPrimitive(type: String) = type == "float" || type == "double" || type == "int" || type == "bool"
+    private fun isGodotPrimitive(type: String) = NativeBuiltinClassGenerator.SKIPPED_TYPES.contains(type)
 
-    fun methodFptrName(className: String, method: BuiltinClass.BuiltinMethod): String =
+    private fun methodFptrName(className: String, method: BuiltinClass.BuiltinMethod): String =
         "method${className}${safeIdentifier(method.name).replaceFirstChar(Char::uppercase)}_${method.hash.toULong()}_Fn"
 }

@@ -18,7 +18,7 @@ import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeImplGenerator.ImplGenerator {
     private lateinit var implPackageRegistry: ImplementationPackageRegistry
     private val bodyGenerator = BodyGenerator
-    private val builtinClassImplGen = BuiltinClassImplGen(bodyGenerator, typeResolver, BuiltinMethodImplGen())
+    private val builtinClassImplGen = BuiltinClassImplGen(typeResolver, BuiltinMethodImplGen(typeResolver))
     private val defaultValue = DefaultValueGenerator(typeResolver)
     private val methodGenerator = NativeMethodGenerator(typeResolver, bodyGenerator, defaultValue)
     private val genericInterceptor = GenericBuiltinInterceptor(typeResolver)

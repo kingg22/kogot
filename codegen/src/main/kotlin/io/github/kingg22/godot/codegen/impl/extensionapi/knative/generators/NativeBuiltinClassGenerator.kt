@@ -1,5 +1,7 @@
 package io.github.kingg22.godot.codegen.impl.extensionapi.knative.generators
 
+import com.squareup.kotlinpoet.ANY
+import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.INT
@@ -47,7 +49,7 @@ class NativeBuiltinClassGenerator(
          * Godot builtin "types" that map to Kotlin primitives — no class is generated for these.
          * Operators/constructors for them are handled via extension functions or typealiases.
          */
-        val SKIPPED_TYPES = setOf("int", "float", "bool", "nil")
+        val SKIPPED_TYPES = setOf("int", "float", "bool", "nil", "double")
 
         /**
          * Maps Godot operator symbols to Kotlin operator function names.
@@ -214,7 +216,19 @@ class NativeBuiltinClassGenerator(
         }
 
         // ── Operators ────────────────────────────────────────────────────────
-        classBuilder.addFunctions(generateOperators(raw, genericConfig))
+        classBuilder.addFunctions(generateOperators(builtinClass, genericConfig))
+
+        // Si se generó equals, generar también hashCode stub
+        if (raw.operators.any { it.name == "==" || it.name == "!=" }) {
+            classBuilder.addFunction(
+                FunSpec
+                    .builder("hashCode")
+                    .addModifiers(KModifier.OVERRIDE)
+                    .returns(INT)
+                    .addCode(BodyGenerator.todoBody("hashCode not yet implemented"))
+                    .build(),
+            )
+        }
 
         // ── Instance methods ──────────────────────────────────────────────────
         val (staticMethods, instanceMethods) = raw.methods.partition { it.isStatic }
@@ -331,39 +345,48 @@ class NativeBuiltinClassGenerator(
     }
 
     // ── Operator generation ───────────────────────────────────────────────────
+
     context(_: Context)
     private fun generateOperators(
-        builtinClass: BuiltinClass,
+        resolvedClass: ResolvedBuiltinClass,
         genericConfig: GenericBuiltinInterceptor.GenericConfig?,
     ): List<FunSpec> {
-        val result = mutableListOf<FunSpec>()
+        val builtinClass = resolvedClass.raw
         var compareToGenerated = false
+        var equalsGenerated = false
 
-        // Group operators by symbol to handle overloads (e.g. * with int and with Vector2)
-        for (op in builtinClass.operators) {
+        // Group operators by symbol to handle overloads (e.g., * with int and with Vector2)
+        return builtinClass.operators.filter { it.name != "!=" }.mapNotNull { op ->
             val symbol = op.name
             val kotlinOpName = OPERATOR_MAP[symbol]
 
             when {
                 // compareTo covers <, <=, >, >= — generate once, first occurrence wins
                 symbol in COMPARE_OPERATORS -> {
-                    if (!compareToGenerated) {
-                        result += buildCompareToOperator(builtinClass)
-                        compareToGenerated = true
-                    }
+                    if (compareToGenerated) return@mapNotNull null
+                    compareToGenerated = true
+                    buildCompareToOperator(resolvedClass)
                 }
 
                 // != is derived from equals in Kotlin — skip
-                symbol == "!=" -> Unit
+                symbol == "!=" -> null
 
                 // Recognized operator with a Kotlin keyword
                 kotlinOpName != null -> {
-                    result += buildKotlinOperator(
+                    if (kotlinOpName == "equals") {
+                        if (equalsGenerated) {
+                            return@mapNotNull null
+                        } else {
+                            equalsGenerated = true
+                        }
+                    }
+                    buildKotlinOperator(
                         name = kotlinOpName,
                         rightType = op.rightType,
                         returnType = op.returnType,
                         genericConfig = genericConfig,
                         operator = op,
+                        cls = resolvedClass,
                     )
                 }
 
@@ -372,12 +395,10 @@ class NativeBuiltinClassGenerator(
                     println(
                         "WARNING: Unknown operator found ${builtinClass.name}.${op.name}(${op.rightType.orEmpty()}): ${op.returnType}",
                     )
-                    result += buildFallbackOperatorMethod(op, builtinClass.name)
+                    buildFallbackOperatorMethod(op, builtinClass.name, resolvedClass)
                 }
             }
         }
-
-        return result
     }
 
     /** Builds a standard Kotlin operator fun (plus, minus, times, equals, not, etc). */
@@ -388,26 +409,31 @@ class NativeBuiltinClassGenerator(
         returnType: String,
         genericConfig: GenericBuiltinInterceptor.GenericConfig?,
         operator: BuiltinClass.Operator,
+        cls: ResolvedBuiltinClass,
     ): FunSpec {
         val originalReturnType = typeResolver.resolve(returnType)
-
-        // Transformar tipo de retorno si hay config genérica
         val returnTypeName = genericConfig?.transformOperatorReturnType(operator, originalReturnType)
             ?: originalReturnType
 
         val builder = FunSpec
             .builder(name)
-            .apply {
-                if (name != "equals") addModifiers(KModifier.OPERATOR)
-            }.returns(returnTypeName)
-            .addCode(body.todoBody("Missing operator implementation: $name"))
             .addKdocIfPresent(operator)
 
-        if (rightType != null) {
-            val rightTypeName = typeResolver.resolve(rightType)
-            builder.addParameter("other", rightTypeName)
+        if (name == "equals") {
+            // Must override Any.equals — parameter is Any? not the specific type
+            builder.addModifiers(KModifier.OVERRIDE)
+            builder.returns(BOOLEAN)
+            builder.addParameter("other", ANY.copy(nullable = true))
+        } else {
+            builder.addModifiers(KModifier.OPERATOR)
+            builder.returns(returnTypeName)
+            if (rightType != null) {
+                val rightTypeName = typeResolver.resolve(rightType)
+                builder.addParameter("other", rightTypeName)
+            }
         }
 
+        builder.addCode(body.buildOperatorBody(operator, name, cls))
         return builder.build()
     }
 
@@ -416,15 +442,15 @@ class NativeBuiltinClassGenerator(
      * Kotlin derives <, <=, >, >= from a single compareTo.
      */
     context(_: Context)
-    private fun buildCompareToOperator(builtinClass: BuiltinClass): FunSpec {
-        val selfType = typeResolver.resolve(builtinClass.name)
+    private fun buildCompareToOperator(resolvedClass: ResolvedBuiltinClass): FunSpec {
+        val selfType = typeResolver.resolve(resolvedClass.name)
         return FunSpec
             .builder("compareTo")
             .addModifiers(KModifier.OPERATOR)
             .addParameter("other", selfType)
             .returns(INT)
             .addKdoc("Supports `<`, `<=`, `>`, `>=` operators via Kotlin compareTo convention.")
-            .addCode(body.todoBody("Missing operator implementation: compareTo"))
+            .addCode(body.buildCompareToBody(resolvedClass))
             .build()
     }
 
@@ -435,13 +461,17 @@ class NativeBuiltinClassGenerator(
      * Binary ops become `infix fun`, unary ops become regular funs.
      */
     context(_: Context)
-    private fun buildFallbackOperatorMethod(op: BuiltinClass.Operator, className: String): FunSpec {
-        val safeName = safeIdentifier(op.name) // .replace(" ", "_")
+    private fun buildFallbackOperatorMethod(
+        op: BuiltinClass.Operator,
+        className: String,
+        cls: ResolvedBuiltinClass,
+    ): FunSpec {
+        val safeName = safeIdentifier(op.name)
         val returnTypeName = typeResolver.resolve(op.returnType)
         val builder = FunSpec
             .builder(safeName)
             .returns(returnTypeName)
-            .addCode(body.todoBody("Missing operator implementation: $safeName"))
+            .addCode(body.buildOperatorBody(op, safeName, cls))
             .experimentalApiAnnotation(className, op.name)
             .addKdocIfPresent(op)
             .addKdoc("\nGodot operator: `%L`", op.name)

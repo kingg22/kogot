@@ -5,7 +5,6 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.*
-import io.github.kingg22.godot.codegen.impl.extensionapi.knative.generators.BodyGenerator
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
@@ -40,7 +39,11 @@ private val STORAGE_BACKED_BUILTINS = setOf(
 )
 
 /** Explicit map of Godot class name → GDEXTENSION_VARIANT_TYPE_* constant. */
-private fun variantTypeConst(godotName: String): String = when (godotName) {
+private fun variantTypeConst(godotName: String?): String? = when (godotName) {
+    "nil", "null", null -> "GDEXTENSION_VARIANT_TYPE_NIL"
+    "bool" -> "GDEXTENSION_VARIANT_TYPE_BOOL"
+    "int" -> "GDEXTENSION_VARIANT_TYPE_INT"
+    "float" -> "GDEXTENSION_VARIANT_TYPE_FLOAT"
     "String" -> VARIANT_TYPE_STRING
     "StringName" -> VARIANT_TYPE_STRING_NAME
     "NodePath" -> VARIANT_TYPE_NODE_PATH
@@ -75,7 +78,7 @@ private fun variantTypeConst(godotName: String): String = when (godotName) {
     "PackedVector3Array" -> "GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR3_ARRAY"
     "PackedColorArray" -> "GDEXTENSION_VARIANT_TYPE_PACKED_COLOR_ARRAY"
     "PackedVector4Array" -> "GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR4_ARRAY"
-    else -> error("Unknown builtin class name for variantTypeConst: $godotName")
+    else -> null
 }
 
 /**
@@ -85,14 +88,8 @@ private fun variantTypeConst(godotName: String): String = when (godotName) {
  * their `meta` hint (e.g. `meta:"int32"` → `Int`, `meta:"float"` → `Float`) before deciding
  * which `*Var` stack allocation to emit inside a `memScoped` block.
  */
-class BuiltinClassImplGen(
-    private val delegate: BodyGenerator,
-    private val typeResolver: TypeResolver,
-    private val methodImplGen: BuiltinMethodImplGen,
-) {
+class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val methodImplGen: BuiltinMethodImplGen) {
     private lateinit var implPackageRegistry: ImplementationPackageRegistry
-
-    fun todoBody(message: String?) = delegate.todoBody(message)
 
     fun initialize(implementationPackageRegistry: ImplementationPackageRegistry) {
         implPackageRegistry = implementationPackageRegistry
@@ -101,11 +98,12 @@ class BuiltinClassImplGen(
 
     // ── Storage infrastructure ────────────────────────────────────────────────
 
+    context(ctx: Context)
     fun configureStorageBackedBuiltin(
         builtinClass: ResolvedBuiltinClass,
         classBuilder: TypeSpec.Builder,
-    ): TypeSpec.Builder = classBuilder.apply {
-        if (builtinClass.name !in STORAGE_BACKED_BUILTINS) return@apply
+    ): TypeSpec.Builder {
+        if (builtinClass.name !in STORAGE_BACKED_BUILTINS) return classBuilder
 
         val layout = builtinClass.layout
             ?: error("Missing layout for storage-backed builtin '${builtinClass.name}'")
@@ -145,12 +143,16 @@ class BuiltinClassImplGen(
             )
         }
 
-        classBuilder.addProperty(
-            PropertySpec
-                .builder("rawPtr", COPAQUE_POINTER)
-                .getter(FunSpec.getterBuilder().addStatement("return %N", storageProperty).build())
-                .build(),
-        )
+        classBuilder
+            .addSuperinterface(ctx.classNameForOrDefault("GodotNative"))
+            .addProperty(
+                PropertySpec
+                    .builder("rawPtr", COPAQUE_POINTER, KModifier.OVERRIDE)
+                    .getter(FunSpec.getterBuilder().addStatement("return %N", storageProperty).build())
+                    .build(),
+            )
+
+        return classBuilder
     }
 
     // ── close() ───────────────────────────────────────────────────────────────
@@ -236,7 +238,7 @@ class BuiltinClassImplGen(
     ): List<PropertySpec> {
         if (builtinClass.name !in STORAGE_BACKED_BUILTINS) return emptyList()
 
-        val variantType = variantTypeConst(builtinClass.name)
+        val variantType = variantTypeConst(builtinClass.name) ?: error("Unknown variant type: ${builtinClass.name}")
         val variantBinding = implPackageRegistry.classNameForOrDefault("VariantBinding")
         val stringNameClass = ctx.classNameForOrDefault("StringName")
 
@@ -352,6 +354,45 @@ class BuiltinClassImplGen(
             builtinClass.raw.methods.forEach { method ->
                 add(methodImplGen.buildMethodFptrProperty(method, variantType, builtinClass.name))
             }
+
+            // ── Operator evaluator fptrs ──────────────────────────────────────────────
+            var generatedEquals = false
+            builtinClass.raw.operators
+                .filter { it.name != "!=" } // != derived from equals; Kotlin never calls this fptr
+                .forEach { op ->
+                    if (op.name == "==") {
+                        if (generatedEquals) return@forEach
+                        generatedEquals = true
+                    }
+                    val variantOp = methodImplGen.godotOpToVariantOp(op.name) ?: return@forEach
+                    val rightVariantType = variantTypeConst(op.rightType) ?: "GDEXTENSION_VARIANT_TYPE_NIL"
+                    add(
+                        PropertySpec
+                            .builder(
+                                methodImplGen.operatorFptrName(op),
+                                implPackageRegistry.classNameForOrDefault("GDExtensionPtrOperatorEvaluator"),
+                                KModifier.PRIVATE,
+                            )
+                            .delegate(
+                                buildLazyBlock {
+                                    addStatement(
+                                        "%T.instance.getPtrOperatorEvaluatorRaw(%N, %N, %N)",
+                                        variantBinding,
+                                        variantOp,
+                                        variantType,
+                                        rightVariantType,
+                                    )
+                                    withIndent {
+                                        addStatement(
+                                            "?: error(%S)",
+                                            "Missing operator evaluator ${builtinClass.name}.${op.name}(${op.rightType.orEmpty()})",
+                                        )
+                                    }
+                                },
+                            )
+                            .build(),
+                    )
+                }
         }
     }
 
@@ -677,4 +718,11 @@ class BuiltinClassImplGen(
             ?: error("Cannot resolve size for compound member type '$godotType'")
         return layout.size
     }
+
+    context(_: Context)
+    fun buildOperatorBody(operator: BuiltinClass.Operator, safeName: String, resolvedClass: ResolvedBuiltinClass) =
+        methodImplGen.buildOperatorBody(operator, safeName, resolvedClass)
+
+    context(_: Context)
+    fun buildCompareToBody(resolvedClass: ResolvedBuiltinClass) = methodImplGen.buildCompareToBody(resolvedClass)
 }
