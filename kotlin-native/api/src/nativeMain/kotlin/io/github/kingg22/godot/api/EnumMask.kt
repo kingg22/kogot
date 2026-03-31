@@ -10,9 +10,10 @@ package io.github.kingg22.godot.api
  * @property flags The bitfield value.
  * @constructor Creates a new EnumMask instance. Prefers extension and companion methods.
  */
-public value class EnumMask<T> @ExperimentalGodotKotlin constructor(
-    public val flags: Long,
-) where T : GodotEnum, T : Enum<T> {
+public value class EnumMask<T> @ExperimentalGodotKotlin constructor(public val flags: Long) :
+    GodotEnum
+    where T : GodotEnum, T : Enum<T> {
+    override val value: Long get() = flags
 
     /** Bitwise OR between both enums */
     public inline infix fun or(other: T): EnumMask<T> = EnumMask(flags or other.value)
