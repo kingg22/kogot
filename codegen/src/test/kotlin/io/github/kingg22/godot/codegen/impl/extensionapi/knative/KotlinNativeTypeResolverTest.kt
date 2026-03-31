@@ -33,7 +33,7 @@ class KotlinNativeTypeResolverTest {
         // Si llega al resolver como tipo raw, debe lanzar excepción.
         val exception = assertThrows<IllegalStateException> {
             context(testContext) {
-                resolver.resolve("required")
+                val _ = resolver.resolve("required")
             }
         }
 
