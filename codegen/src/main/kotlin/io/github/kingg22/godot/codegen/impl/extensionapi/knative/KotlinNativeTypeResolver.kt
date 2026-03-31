@@ -292,7 +292,8 @@ class KotlinNativeTypeResolver : TypeResolver {
 
         else -> {
             // unknown meta → fall back
-            println("WARNING: Unknown meta type: '$meta', fallback to type: '$baseType'")
+            // FIXME: enable with logger.debug/verbose
+            // println("WARNING: Unknown meta type: '$meta', fallback to type: '$baseType'")
             resolve(baseType)
         }
     }

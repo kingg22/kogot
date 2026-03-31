@@ -22,10 +22,16 @@ internal inline fun <T> withExceptionContext(metadata: () -> String, block: () -
     throw RuntimeException(metadata(), e)
 }
 
-fun createFile(type: TypeSpec, fileName: String, packageName: String): FileSpec = FileSpec
+fun createFile(
+    type: TypeSpec,
+    fileName: String,
+    packageName: String,
+    block: FileSpec.Builder.() -> Unit = {},
+): FileSpec = FileSpec
     .builder(packageName, fileName)
     .commonConfiguration()
     .addType(type)
+    .apply(block)
     .build()
 
 fun createFile(fileName: String, packageName: String, block: FileSpec.Builder.() -> Unit): FileSpec = FileSpec
@@ -43,10 +49,14 @@ fun FileSpec.Builder.commonConfiguration() = apply {
             .addMember("%S", "ktlint")
             .addMember("%S", "detekt:all")
             .addMember("%S", "ClassName")
+            .addMember("%S", "EnumEntryName")
             .addMember("%S", "FunctionName")
             .addMember("%S", "LocalVariableName")
             .addMember("%S", "RemoveRedundantQualifierName")
             .addMember("%S", "REDUNDANT_VISIBILITY_MODIFIER")
+            .addMember("%S", "SpellCheckingInspection")
+            .addMember("%S", "GrazieInspection")
+            .addMember("%S", "GrazieStyle")
             .build(),
     )
 }

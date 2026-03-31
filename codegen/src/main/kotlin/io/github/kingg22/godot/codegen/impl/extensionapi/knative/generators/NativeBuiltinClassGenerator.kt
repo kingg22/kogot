@@ -135,8 +135,7 @@ class NativeBuiltinClassGenerator(
             .classBuilder(kotlinName)
             .experimentalApiAnnotation(builtinClass.name)
             .addKdocIfPresent(raw)
-
-        body.configureStorageBackedBuiltin(builtinClass, classBuilder)
+            .let { body.configureStorageBackedBuiltin(builtinClass, it) }
 
         // ── GENERIC INTERCEPTION ──────────────────────────────────────────────
         val genericConfig = if (requiresGenerics) {
@@ -221,14 +220,7 @@ class NativeBuiltinClassGenerator(
         val (staticMethods, instanceMethods) = raw.methods.partition { it.isStatic }
 
         val methodSpecs = instanceMethods.mapNotNull { method ->
-            var methodSpec = buildMethodWithGenericTransform(method, builtinClass.name, genericConfig)
-
-            if ((method.name == "get" && method.arguments.size == 1) ||
-                (method.name == "set" && method.arguments.size == 2) ||
-                (builtinClass.isKeyed && (method.name == "get" || method.name == "set"))
-            ) {
-                methodSpec = methodSpec.toBuilder().addModifiers(KModifier.OPERATOR).build()
-            }
+            val methodSpec = buildMethodWithGenericTransform(method, builtinClass.name, genericConfig)
 
             if (raw.operators.any { compareMethodOperator(method, it) }) {
                 val existingOperator = raw.operators.first { compareMethodOperator(method, it) }
@@ -296,7 +288,13 @@ class NativeBuiltinClassGenerator(
     ): FunSpec {
         // Si no hay config genérica, usar generador normal
         if (genericConfig == null) {
-            return methodGen.buildMethod(method, className, codeBody = body.buildMethodBody(method, className))
+            return methodGen.buildMethod(method, className, codeBody = body.buildMethodBody(method, className)) {
+                if ((method.name == "get" && method.arguments.size == 1) ||
+                    (method.name == "set" && method.arguments.size == 2)
+                ) {
+                    addModifiers(KModifier.OPERATOR)
+                }
+            }
         }
 
         // Resolver tipo de retorno original
@@ -307,6 +305,12 @@ class NativeBuiltinClassGenerator(
 
         // Construir método con tipo transformado
         return methodGen.buildMethod(method, className, codeBody = body.buildMethodBody(method, className)) {
+            if ((method.name == "get" && method.arguments.size == 1) ||
+                (method.name == "set" && method.arguments.size == 2)
+            ) {
+                addModifiers(KModifier.OPERATOR)
+            }
+
             if (transformedReturnType != null && transformedReturnType != originalReturnType) {
                 returns(transformedReturnType)
             }

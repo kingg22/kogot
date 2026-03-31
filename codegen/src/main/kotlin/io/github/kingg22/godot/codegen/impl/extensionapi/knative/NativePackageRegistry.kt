@@ -33,7 +33,6 @@ class NativePackageRegistry private constructor(private val typeToPackage: Map<S
 
     companion object {
         val factory: PackageRegistryFactory = { rootPackage, model ->
-            fun isSingleton(name: String) = name in model.singletonNames
             val inheritanceTree = InheritanceTree().also { tree ->
                 model.engineClasses.forEach { resolved ->
                     resolved.raw.inherits?.takeIf { it.isNotBlank() }?.let { base ->
@@ -43,6 +42,8 @@ class NativePackageRegistry private constructor(private val typeToPackage: Map<S
             }
 
             val map = mutableMapOf<String, String>()
+
+            fun isSingleton(name: String) = name in model.singletonNames
             fun renameQualified(name: String): String {
                 if (!name.contains('.')) return name.renameGodotClass()
                 return name.split('.').joinToString(".") { it.renameGodotClass() }
