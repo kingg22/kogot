@@ -131,7 +131,8 @@ class EngineClassImplGen {
             FunSpec
                 .constructorBuilder()
                 .apply {
-                    if (cls.isSingletonExtensible) {
+                    // Special case: EditorInterface is a singleton that is retrieved in Editor
+                    if (cls.isSingletonExtensible || cls.name == "EditorInterface") {
                         addModifiers(KModifier.INTERNAL)
                     } else {
                         addModifiers(KModifier.PRIVATE)

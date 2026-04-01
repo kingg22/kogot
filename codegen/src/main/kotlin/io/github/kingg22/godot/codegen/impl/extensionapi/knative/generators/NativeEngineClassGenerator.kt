@@ -122,7 +122,7 @@ class NativeEngineClassGenerator(
 
         // Modificadores de clase
         when {
-            !cls.isInstantiable && !isSingleton -> {
+            (cls.isAbstract || !cls.isInstantiable) && !isSingleton -> {
                 if (ctx.extensionApi.classes.any { it.inherits == cls.name }) {
                     builder.addAnnotation(API_STATUS_NON_EXTENSIBLE)
                     builder.addModifiers(KModifier.OPEN)
