@@ -4,7 +4,6 @@ import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
@@ -18,26 +17,52 @@ import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngineClass
 
 // ===============================
-// Unified Property Generation
+// Unified Property Generation (Accessor-level Strategy)
 // ===============================
 class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val body: EngineMethodImplGen) {
 
     /**
+     * 🔥 NUEVO ENFOQUE:
+     *
+     * En vez de tener una sola estrategia por property (DIRECT / DELEGATED / etc),
+     * ahora resolvemos CADA accessor (getter/setter) de forma independiente.
+     *
+     * Esto permite combinaciones como:
+     * - getter LOCAL + setter DELEGATED
+     * - getter DELEGATED + setter LOCAL
+     * - getter INDEXED + setter FALLBACK
+     *
+     * Mucho más cercano a cómo realmente funciona el API de Godot.
+     */
+
+    private enum class AccessorKind {
+        LOCAL, // Método existe en la clase actual
+        LOCAL_DELEGATED, // tiene más de un argumento
+        DELEGATED, // Método existe en clase padre
+        INDEXED, // Usa índice (Side, Axis, etc)
+        MISSING, // No existe → fallback
+    }
+
+    private data class ResolvedAccessor(val method: EngineClass.ClassMethod?, val kind: AccessorKind) {
+        val isCallableAsProperty = when (kind) {
+            LOCAL, DELEGATED -> method!!.arguments.size == 1
+            INDEXED -> method!!.arguments.size >= 2
+            LOCAL_DELEGATED -> true
+            MISSING -> false
+        }
+    }
+
+    private data class ResolvedProperty(val getter: ResolvedAccessor, val setter: ResolvedAccessor?)
+
+    /**
      * Estrategias de generación de properties en Godot:
      *
-     * 1. DIRECT:
-     *    Getter/Setter existen como métodos reales en la clase.
+     * 1. DIRECT: Getter/Setter existen como métodos reales en la clase.
+     * 2. DELEGATED: * Getter/Setter existen en la clase padre (no en methods locales).
+     * 3. INDEXED: * Property usa un método compartido con índice (ej: get_anchor(Side)).
+     * 4. FALLBACK: * No existen métodos reales → generar TODO / acceso inseguro.
      *
-     * 2. DELEGATED:
-     *    Getter/Setter existen en la clase padre (no en methods locales).
-     *
-     * 3. INDEXED:
-     *    Property usa un método compartido con índice (ej: get_anchor(Side)).
-     *
-     * 4. FALLBACK:
-     *    No existen métodos reales → generar TODO / acceso inseguro.
-     *
-     * Nota:
+     * **Nota**:
      * El JSON de Godot puede referenciar métodos inexistentes (_get/_set),
      * por lo que SIEMPRE se debe verificar contra methods reales.
      */
@@ -48,28 +73,63 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
         classBuilder: TypeSpec.Builder,
     ): List<EngineClass.ClassMethod> {
         val usedMethodNames = mutableSetOf<String>()
-
         cls.raw.properties.forEach { property ->
             withExceptionContext({ "Error generating property '${property.name}'" }) {
-                val resolved = resolvePropertyAccessors(property, methods, cls)
+                val resolved = resolvePropertyAccessors(
+                    property,
+                    methods,
+                    cls,
+                )
 
-                if (resolved.strategy == PropertyStrategy.FALLBACK &&
-                    resolved.getter == null &&
-                    resolved.setter == null
+                if (resolved.getter.kind == AccessorKind.MISSING &&
+                    (resolved.setter == null || resolved.setter.kind == AccessorKind.MISSING)
                 ) {
+                    /* MISSING
+                    // FIXME Enable with logger debug
+                    println(
+                        buildString {
+                            append("WARNING: Fallback generation for property ")
+                            append(cls.name)
+                            append(".")
+                            append(property.name)
+                            append(", ")
+                            append("getter (expected: ")
+                            append(property.getter)
+                            append("): ")
+                            append(resolved.getter.method?.name)
+                            append(", strategy: ")
+                            append(resolved.getter.kind)
+                            if (property.setter != null) {
+                                append(", setter (expected: ")
+                                append(property.setter)
+                                append("): ")
+                                append(resolved.setter?.method?.name)
+                                append(", strategy: ")
+                                append(resolved.setter?.kind)
+                            }
+                        },
+                    )
+                     */
                     return@withExceptionContext
                 }
 
-                val spec = buildProperty(property, resolved, cls)
-                classBuilder.addProperty(spec)
+                classBuilder.addProperty(
+                    buildProperty(
+                        property,
+                        resolved,
+                        cls,
+                    ),
+                )
 
-                if (resolved.strategy == PropertyStrategy.DIRECT && property.index == null) {
-                    resolved.getter?.name?.let { usedMethodNames.add(it) }
-                    resolved.setter?.name?.let { usedMethodNames.add(it) }
+                if (resolved.getter.kind == AccessorKind.LOCAL && property.index == null) {
+                    resolved.getter.method?.name?.let { usedMethodNames.add(it) }
+                }
+
+                if (resolved.setter?.kind == AccessorKind.LOCAL && property.index == null) {
+                    resolved.setter.method?.name?.let { usedMethodNames.add(it) }
                 }
             }
         }
-
         return methods.filterNot { it.name in usedMethodNames }
     }
 
@@ -77,75 +137,51 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
     // Resolution Phase
     // ===============================
 
-    private enum class PropertyStrategy { DIRECT, DELEGATED, INDEXED, FALLBACK, }
-
-    private data class ResolvedProperty(
-        val getter: EngineClass.ClassMethod?,
-        val setter: EngineClass.ClassMethod?,
-        val strategy: PropertyStrategy,
-    )
-
     context(_: Context)
     private fun resolvePropertyAccessors(
         property: EngineClass.ClassProperty,
         methods: List<EngineClass.ClassMethod>,
         engineClass: ResolvedEngineClass,
     ): ResolvedProperty {
-        fun findMethod(name: String?): Pair<EngineClass.ClassMethod?, Boolean> {
-            if (name == null) return null to false
+        fun resolveSpecialSetter(name: String): ResolvedAccessor? = when {
+            engineClass.name == "OptionButton" && property.name == "selected" && name == "_select_int" -> {
+                val method = methods.find { it.name == "select" && it.arguments.size == 1 }
+                method?.let { ResolvedAccessor(it, AccessorKind.LOCAL_DELEGATED) }
+            }
 
-            // 1. Exact match
-            methods.find { it.name == name }?.let { return it to true }
-
-            // 2. Search in parent classes
-            engineClass.allMethods
-                .find { it.name == name && !it.isStatic }
-                ?.let { return it to false }
-
-            return null to false
+            else -> null
         }
 
-        val (getter, isLocalGetter) = findMethod(property.getter)
-        val (setter) = findMethod(property.setter)
+        fun resolve(name: String): ResolvedAccessor {
+            resolveSpecialSetter(name)?.let { return it }
 
-        // INDEXED strategy
-        if (property.index != null && getter != null) {
-            val setter = setter ?: findMethod(property.setter?.removePrefix("_")).first
-            return ResolvedProperty(getter, setter, PropertyStrategy.INDEXED)
-        }
+            val alt = name.removePrefix("_")
 
-        // DIRECT strategy
-        if (getter != null && isLocalGetter && (property.setter == null || (setter != null))) {
-            return ResolvedProperty(getter, setter, PropertyStrategy.DIRECT)
-        }
-
-        // DELEGATED strategy (found only in parent)
-        if (getter != null && !isLocalGetter) {
-            val setter = setter ?: findMethod(property.setter?.removePrefix("_")).first
-            return ResolvedProperty(getter, setter, PropertyStrategy.DELEGATED)
-        }
-
-        // FALLBACK
-        println(
-            buildString {
-                append("WARNING: Fallback generation for property ")
-                append(engineClass.name)
-                append(".")
-                append(property.name)
-                append(", ")
-                append("getter (expected: ")
-                append(property.getter)
-                append("): ")
-                append(getter?.name)
-                if (property.setter != null) {
-                    append(", setter (expected: ")
-                    append(property.setter)
-                    append("): ")
-                    append(setter?.name)
+            // LOCAL
+            methods.find { !it.isStatic && (it.name == name || it.name == alt) }
+                ?.let {
+                    val kind = if (property.index != null) AccessorKind.INDEXED else AccessorKind.LOCAL
+                    if (property.index == null && it.arguments.size > 1) {
+                        return ResolvedAccessor(it, AccessorKind.LOCAL_DELEGATED)
+                    }
+                    return ResolvedAccessor(it, kind)
                 }
-            },
-        )
-        return ResolvedProperty(getter, setter, PropertyStrategy.FALLBACK)
+
+            // DELEGATED
+            engineClass.allMethods
+                .find { !it.isStatic && (it.name == name || it.name == alt) }
+                ?.let {
+                    val kind = if (property.index != null) AccessorKind.INDEXED else AccessorKind.DELEGATED
+                    return ResolvedAccessor(it, kind)
+                }
+
+            return ResolvedAccessor(null, AccessorKind.MISSING)
+        }
+
+        val getter = resolve(property.getter)
+        val setter = property.setter?.let { resolve(it) }
+
+        return ResolvedProperty(getter, setter)
     }
 
     // ===============================
@@ -161,222 +197,169 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
         val className = engineClass.name
         val kotlinName = safeIdentifier(property.name)
 
-        val propertyType = resolved.getter?.returnValue?.let {
+        val propertyType = resolved.getter.method?.returnValue?.let {
             typeResolver.resolve(it)
-        } ?: resolved.setter?.arguments?.lastOrNull()?.let {
+        } ?: resolved.setter?.method?.arguments?.lastOrNull()?.let {
             typeResolver.resolve(it)
         } ?: typeResolver.resolve(property.type)
 
         val builder = PropertySpec
             .builder(kotlinName, propertyType)
-            .mutable(property.setter != null)
+            .mutable(resolved.setter?.isCallableAsProperty == true)
             .experimentalApiAnnotation(className, property.name)
             .addKdocIfPresent(property)
 
-        when (resolved.strategy) {
-            PropertyStrategy.DIRECT -> buildDirect(property, resolved, builder, engineClass)
-            PropertyStrategy.DELEGATED -> buildDelegated(property, resolved, builder, engineClass)
-            PropertyStrategy.INDEXED -> buildIndexed(property, resolved, builder, engineClass)
-            PropertyStrategy.FALLBACK -> buildFallback(property, resolved, builder, engineClass)
+        buildGetter(property, resolved.getter, builder, engineClass)
+
+        if (resolved.setter?.isCallableAsProperty == true) {
+            buildSetter(property, resolved.setter, builder, engineClass)
         }
 
         return builder.build()
     }
 
     // ===============================
-    // Strategy Implementations
+    // Getter Builder
     // ===============================
 
-    context(_: Context)
-    private fun buildDirect(
+    context(context: Context)
+    private fun buildGetter(
         property: EngineClass.ClassProperty,
-        resolved: ResolvedProperty,
+        accessor: ResolvedAccessor,
         builder: PropertySpec.Builder,
         engineClass: ResolvedEngineClass,
     ) {
-        val getter = resolved.getter!!
+        val method = accessor.method
 
-        builder.getter(
-            FunSpec
-                .getterBuilder()
-                .addCode(body.buildPropertyGetterBody(getter, engineClass))
-                .build(),
-        )
-
-        if (property.setter == null) return
-
-        val setter = resolved.setter ?: run {
-            builder.setter(
-                buildFallbackGetter(
-                    "value",
-                    typeResolver.resolve(property.type),
-                    engineClass.name,
-                    property,
-                    resolved.strategy,
-                ),
-            )
-            return
-        }
-
-        check(setter.arguments.size == 1) {
-            "Setter ${setter.name} must have exactly one argument, got ${setter.arguments.size}"
-        }
-
-        val lastArgument = setter.arguments.last()
-
-        builder.setter(
-            FunSpec
-                .setterBuilder()
-                .addParameter(safeIdentifier(lastArgument.name), typeResolver.resolve(lastArgument.type))
-                .addCode(body.buildPropertySetterBody(setter, engineClass))
-                .build(),
-        )
-    }
-
-    context(_: Context)
-    private fun buildDelegated(
-        property: EngineClass.ClassProperty,
-        resolved: ResolvedProperty,
-        builder: PropertySpec.Builder,
-        engineClass: ResolvedEngineClass,
-    ) {
-        val getter = resolved.getter!!
-
-        builder.getter(
-            FunSpec
-                .getterBuilder()
-                .addModifiers(KModifier.INLINE)
-                .addStatement("return %N()", safeIdentifier(getter.name))
-                .build(),
-        )
-
-        val setter = resolved.setter ?: run {
-            if (property.setter != null) {
-                builder.setter(
-                    buildFallbackGetter(
-                        "value",
-                        typeResolver.resolve(property.type),
-                        engineClass.name,
-                        property,
-                        resolved.strategy,
+        when (accessor.kind) {
+            AccessorKind.MISSING -> {
+                check(method == null) { "Missing getter requires a null method" }
+                builder.getter(
+                    BodyGenerator.todoGetter(
+                        "Unknown getter for ${engineClass.name}.${property.name} (expected ${property.getter})",
                     ),
                 )
             }
-            return
+
+            AccessorKind.LOCAL, AccessorKind.LOCAL_DELEGATED -> {
+                builder.getter(
+                    FunSpec.getterBuilder()
+                        .addCode(body.buildPropertyGetterBody(method!!, engineClass))
+                        .build(),
+                )
+            }
+
+            AccessorKind.DELEGATED -> {
+                builder.getter(
+                    FunSpec.getterBuilder()
+                        .addModifiers(KModifier.INLINE)
+                        .addStatement("return %N()", safeIdentifier(method!!.name))
+                        .build(),
+                )
+            }
+
+            AccessorKind.INDEXED -> {
+                val enumConstant = resolveIndexedPropertyConstant(method!!, property.index!!)
+
+                builder.getter(
+                    FunSpec.getterBuilder()
+                        .addModifiers(KModifier.INLINE)
+                        .addStatement("return %N(%L)", safeIdentifier(method.name), enumConstant)
+                        .build(),
+                )
+            }
         }
-
-        check(setter.arguments.size == 1) {
-            "Setter ${setter.name} must have exactly one argument, got ${setter.arguments.size}"
-        }
-
-        val setterArg = setter.arguments.last()
-
-        builder.setter(
-            FunSpec
-                .setterBuilder()
-                .addModifiers(KModifier.INLINE)
-                .addParameter(safeIdentifier(setterArg.name), typeResolver.resolve(setterArg.type))
-                .addStatement("%N(%N)", safeIdentifier(setter.name), safeIdentifier(setterArg.name))
-                .build(),
-        )
     }
+
+    // ===============================
+    // Setter Builder
+    // ===============================
 
     context(context: Context)
-    private fun buildIndexed(
+    private fun buildSetter(
         property: EngineClass.ClassProperty,
-        resolved: ResolvedProperty,
+        accessor: ResolvedAccessor,
         builder: PropertySpec.Builder,
         engineClass: ResolvedEngineClass,
     ) {
-        val getter = resolved.getter!!
+        val method = accessor.method
 
-        val enumConstant = resolveIndexedPropertyConstant(getter, property.index!!)
+        when (accessor.kind) {
+            AccessorKind.LOCAL -> {
+                val arg = method!!.arguments.first()
 
-        builder.getter(
-            FunSpec
-                .getterBuilder()
-                .addModifiers(KModifier.INLINE)
-                .addStatement("return %N(%L)", safeIdentifier(getter.name), enumConstant)
-                .build(),
-        )
-
-        if (property.setter == null) return
-
-        val setter = resolved.setter ?: run {
-            builder.setter(
-                buildFallbackGetter(
-                    "value",
-                    typeResolver.resolve(property.type),
-                    engineClass.name,
-                    property,
-                    resolved.strategy,
-                ),
-            )
-            return
-        }
-
-        val setterConstant = resolveIndexedPropertyConstant(setter, property.index)
-        check(setter.arguments.size >= 2) {
-            "Setter ${setter.name} must have at least two arguments, got ${setter.arguments.size}"
-        }
-        val lastArgument = setter.arguments.last()
-
-        builder.setter(
-            FunSpec
-                .setterBuilder()
-                .addModifiers(KModifier.INLINE)
-                .addParameter(safeIdentifier(lastArgument.name), typeResolver.resolve(lastArgument.type))
-                .addStatement(
-                    "%N(%L, %N)",
-                    safeIdentifier(setter.name),
-                    setterConstant,
-                    safeIdentifier(lastArgument.name),
+                builder.setter(
+                    FunSpec.setterBuilder()
+                        .addParameter(safeIdentifier(arg.name), typeResolver.resolve(arg.type))
+                        .addCode(body.buildPropertySetterBody(method, engineClass))
+                        .build(),
                 )
-                .build(),
-        )
+            }
+
+            AccessorKind.LOCAL_DELEGATED -> {
+                check(method != null && method.arguments.isNotEmpty()) {
+                    "Local property setter requires a method with at least one argument"
+                }
+                val arg = method.arguments.find { it.type == property.type || it.meta == property.type }
+                    ?: method.arguments.first()
+
+                builder.setter(
+                    FunSpec.setterBuilder()
+                        .addModifiers(KModifier.INLINE)
+                        .addParameter(safeIdentifier(arg.name), typeResolver.resolve(arg.type))
+                        .addStatement("%N(%N)", safeIdentifier(method.name), safeIdentifier(arg.name))
+                        .build(),
+                )
+            }
+
+            AccessorKind.DELEGATED -> {
+                val arg = method!!.arguments.first()
+
+                builder.setter(
+                    FunSpec.setterBuilder()
+                        .addModifiers(KModifier.INLINE)
+                        .addParameter(safeIdentifier(arg.name), typeResolver.resolve(arg.type))
+                        .addStatement("%N(%N)", safeIdentifier(method.name), safeIdentifier(arg.name))
+                        .build(),
+                )
+            }
+
+            AccessorKind.INDEXED -> {
+                check(method != null && method.arguments.size >= 2) {
+                    "Indexed property setter requires a method with at least two argument"
+                }
+                val enumConstant = resolveIndexedPropertyConstant(method, property.index!!)
+                val arg = method.arguments.last()
+
+                builder.setter(
+                    FunSpec.setterBuilder()
+                        .addModifiers(KModifier.INLINE)
+                        .addParameter(safeIdentifier(arg.name), typeResolver.resolve(arg.type))
+                        .addStatement(
+                            "%N(%L, %N)",
+                            safeIdentifier(method.name),
+                            enumConstant,
+                            safeIdentifier(arg.name),
+                        )
+                        .build(),
+                )
+            }
+
+            AccessorKind.MISSING -> {
+                check(method == null) { "Missing setter requires a null method" }
+                builder.setter(
+                    FunSpec.setterBuilder()
+                        .addParameter("value", typeResolver.resolve(property.type))
+                        .addCode(
+                            BodyGenerator.todoBody(
+                                "Unknown setter for ${engineClass.name}.${property.name} (expected ${property.setter})",
+                            ),
+                        )
+                        .build(),
+                )
+            }
+        }
     }
-
-    context(_: Context)
-    private fun buildFallback(
-        property: EngineClass.ClassProperty,
-        resolved: ResolvedProperty,
-        builder: PropertySpec.Builder,
-        engineClass: ResolvedEngineClass,
-    ) {
-        val className = engineClass.name
-
-        builder.getter(
-            BodyGenerator.todoGetter("Unknown getter for $className.${property.name} (expected ${property.getter})"),
-        )
-
-        if (property.setter == null) return
-
-        builder.setter(
-            buildFallbackGetter(
-                "value",
-                typeResolver.resolve(property.type),
-                className,
-                property,
-                resolved.strategy,
-            ),
-        )
-    }
-
-    private fun buildFallbackGetter(
-        paramName: String,
-        paramType: TypeName,
-        className: String,
-        property: EngineClass.ClassProperty,
-        strategy: PropertyStrategy,
-    ) = FunSpec
-        .setterBuilder()
-        .addParameter(paramName, paramType)
-        .addCode(
-            BodyGenerator.todoBody(
-                "Unknown setter for $className.${property.name} (expected ${property.setter}). Strategy: $strategy",
-            ),
-        )
-        .build()
 
     /**
      * Resuelve el índice numérico a una referencia de enum constant.
