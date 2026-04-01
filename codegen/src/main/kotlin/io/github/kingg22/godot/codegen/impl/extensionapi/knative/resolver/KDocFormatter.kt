@@ -39,13 +39,6 @@ private val TOO_MANY_BREAK_LINES_REGEX = Regex("\n{3,}")
  * ```
  */
 object KDocFormatter {
-    /** Formatea un valor de retorno para KDoc @return tag. */
-    context(_: PackageRegistry)
-    fun formatReturn(description: String): String? {
-        val formattedDesc = format(description) ?: return null
-        return "@return $formattedDesc"
-    }
-
     /**
      * Formats Godot BBCode description into KDoc-compatible text.
      *
@@ -53,8 +46,8 @@ object KDocFormatter {
      * @return Formatted KDoc string
      */
     context(_: PackageRegistry)
-    fun format(description: String): String? {
-        if (description.isBlank()) return null
+    fun format(description: String): String {
+        if (description.isBlank()) return ""
 
         return cache.getOrPut(description) {
             // 1. Pre-procesamiento de escapes y limpieza inicial

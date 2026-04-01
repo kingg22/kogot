@@ -29,7 +29,7 @@ fun <T : Annotatable.Builder<T>> T.experimentalApiAnnotation(className: String, 
 context(_: Context)
 fun <T : KDocumentable.Builder<T>> T.addKdocIfPresent(documentable: Documentable): T {
     if (documentable.description.isNullOrBlank()) return this
-    val formattedDoc = KDocFormatter.format(documentable.description!!)!!
+    val formattedDoc = KDocFormatter.format(documentable.description!!)
     addKdoc("%L", formattedDoc)
     return this
 }

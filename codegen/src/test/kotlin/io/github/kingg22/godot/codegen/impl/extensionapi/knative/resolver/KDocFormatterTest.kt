@@ -38,7 +38,7 @@ class KDocFormatterTest {
         """.trimIndent()
 
         context(context) {
-            val result = KDocFormatter.format(input)!!
+            val result = KDocFormatter.format(input)
             assertTrue(result.contains("```"))
             assertTrue(result.contains("var node = Node()"))
         }
@@ -132,7 +132,7 @@ class KDocFormatterTest {
         """.trimIndent()
 
         val result = context(context) {
-            KDocFormatter.format(input)!!
+            KDocFormatter.format(input)
         }
 
         assertTrue(result.contains("`true`"), "Output: $result")
@@ -149,7 +149,7 @@ class KDocFormatterTest {
             "This is a very long line that exceeds the maximum line length of 120 characters and should be wrapped into multiple lines automatically by the formatter without breaking words in the middle of them."
 
         val result = context(context) {
-            KDocFormatter.format(longLine)!!
+            KDocFormatter.format(longLine)
         }
 
         // Check that no line exceeds the limit
@@ -173,7 +173,7 @@ class KDocFormatterTest {
         """.trimIndent()
 
         val result = context(context) {
-            KDocFormatter.format(input)!!
+            KDocFormatter.format(input)
         }
 
         // The code line should remain intact
@@ -191,7 +191,7 @@ class KDocFormatterTest {
             "See the documentation at https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_basics.html for more information about this very long topic."
 
         val result = context(context) {
-            KDocFormatter.format(input)!!
+            KDocFormatter.format(input)
         }
 
         // URL should remain unbroken
@@ -206,7 +206,7 @@ class KDocFormatterTest {
             "This is a very long line with a [code]code snippet that should not be broken[/code] in the middle of the tag."
 
         val result = context(context) {
-            KDocFormatter.format(input)!!
+            KDocFormatter.format(input)
         }
 
         // The code tag should remain intact (will be converted to backticks)
@@ -225,7 +225,7 @@ class KDocFormatterTest {
         """.trimIndent()
 
         val result = context(context) {
-            KDocFormatter.format(input)!!
+            KDocFormatter.format(input)
         }
 
         // Solo debe existir un bloque de código
@@ -250,7 +250,7 @@ class KDocFormatterTest {
         """.trimIndent()
 
         val result = context(context) {
-            KDocFormatter.format(input)!!
+            KDocFormatter.format(input)
         }
 
         assertTrue(result.contains("```gdscript"))
@@ -274,7 +274,7 @@ class KDocFormatterTest {
         """.trimIndent()
 
         val result = context(context) {
-            KDocFormatter.format(input)!!
+            KDocFormatter.format(input)
         }
 
         assertTrue(result.contains("```gdscript"))
@@ -300,7 +300,7 @@ class KDocFormatterTest {
         """.trimIndent()
 
         val result = context(context) {
-            KDocFormatter.format(input)!!
+            KDocFormatter.format(input)
         }
 
         val fences = Regex("```").findAll(result).count()
@@ -327,7 +327,7 @@ class KDocFormatterTest {
         """.trimIndent()
 
         val result = context(context) {
-            KDocFormatter.format(input)!!
+            KDocFormatter.format(input)
         }
 
         // No debe haber más de 2 newlines seguidos
