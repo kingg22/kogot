@@ -26,14 +26,15 @@ class RuntimeFFIConvenienceGen {
         buildCallErrorConvenienceWrapper(iface)?.let(::add)
     }
 
-    context(_: RuntimePackageRegistry, _: RuntimeTypeResolver)
+    context(_: RuntimePackageRegistry, resolver: RuntimeTypeResolver)
     private fun buildTransformConvenienceWrapper(iface: Interface): FunSpec? {
         val transforms = iface.arguments.mapIndexed { index, argument ->
             convenienceTransformFor(argument, index, iface.arguments)
         }
-        val transformedReturn = convenienceReturnTypeFor(iface)
+        var transformedReturn = convenienceReturnTypeFor(iface)
         val needsConvenience = transforms.any { it != null } || transformedReturn != null
         if (!needsConvenience) return null
+        transformedReturn = transformedReturn ?: iface.returnValue?.type?.let { resolver.resolveType(it) }
 
         val convenienceParameters = buildList {
             transforms.forEachIndexed { index, transform ->
@@ -365,10 +366,9 @@ class RuntimeFFIConvenienceGen {
         }
     }
 
-    context(resolver: RuntimeTypeResolver)
-    private fun convenienceReturnTypeFor(iface: Interface): TypeName? = when (val typeStr = iface.returnValue?.type) {
+    private fun convenienceReturnTypeFor(iface: Interface): TypeName? = when (iface.returnValue?.type) {
         "GDExtensionBool" -> BOOLEAN
-        else -> typeStr?.let { resolver.resolveType(it) }
+        else -> null
     }
 
     private fun booleanOutputArguments(arguments: List<Arguments>) = arguments.mapIndexedNotNull { index, argument ->
