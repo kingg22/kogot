@@ -1,19 +1,14 @@
 package io.github.kingg22.godot.codegen.impl.extensionapi.knative.impl
 
-import com.squareup.kotlinpoet.BOOLEAN
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.buildCodeBlock
-import com.squareup.kotlinpoet.joinToCode
-import com.squareup.kotlinpoet.withIndent
+import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.kingg22.godot.codegen.impl.K_REQUIRE_NOT_NULL
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.COPAQUE_POINTER
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.C_OPAQUE_POINTER_VAR
+import io.github.kingg22.godot.codegen.impl.extensionapi.knative.C_POINTER
+import io.github.kingg22.godot.codegen.impl.extensionapi.knative.C_POINTER_VAR
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.LONG_VAR
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.cinteropAlloc
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.cinteropPtr
@@ -82,9 +77,7 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
     fun buildTopLevelFptrProperties(cls: ResolvedEngineClass): List<PropertySpec> {
         val classDBBinding = implPackageRegistry.classNameForOrDefault("ClassDBBinding")
         val stringNameClass = ctx.classNameForOrDefault("StringName")
-        return cls.raw.methods
-            .filter { !it.isVirtual }
-            .map { buildMethodBindProperty(it, cls.name, classDBBinding, stringNameClass) }
+        return cls.raw.methods.map { buildMethodBindProperty(it, cls.name, classDBBinding, stringNameClass) }
     }
 
     private fun buildMethodBindProperty(
@@ -116,30 +109,17 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
 
     // ── Method bodies ─────────────────────────────────────────────────────────
 
-    context(ctx: Context)
-    fun buildMethodBody(method: EngineClass.ClassMethod, className: String): CodeBlock {
-        if (method.isVirtual) {
-            val returnType = method.returnValue?.type
-            val hasReturn = returnType != null && returnType != "void"
-            return if (hasReturn) {
-                CodeBlock.of(
-                    "TODO(%P)",
-                    $$"Virtual method `$${method.name}` requires override in your class: ${this::class.simpleName} to works",
-                )
-            } else {
-                CodeBlock.of("")
-            }
-        }
-        return buildPtrcallBody(method, className)
-    }
+    context(_: Context)
+    fun buildMethodBody(method: EngineClass.ClassMethod, className: String): CodeBlock =
+        buildPtrcallBody(method, className)
 
     // ── Property bodies ───────────────────────────────────────────────────────
 
-    context(ctx: Context)
+    context(_: Context)
     fun buildPropertyGetterBody(getter: EngineClass.ClassMethod, cls: ResolvedEngineClass): CodeBlock =
         buildPtrcallBody(getter, cls.name)
 
-    context(ctx: Context)
+    context(_: Context)
     fun buildPropertySetterBody(setter: EngineClass.ClassMethod, cls: ResolvedEngineClass): CodeBlock =
         buildPtrcallBody(setter, cls.name, true)
 
@@ -288,17 +268,27 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
             resolvedType == BOOLEAN -> CodeBlock.ofStatement("%L,", varName)
 
             resolvedType == COPAQUE_POINTER ||
-                resolvedType == ctx.classNameForOrDefault("GDExtensionInitializationFunction")
+                resolvedType == ctx.classNameForOrDefault("GDExtensionInitializationFunction") ||
+                (resolvedType is ParameterizedTypeName && resolvedType.rawType == C_POINTER)
             -> CodeBlock.ofStatement("%N,", name)
 
             // allocGdBool returns CArrayPointer directly
 
             primitiveKotlinToCVar(resolvedType) != null -> CodeBlock.ofStatement("%N.%M,", varName, cinteropPtr)
 
+            ctx.isNativeStructure(arg.type) -> CodeBlock.ofStatement("%N.%M,", name, cinteropPtr)
+
             arg.type.startsWith("enum::") || arg.type.startsWith("bitfield::") ->
                 CodeBlock.ofStatement("%N.%M,", varName, cinteropPtr)
 
-            else -> CodeBlock.ofStatement("%N${if (arg.isNullable) "?" else ""}.rawPtr,", name)
+            ctx.isGodotType(arg.type) ||
+                arg.type.startsWith("array") ||
+                arg.type.startsWith("dictionary") ||
+                arg.type.startsWith("typeddictionary") ||
+                arg.type.startsWith("typedarray")
+            -> CodeBlock.ofStatement("%N${if (arg.isNullable) "?" else ""}.rawPtr,", name)
+
+            else -> error("Invalid arg type, unknown strategy to invoke: '${arg.type}' (resolved: $resolvedType)")
         }
     }
 
@@ -315,22 +305,31 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
 
             cVarType != null -> CodeBlock.ofStatement("val retPtr = %M<%T>()", cinteropAlloc, cVarType)
 
+            ctx.isNativeStructure(returnType) ->
+                CodeBlock.ofStatement("val retPtr = %M<%T>()", cinteropAlloc, resolvedReturn)
+
             returnType.startsWith("enum::") || returnType.startsWith("bitfield::") ->
                 CodeBlock.ofStatement("val retPtr = %M<%T>()", cinteropAlloc, LONG_VAR)
 
-            ctx.isBuiltin(returnType) -> CodeBlock.ofStatement("val retPtr = %T()", resolvedReturn)
+            ctx.isBuiltin(returnType) ||
+                returnType.startsWith("array") ||
+                returnType.startsWith("dictionary") ||
+                returnType.startsWith("typeddictionary") ||
+                returnType.startsWith("typedarray") -> CodeBlock.ofStatement("val retPtr = %T()", resolvedReturn)
 
-            ctx.findEngineClass(returnType) != null -> CodeBlock.ofStatement(
+            resolvedReturn == COPAQUE_POINTER || ctx.isEngineClass(returnType) -> CodeBlock.ofStatement(
                 "val retPtr = %M<%T>()",
                 cinteropAlloc,
                 C_OPAQUE_POINTER_VAR,
             )
 
-            else -> {
-                // FIXME: enable with logger.debug/verbose
-                // println("WARNING: Unknown return type '$returnType' (resolved: $resolvedReturn)")
-                CodeBlock.ofStatement("val retPtr = %T()", resolvedReturn)
-            }
+            resolvedReturn is ParameterizedTypeName && resolvedReturn.rawType == C_POINTER -> CodeBlock.ofStatement(
+                "val retPtr = %M<%T>()",
+                cinteropAlloc,
+                C_POINTER_VAR.parameterizedBy(resolvedReturn.typeArguments),
+            )
+
+            else -> error("Invalid return type, unknown strategy: '$returnType' (resolved: $resolvedReturn)")
         }
     }
 
@@ -365,6 +364,17 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
 
             // Primitive numeric: CVar.value already has the exact Kotlin type from the resolver
             cVarType != null -> addStatement("retPtr.%M", cinteropValue)
+
+            resolvedReturn == COPAQUE_POINTER ||
+                (resolvedReturn is ParameterizedTypeName && resolvedReturn.rawType == C_POINTER) -> {
+                addStatement("%M(retPtr.%M) {", K_REQUIRE_NOT_NULL, cinteropValue)
+                indent()
+                addStatement(
+                    "%S",
+                    "${returnType.removePrefix("const ").removeSuffix("*").trim()} pointer value was null",
+                )
+                endControlFlow()
+            }
 
             returnType.startsWith("enum::") -> {
                 val godotEnum = ctx.classNameForOrDefault("GodotEnum", "GodotEnum")

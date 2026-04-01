@@ -61,6 +61,9 @@ class Context(
     fun isGodotType(godotName: String) = isBuiltin(godotName) || isSingleton(godotName) ||
         godotName in model.engineClassesByName || godotName in globalEnumsTypes
 
+    fun isEngineClass(godotName: String): Boolean = godotName in model.engineClassesByName
+    fun isNativeStructure(godotName: String): Boolean = godotName in nativeStructureTypes
+
     fun isSpecializedClass(godotName: String): Boolean = godotName.endsWith('i') && isGodotType(godotName.dropLast(1))
 
     fun resolveEnumConstant(parentClass: String?, enumName: String, value: Long): String? =

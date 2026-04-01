@@ -5,6 +5,7 @@ import com.squareup.kotlinpoet.MemberName
 
 val COPAQUE_POINTER = ClassName("kotlinx.cinterop", "COpaquePointer")
 val C_POINTER = ClassName("kotlinx.cinterop", "CPointer")
+val C_POINTER_VAR = ClassName("kotlinx.cinterop", "CPointerVar")
 val C_POINTER_VAR_OF = ClassName("kotlinx.cinterop", "CPointerVarOf")
 val C_OPAQUE_POINTER_VAR = ClassName("kotlinx.cinterop", "COpaquePointerVar")
 val C_STRUCT_VAR = ClassName("kotlinx.cinterop", "CStructVar")
