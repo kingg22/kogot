@@ -47,7 +47,7 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
         val isCallableAsProperty = when (kind) {
             LOCAL, DELEGATED -> method!!.arguments.size == 1
             INDEXED -> method!!.arguments.size >= 2
-            LOCAL_DELEGATED -> true
+            LOCAL_DELEGATED -> method!!.arguments.count { it.defaultValue == null } == 1
             MISSING -> false
         }
     }
@@ -157,17 +157,32 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
 
             val alt = name.removePrefix("_")
 
-            // LOCAL
-            methods.find { !it.isStatic && (it.name == name || it.name == alt) }
+            // 1. LOCAL exact match (API real)
+            methods.find { !it.isStatic && it.name == name }
                 ?.let {
                     val kind = if (property.index != null) AccessorKind.INDEXED else AccessorKind.LOCAL
+
                     if (property.index == null && it.arguments.size > 1) {
                         return ResolvedAccessor(it, AccessorKind.LOCAL_DELEGATED)
                     }
+
                     return ResolvedAccessor(it, kind)
                 }
 
-            // DELEGATED
+            // 2. LOCAL via alt name (heurística → tratar como delegated)
+            if (alt != name) {
+                methods.find { !it.isStatic && it.name == alt }?.let {
+                    val kind = if (property.index != null) {
+                        AccessorKind.INDEXED
+                    } else {
+                        AccessorKind.LOCAL_DELEGATED
+                    }
+
+                    return ResolvedAccessor(it, kind)
+                }
+            }
+
+            // 3. DELEGATED (padre)
             engineClass.allMethods
                 .find { !it.isStatic && (it.name == name || it.name == alt) }
                 ?.let {
@@ -313,7 +328,10 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
             }
 
             AccessorKind.DELEGATED -> {
-                val arg = method!!.arguments.first()
+                check(method != null && method.arguments.size == 1) {
+                    "Delegated property setter requires a method with exactly one argument"
+                }
+                val arg = method.arguments.first()
 
                 builder.setter(
                     FunSpec.setterBuilder()
