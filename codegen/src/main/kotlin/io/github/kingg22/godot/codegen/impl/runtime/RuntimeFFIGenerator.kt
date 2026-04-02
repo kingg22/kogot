@@ -1,6 +1,14 @@
 package io.github.kingg22.godot.codegen.impl.runtime
 
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.AnnotationSpec
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeSpec
 import io.github.kingg22.godot.codegen.impl.K_OPT_IN
 import io.github.kingg22.godot.codegen.impl.K_SUPPRESS
 import io.github.kingg22.godot.codegen.impl.buildKdoc
@@ -13,7 +21,6 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.knative.lazyMethod
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.memScoped
 import io.github.kingg22.godot.codegen.models.extensioninterface.GDExtensionInterface
 import io.github.kingg22.godot.codegen.models.extensioninterface.Interface
-import kotlin.collections.map
 
 class RuntimeFFIGenerator(private val packageName: String) {
     private val convenienceGen = RuntimeFFIConvenienceGen()
@@ -94,9 +101,9 @@ class RuntimeFFIGenerator(private val packageName: String) {
                         .builder()
                         .beginControlFlow("%M(PUBLICATION)", lazyMethod)
                         .addStatement(
-                            "%T(%M.getProcAddress)",
+                            "%T(%T.getProcAddress)",
                             className,
-                            packageRegistry.bindingProcAddressHolderMember(),
+                            packageRegistry.classNameForOrDefault("BindingProcAddressHolder"),
                         )
                         .endControlFlow()
                         .build(),

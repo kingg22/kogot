@@ -1,9 +1,7 @@
 package io.github.kingg22.godot.codegen.impl.runtime
 
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.MemberName
 import io.github.kingg22.godot.codegen.impl.extensionapi.PackageRegistry
-import io.github.kingg22.godot.codegen.impl.snakeCaseToCamelCase
 import io.github.kingg22.godot.codegen.models.extensioninterface.GDExtensionInterface
 
 class RuntimePackageRegistry(packageStr: String, interfaceModel: GDExtensionInterface) : PackageRegistry {
@@ -31,13 +29,11 @@ class RuntimePackageRegistry(packageStr: String, interfaceModel: GDExtensionInte
 
     override fun packageFor(godotName: String): String? = typeToPackage[godotName]
 
-    fun bindingClassName(prefix: String): ClassName = ClassName(rootPackage, implementationNameForPrefix(prefix))
+    fun bindingClassName(prefix: String): ClassName = classNameForOrDefault(implementationNameForPrefix(prefix))
 
-    fun bindingProcAddressHolderMember(): MemberName = MemberName(rootPackage, "bindingProcAddressHolder")
+    fun statusClassName(): ClassName = classNameForOrDefault("BindingStatus")
 
-    fun statusClassName(): ClassName = ClassName(rootPackage, "BindingStatus")
+    fun booleanResultClassName(): ClassName = classNameForOrDefault("BindingBooleanResult")
 
-    fun booleanResultClassName(): ClassName = ClassName(rootPackage, "BindingBooleanResult")
-
-    fun callErrorInfoClassName(): ClassName = ClassName(rootPackage, "BindingCallErrorInfo")
+    fun callErrorInfoClassName(): ClassName = classNameForOrDefault("BindingCallErrorInfo")
 }
