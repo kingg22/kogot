@@ -12,7 +12,7 @@ jextract {
     packageName = "io.github.kingg22.godot.internal.ffm"
     headerClassName = "FFMUtils"
     argsFile = layout.projectDirectory.file("scripts/v4_6_1/godot_includes.txt")
-    headerFile(rootProject.layout.projectDirectory.file("godot-version/v4_6_1/gdextension_interface.h"))
+    headerFile(rootProject.layout.projectDirectory.file("godot-version/v4_6_2/gdextension_interface.h"))
 }
 
 tasks.withType<JavaCompile> {
