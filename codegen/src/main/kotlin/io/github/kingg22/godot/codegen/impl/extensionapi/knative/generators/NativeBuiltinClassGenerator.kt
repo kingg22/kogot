@@ -218,18 +218,6 @@ class NativeBuiltinClassGenerator(
         // ── Operators ────────────────────────────────────────────────────────
         classBuilder.addFunctions(generateOperators(builtinClass, genericConfig))
 
-        // Si se generó equals, generar también hashCode stub
-        if (raw.operators.any { it.name == "==" || it.name == "!=" }) {
-            classBuilder.addFunction(
-                FunSpec
-                    .builder("hashCode")
-                    .addModifiers(KModifier.OVERRIDE)
-                    .returns(INT)
-                    .addCode(BodyGenerator.todoBody("hashCode not yet implemented"))
-                    .build(),
-            )
-        }
-
         // ── Instance methods ──────────────────────────────────────────────────
         val (staticMethods, instanceMethods) = raw.methods.partition { it.isStatic }
 
@@ -356,11 +344,11 @@ class NativeBuiltinClassGenerator(
         var equalsGenerated = false
 
         // Group operators by symbol to handle overloads (e.g., * with int and with Vector2)
-        return builtinClass.operators.filter { it.name != "!=" }.mapNotNull { op ->
+        return builtinClass.operators.mapNotNull { op ->
             val symbol = op.name
             val kotlinOpName = OPERATOR_MAP[symbol]
 
-            when {
+            val operator = when {
                 // compareTo covers <, <=, >, >= — generate once, first occurrence wins
                 symbol in COMPARE_OPERATORS -> {
                     if (compareToGenerated) return@mapNotNull null
@@ -369,7 +357,7 @@ class NativeBuiltinClassGenerator(
                 }
 
                 // != is derived from equals in Kotlin — skip
-                symbol == "!=" -> null
+                symbol == "!=" -> return@mapNotNull null
 
                 // Recognized operator with a Kotlin keyword
                 kotlinOpName != null -> {
@@ -380,7 +368,8 @@ class NativeBuiltinClassGenerator(
                             equalsGenerated = true
                         }
                     }
-                    buildKotlinOperator(
+
+                    val opFun = buildKotlinOperator(
                         name = kotlinOpName,
                         rightType = op.rightType,
                         returnType = op.returnType,
@@ -388,6 +377,20 @@ class NativeBuiltinClassGenerator(
                         operator = op,
                         cls = resolvedClass,
                     )
+
+                    if (kotlinOpName == "equals") {
+                        return@mapNotNull listOf(
+                            opFun,
+                            FunSpec
+                                .builder("hashCode")
+                                .addModifiers(KModifier.OVERRIDE)
+                                .returns(INT)
+                                .addCode(BodyGenerator.todoBody("hashCode not yet implemented"))
+                                .build(),
+                        )
+                    } else {
+                        opFun
+                    }
                 }
 
                 // Unknown operator — delegate to named method (infix if binary)
@@ -395,10 +398,11 @@ class NativeBuiltinClassGenerator(
                     println(
                         "WARNING: Unknown operator found ${builtinClass.name}.${op.name}(${op.rightType.orEmpty()}): ${op.returnType}",
                     )
-                    buildFallbackOperatorMethod(op, builtinClass.name, resolvedClass)
+                    buildFallbackOperatorMethod(op, builtinClass.name)
                 }
             }
-        }
+            return@mapNotNull listOf(operator)
+        }.flatten()
     }
 
     /** Builds a standard Kotlin operator fun (plus, minus, times, equals, not, etc). */
@@ -424,6 +428,7 @@ class NativeBuiltinClassGenerator(
             builder.addModifiers(KModifier.OVERRIDE)
             builder.returns(BOOLEAN)
             builder.addParameter("other", ANY.copy(nullable = true))
+            builder.addCode(body.buildEqualsOperatorBody(cls))
         } else {
             builder.addModifiers(KModifier.OPERATOR)
             builder.returns(returnTypeName)
@@ -431,9 +436,9 @@ class NativeBuiltinClassGenerator(
                 val rightTypeName = typeResolver.resolve(rightType)
                 builder.addParameter("other", rightTypeName)
             }
+            builder.addCode(body.buildOperatorBody(operator))
         }
 
-        builder.addCode(body.buildOperatorBody(operator, name, cls))
         return builder.build()
     }
 
@@ -461,17 +466,13 @@ class NativeBuiltinClassGenerator(
      * Binary ops become `infix fun`, unary ops become regular funs.
      */
     context(_: Context)
-    private fun buildFallbackOperatorMethod(
-        op: BuiltinClass.Operator,
-        className: String,
-        cls: ResolvedBuiltinClass,
-    ): FunSpec {
+    private fun buildFallbackOperatorMethod(op: BuiltinClass.Operator, className: String): FunSpec {
         val safeName = safeIdentifier(op.name)
         val returnTypeName = typeResolver.resolve(op.returnType)
         val builder = FunSpec
             .builder(safeName)
             .returns(returnTypeName)
-            .addCode(body.buildOperatorBody(op, safeName, cls))
+            .addCode(body.buildOperatorBody(op))
             .experimentalApiAnnotation(className, op.name)
             .addKdocIfPresent(op)
             .addKdoc("\nGodot operator: `%L`", op.name)
