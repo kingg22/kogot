@@ -11,6 +11,7 @@ import com.squareup.kotlinpoet.withIndent
 import io.github.kingg22.godot.codegen.impl.K_REQUIRE_NOT_NULL
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
+import io.github.kingg22.godot.codegen.impl.extensionapi.knative.COPAQUE_POINTER
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.C_OPAQUE_POINTER_VAR
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.DOUBLE_VAR
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.LONG_VAR
@@ -20,8 +21,10 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.knative.cinteropPtr
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.cinteropValue
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.generators.NativeBuiltinClassGenerator
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.memScoped
+import io.github.kingg22.godot.codegen.impl.renameAllUpperCaseToCamelCase
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
+import io.github.kingg22.godot.codegen.impl.toScreamingSnakeCase
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinClass
@@ -124,7 +127,6 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
             "in" -> "IN"
             else -> safeIdentifier(op.name)
         }
-        if (opPart == "EQUAL" || opPart == "NOT_EQUAL") return "operatorFptr_$opPart"
         val rightPart = op.rightType?.let { safeIdentifier(it) } ?: "NIL"
         return "operatorFptr_${opPart}_$rightPart"
     }
@@ -160,38 +162,7 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
      * `memScoped` is `inline`, so `return` inside the block returns from the enclosing Kotlin fun.
      */
     context(ctx: Context)
-    fun buildOperatorBody(
-        op: BuiltinClass.Operator,
-        kotlinOpName: String,
-        resolvedClass: ResolvedBuiltinClass,
-    ): CodeBlock = buildCodeBlock {
-        // equals guard must be outside memScoped (early return, different type)
-        if (kotlinOpName == "equals") {
-            requireNotNull(op.rightType) { "equals operator must have a right type" }
-
-            // Find all valid right types for comparison (the primary one + any overloads)
-            val validTypes = mutableListOf(op.rightType)
-            resolvedClass.raw.operators
-                .filter { it.name == "==" && it.rightType != null && it.rightType != op.rightType }
-                .forEach { validTypes.add(it.rightType!!) }
-
-            // Combine all types into a single "if (!(other is Type1 || other is Type2)) return false" check
-            val condition = validTypes.joinToCode(" || ") { type ->
-                val otherType = when {
-                    type.equals("Array", true) ->
-                        ctx.classNameForOrDefault("Array", typedClass = true).parameterizedBy(STAR)
-
-                    type.equals("Dictionary", true) ->
-                        ctx.classNameForOrDefault("Dictionary", typedClass = true).parameterizedBy(STAR, STAR)
-
-                    else -> typeResolver.resolve(type)
-                }
-                CodeBlock.of("other is %T", otherType)
-            }
-
-            addStatement("if (!(%L)) return false", condition)
-        }
-
+    fun buildOperatorBody(op: BuiltinClass.Operator): CodeBlock = buildCodeBlock {
         beginControlFlow("return %M", memScoped)
 
         // ── r_return allocation ───────────────────────────────────────────
@@ -327,20 +298,104 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
         // ── return ────────────────────────────────────────────────────────
         when {
             op.returnType == "bool" -> addStatement(
-                "retPtr.%M()",
+                "return retPtr.%M()",
                 implPackageRegistry.memberNameForOrDefault("readGdBool"),
             )
 
             op.returnType == "float" || op.returnType == "double" || op.returnType == "int" -> addStatement(
-                "retPtr.%M",
+                "return retPtr.%M",
                 cinteropValue,
             )
 
-            ctx.isBuiltin(op.returnType) -> addStatement("retPtr")
+            ctx.isBuiltin(op.returnType) -> addStatement("return retPtr")
 
-            else -> addStatement("retPtr.%M", cinteropValue)
+            else -> addStatement("return retPtr.%M", cinteropValue)
         }
 
+        endControlFlow()
+    }
+
+    context(ctx: Context)
+    fun buildEqualsOperatorBody(resolvedClass: ResolvedBuiltinClass): CodeBlock = buildCodeBlock {
+        val equalsOps = resolvedClass.raw.operators.filter { it.name == "==" }
+        require(equalsOps.isNotEmpty()) { "No equals operators found for ${resolvedClass.name}" }
+
+        val concreteOps = equalsOps.filter { it.rightType != null && it.rightType != "Variant" }
+        val hasVariant = equalsOps.any { it.rightType == "Variant" }
+
+        // ── fast paths ───────────────────────────────────────────────────────
+        addStatement("// Fast paths")
+        addStatement("if (this === other) return true")
+        addStatement("if (other == null) return false")
+        add("\n")
+
+        // ── vars ─────────────────────────────────────────────────────────────
+        addStatement("val ftptr: %T", implPackageRegistry.classNameForOrDefault("GDExtensionPtrOperatorEvaluator"))
+        addStatement("val rhsPtr: %T", COPAQUE_POINTER)
+        addStatement("")
+
+        // ── when(other) ──────────────────────────────────────────────────────
+        beginControlFlow("when (other)")
+
+        // ── concrete types ───────────────────────────────────────────────────
+        for (op in concreteOps) {
+            val rightType = op.rightType!!
+            val kotlinType = when {
+                rightType.equals("Array", true) ->
+                    ctx.classNameForOrDefault("Array", typedClass = true).parameterizedBy(STAR)
+
+                rightType.equals("Dictionary", true) ->
+                    ctx.classNameForOrDefault("Dictionary", typedClass = true).parameterizedBy(STAR, STAR)
+
+                else -> ctx.classNameForOrDefault(rightType.renameGodotClass())
+            }
+
+            val fptrName = operatorFptrName(op)
+
+            beginControlFlow("is %T ->", kotlinType)
+                .addStatement("ftptr = %N", fptrName)
+                .addStatement("rhsPtr = other.rawPtr")
+            endControlFlow()
+        }
+
+        // ── Variant branch ───────────────────────────────────────────────────
+        if (hasVariant) {
+            val variantTypeName = ctx.classNameForOrDefault("Variant")
+            beginControlFlow("is %T ->", variantTypeName)
+                .addStatement("val type = other.getType()")
+            beginControlFlow("when (type)")
+
+            for (op in concreteOps) {
+                val rightType = op.rightType!!
+                val variantType = rightType.toScreamingSnakeCase()
+                val fptrName = operatorFptrName(op)
+
+                beginControlFlow("%T.Type.%L ->", variantTypeName, variantType)
+                    // FIXME here can lead memory leaks
+                    .addStatement("val tmp = other.as%L()", rightType.renameAllUpperCaseToCamelCase())
+                    .addStatement("ftptr = %N", fptrName)
+                    .addStatement("rhsPtr = tmp.rawPtr")
+                endControlFlow()
+            }
+
+            addStatement("else -> return false")
+            endControlFlow() // when(type)
+
+            endControlFlow() // is Variant
+        }
+
+        // ── fallback ─────────────────────────────────────────────────────────
+        addStatement("else -> return false")
+
+        endControlFlow() // when(other)
+
+        add("\n")
+
+        // ── invoke ───────────────────────────────────────────────────────────
+        beginControlFlow("%M", memScoped)
+            .addStatement("val retPtr = %M()", implPackageRegistry.memberNameForOrDefault("allocGdBool"))
+            .addStatement("ftptr.%M(rawPtr, rhsPtr, retPtr)", cinteropInvoke)
+            .addStatement("return retPtr.%M()", implPackageRegistry.memberNameForOrDefault("readGdBool"))
         endControlFlow()
     }
 
