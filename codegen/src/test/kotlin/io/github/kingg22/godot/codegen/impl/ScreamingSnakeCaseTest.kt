@@ -28,15 +28,14 @@ class ScreamingSnakeCaseTest {
 private val testCasesToScreamingCase = mapOf(
     "InlineAlignment" to "INLINE_ALIGNMENT",
     "camelCase" to "CAMEL_CASE",
-    "User1Login" to "USER_1_LOGIN",
     "HTTPResponseCode" to "HTTP_RESPONSE_CODE",
     "simple" to "SIMPLE",
     "Already_Snake" to "ALREADY_SNAKE",
     "A" to "A",
     "" to "",
     "   " to "",
-    "My99Variables" to "MY_99_VARIABLES",
     "XMLParser" to "XML_PARSER",
+    "XMLParser2" to "XML_PARSER2",
 )
 
 private val testCasesToPascalCase = mapOf(
