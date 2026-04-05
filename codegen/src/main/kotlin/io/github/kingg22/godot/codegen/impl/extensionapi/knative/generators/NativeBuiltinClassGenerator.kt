@@ -385,7 +385,7 @@ class NativeBuiltinClassGenerator(
                                 .builder("hashCode")
                                 .addModifiers(KModifier.OVERRIDE)
                                 .returns(INT)
-                                .addCode(BodyGenerator.todoBody("hashCode not yet implemented"))
+                                .addCode(body.buildHashCodeBody(resolvedClass))
                                 .build(),
                         )
                     } else {

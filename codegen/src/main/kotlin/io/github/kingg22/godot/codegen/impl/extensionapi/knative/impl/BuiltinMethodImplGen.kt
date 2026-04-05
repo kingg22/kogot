@@ -440,6 +440,50 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
         }
     }
 
+    /**
+     * Builds the `hashCode(): Int` body for a builtin class.
+     *
+     * - If the class has a Godot `hash` method, invokes it via its fptr.
+     * - Otherwise, computes a hash from the class's member fields using a standard polynomial accumulation.
+     *
+     * DRY: For types with a Godot `hash` method, we delegate to `hash().toInt()` instead of
+     * duplicating the fptr invocation logic.
+     */
+    context(_: Context)
+    fun buildHashCodeBody(resolvedClass: ResolvedBuiltinClass): CodeBlock {
+        val hashMethod = resolvedClass.raw.methods.firstOrNull { it.name == "hash" }
+
+        return if (hashMethod != null) {
+            // DRY: Delegate to hash() method which is generated separately
+            CodeBlock.of("return hash().toInt()")
+        } else {
+            // Compute hash from member fields
+            val members = resolvedClass.raw.members
+            if (members.isEmpty()) {
+                // No members, return a constant
+                return CodeBlock.of("return 0")
+            }
+
+            buildCodeBlock {
+                addStatement("var result = 1")
+                for ((index, member) in members.withIndex()) {
+                    val fieldAccess = safeIdentifier(member.name)
+                    // Use a different prime multiplier for each field to avoid collisions
+                    val multiplier = when (index) {
+                        0 -> 31
+                        1 -> 37
+                        2 -> 41
+                        3 -> 43
+                        4 -> 47
+                        else -> 31 + index * 17
+                    }
+                    addStatement("result = %L * result + %L.hashCode()", multiplier, fieldAccess)
+                }
+                addStatement("return result")
+            }
+        }
+    }
+
     context(ctx: Context)
     private fun buildFixedArgsBody(method: BuiltinClass.BuiltinMethod, propName: String): CodeBlock = buildCodeBlock {
         val returnType = method.returnType

@@ -476,6 +476,10 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
     fun buildMethodBody(method: BuiltinClass.BuiltinMethod, className: String): CodeBlock =
         methodImplGen.buildMethodBody(method, className)
 
+    context(context: Context)
+    fun buildHashCodeBody(resolvedClass: ResolvedBuiltinClass): CodeBlock =
+        methodImplGen.buildHashCodeBody(resolvedClass)
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     /**
