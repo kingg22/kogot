@@ -19,7 +19,7 @@ import org.jetbrains.annotations.ApiStatus
 
 @ApiStatus.Internal
 public data class BindingStatus(val valid: Boolean? = null, val outOfBounds: Boolean? = null) {
-    val isOk: Boolean get() = valid == true && outOfBounds == false
+    val isOk: Boolean get() = valid == true && outOfBounds != true
 }
 
 @ApiStatus.Internal
@@ -28,7 +28,7 @@ public data class BindingBooleanResult(
     val valid: Boolean? = null,
     val outOfBounds: Boolean? = null,
 ) {
-    val isOk: Boolean get() = valid == true && outOfBounds == false && value
+    val isOk: Boolean get() = valid == true && outOfBounds != true && value
 }
 
 @ApiStatus.Internal
