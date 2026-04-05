@@ -191,6 +191,7 @@ class NativeBuiltinClassGenerator(
             val ctorBuilder = FunSpec
                 .constructorBuilder()
                 .addKdocIfPresent(ctor.raw!!)
+                .let { body.configureStorageBackedSecondaryCtor(builtinClass, it) }
 
             val argumentSpecs = ctor.arguments.map { arg -> methodGen.buildParameter(arg) }
 
@@ -210,6 +211,7 @@ class NativeBuiltinClassGenerator(
                         .addParameter("value", STRING) // kotlin.String
                         .addKdoc("Creates a %L from a Kotlin String.", kotlinName)
                         .addCode(body.stringConstructorBodyFor(builtinClass))
+                        .let { body.configureStorageBackedSecondaryCtor(builtinClass, it) }
                         .build(),
                 )
             }
