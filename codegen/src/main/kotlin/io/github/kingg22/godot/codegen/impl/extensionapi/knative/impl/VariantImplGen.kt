@@ -692,9 +692,9 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
         // ── hashVariant() ─────────────────────────────────────────────────────
         classBuilder.addFunction(
             FunSpec
-                .builder("hashVariant")
+                .builder("hash")
                 .returns(LONG)
-                .addKdoc("Named `hashVariant` to avoid collision with [Any.hashCode].")
+                .addKdoc("Named `hash` to avoid collision with [Any.hashCode].")
                 .addStatement("return %T.instance.hashRaw(rawPtr)", variantBinding)
                 .build(),
         )

@@ -334,7 +334,7 @@ class NativeBuiltinClassGenerator(
 
     // ── Operator generation ───────────────────────────────────────────────────
 
-    context(_: Context)
+    context(ctx: Context)
     private fun generateOperators(
         resolvedClass: ResolvedBuiltinClass,
         genericConfig: GenericBuiltinInterceptor.GenericConfig?,
@@ -397,11 +397,13 @@ class NativeBuiltinClassGenerator(
                                 .returns(INT)
                                 .addCode(body.buildHashCodeBody(resolvedClass))
                                 .apply {
-                                    if (resolvedClass.raw.methods.any { it.name == "hash" }) {
-                                        addKdoc("Refers to [hash] method")
+                                    val hasMethod = resolvedClass.raw.methods.any { it.name == "hash" }
+                                    val targetClass = if (hasMethod) {
+                                        typeResolver.resolve(resolvedClass.shortName)
                                     } else {
-                                        addKdoc("**UNSAFE**: Manually computed hash code based on members/properties.")
+                                        ctx.classNameForOrDefault("Variant")
                                     }
+                                    addKdoc("Refers to [%T.hash] method", targetClass)
                                 }
                                 .build(),
                         )
