@@ -10,6 +10,7 @@ import com.squareup.kotlinpoet.Documentable as KDocumentable
 
 val API_STATUS_NON_EXTENSIBLE = ClassName("org.jetbrains.annotations", "ApiStatus", "NonExtendable")
 
+@IgnorableReturnValue
 context(context: Context)
 fun <T : Annotatable.Builder<T>> T.experimentalApiAnnotation(className: String, memberName: String? = null): T {
     val isExperimental = context.isExperimentalType(className, memberName)
@@ -26,6 +27,7 @@ fun <T : Annotatable.Builder<T>> T.experimentalApiAnnotation(className: String, 
     return this
 }
 
+@IgnorableReturnValue
 context(_: Context)
 fun <T : KDocumentable.Builder<T>> T.addKdocIfPresent(documentable: Documentable): T {
     if (documentable.description.isNullOrBlank()) return this

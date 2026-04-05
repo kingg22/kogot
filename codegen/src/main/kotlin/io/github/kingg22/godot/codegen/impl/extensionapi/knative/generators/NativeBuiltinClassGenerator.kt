@@ -376,7 +376,17 @@ class NativeBuiltinClassGenerator(
                         genericConfig = genericConfig,
                         operator = op,
                         cls = resolvedClass,
-                    )
+                    ) {
+                        if (kotlinOpName == "equals") {
+                            kdoc.clear()
+                            val equalsOps = resolvedClass.raw.operators.filter { it.name == "==" }
+                            equalsOps.forEachIndexed { index, operator ->
+                                if (index != 0) addKdoc("\n\n")
+                                addKdoc("**In case of**: [%L]\n\n", operator.rightType!!)
+                                addKdocIfPresent(operator)
+                            }
+                        }
+                    }
 
                     if (kotlinOpName == "equals") {
                         return@mapNotNull listOf(
@@ -386,6 +396,13 @@ class NativeBuiltinClassGenerator(
                                 .addModifiers(KModifier.OVERRIDE)
                                 .returns(INT)
                                 .addCode(body.buildHashCodeBody(resolvedClass))
+                                .apply {
+                                    if (resolvedClass.raw.methods.any { it.name == "hash" }) {
+                                        addKdoc("Refers to [hash] method")
+                                    } else {
+                                        addKdoc("**UNSAFE**: Manually computed hash code based on members/properties.")
+                                    }
+                                }
                                 .build(),
                         )
                     } else {
@@ -414,6 +431,7 @@ class NativeBuiltinClassGenerator(
         genericConfig: GenericBuiltinInterceptor.GenericConfig?,
         operator: BuiltinClass.Operator,
         cls: ResolvedBuiltinClass,
+        block: FunSpec.Builder.() -> Unit = {},
     ): FunSpec {
         val originalReturnType = typeResolver.resolve(returnType)
         val returnTypeName = genericConfig?.transformOperatorReturnType(operator, originalReturnType)
@@ -439,7 +457,7 @@ class NativeBuiltinClassGenerator(
             builder.addCode(body.buildOperatorBody(operator))
         }
 
-        return builder.build()
+        return builder.apply(block).build()
     }
 
     /**
