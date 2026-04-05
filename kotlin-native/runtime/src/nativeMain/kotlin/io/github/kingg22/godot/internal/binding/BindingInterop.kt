@@ -5,30 +5,31 @@
 
 package io.github.kingg22.godot.internal.binding
 
-import io.github.kingg22.godot.internal.ffi.GDExtensionBool
-import io.github.kingg22.godot.internal.ffi.GDExtensionCallError
-import io.github.kingg22.godot.internal.ffi.GDExtensionCallErrorType
-import io.github.kingg22.godot.internal.ffi.GDExtensionConstTypePtr
-import io.github.kingg22.godot.internal.ffi.GDExtensionConstTypePtrVar
-import io.github.kingg22.godot.internal.ffi.GDExtensionConstVariantPtr
-import io.github.kingg22.godot.internal.ffi.GDExtensionConstVariantPtrVar
-import io.github.kingg22.godot.internal.ffi.GDExtensionTypePtr
-import io.github.kingg22.godot.internal.ffi.GDExtensionTypePtrVar
+import io.github.kingg22.godot.internal.ffi.*
 import kotlinx.cinterop.CArrayPointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.MemScope
-import kotlinx.cinterop.UByteVar
+import kotlinx.cinterop.alloc
 import kotlinx.cinterop.allocArray
-import kotlinx.cinterop.get
 import kotlinx.cinterop.pointed
+import kotlinx.cinterop.ptr
 import kotlinx.cinterop.set
+import kotlinx.cinterop.value
 import org.jetbrains.annotations.ApiStatus
 
 @ApiStatus.Internal
-public data class BindingStatus(val valid: Boolean? = null, val outOfBounds: Boolean? = null)
+public data class BindingStatus(val valid: Boolean? = null, val outOfBounds: Boolean? = null) {
+    val isOk: Boolean get() = valid == true && outOfBounds == false
+}
 
 @ApiStatus.Internal
-public data class BindingBooleanResult(val value: Boolean, val valid: Boolean? = null, val outOfBounds: Boolean? = null)
+public data class BindingBooleanResult(
+    val value: Boolean,
+    val valid: Boolean? = null,
+    val outOfBounds: Boolean? = null,
+) {
+    val isOk: Boolean get() = valid == true && outOfBounds == false && value
+}
 
 @ApiStatus.Internal
 public data class BindingCallErrorInfo(val error: GDExtensionCallErrorType, val argument: Int, val expected: Int)
@@ -40,14 +41,17 @@ public inline fun Boolean.toGdBool(): GDExtensionBool = if (this) 1u else 0u
 public inline fun GDExtensionBool.toBoolean(): Boolean = this != 0u.toUByte()
 
 @ApiStatus.Internal
-public inline fun MemScope.allocGdBool(initialValue: Boolean = false): CArrayPointer<UByteVar> =
-    allocArray<UByteVar>(1).also { it[0] = initialValue.toGdBool() }
+public inline fun MemScope.allocGdBool(): CPointer<GDExtensionBoolVar> = alloc<GDExtensionBoolVar>().ptr
 
 @ApiStatus.Internal
-public inline fun CPointer<UByteVar>.readGdBool(): Boolean = this[0].toBoolean()
+public inline fun MemScope.allocGdBool(initialValue: Boolean = false): CPointer<GDExtensionBoolVar> =
+    alloc<GDExtensionBoolVar> { this.value = initialValue.toGdBool() }.ptr
 
 @ApiStatus.Internal
-public inline fun MemScope.allocCallError(): CArrayPointer<GDExtensionCallError> = allocArray(1)
+public inline fun CPointer<GDExtensionBoolVar>.readGdBool(): Boolean = pointed.value.toBoolean()
+
+@ApiStatus.Internal
+public inline fun MemScope.allocCallError(): CPointer<GDExtensionCallError> = alloc<GDExtensionCallError>().ptr
 
 @ApiStatus.Internal
 public inline fun CPointer<GDExtensionCallError>.readCallErrorInfo(): BindingCallErrorInfo =
