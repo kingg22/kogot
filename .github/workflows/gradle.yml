@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
+    group: ${{ github.workflow }}-${{ github.sha }}
     cancel-in-progress: true
 
 jobs:
@@ -28,9 +28,16 @@ jobs:
       contents: read
 
     steps:
-    - uses: actions/checkout@v6
+    # Free GitHub Actions Environment Disk Space
+    - name: Maximize Build Space
+      uses: jlumbroso/free-disk-space@v1.3.1
       with:
-        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+        tool-cache: false
+        large-packages: false
+
+    - uses: actions/checkout@v6
+      #with:
+        #fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
 
     - name: Set up JDK
       uses: actions/setup-java@v5
@@ -79,7 +86,7 @@ jobs:
 
     - name: Build with Gradle Wrapper
       # Run without a daemon when only run one task
-      run: ./gradlew build --no-daemon --stacktrace
+      run: ./gradlew build --no-daemon --stacktrace --no-parallel
 
 #    # With configuration cache parallel, the KMP plugin fails with ConcurrentModificationException
 #    - name: Sonar analyze
