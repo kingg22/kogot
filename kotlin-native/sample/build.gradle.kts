@@ -8,9 +8,12 @@ plugins {
 }
 
 val isRelease = hasProperty("releaseMode") || hasProperty("release")
+val isCi = System.getenv("CI") != null
 
 val listOfNativeBuildType = if (isRelease) {
     listOf(NativeBuildType.DEBUG, NativeBuildType.RELEASE)
+} else if (isCi) {
+    listOf()
 } else {
     listOf(NativeBuildType.DEBUG)
 }
