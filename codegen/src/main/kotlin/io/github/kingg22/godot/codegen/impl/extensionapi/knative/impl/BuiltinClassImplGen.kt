@@ -144,7 +144,8 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
                 PropertySpec
                     .builder("closed", BOOLEAN, KModifier.PRIVATE)
                     .mutable(true)
-                    .initializer("false")
+                    // If this object was constructed by opaque pointer, don't allow closing this object
+                    .initializer("$rawPtrCtorArg != null")
                     .build(),
             )
         }
