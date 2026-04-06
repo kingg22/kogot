@@ -38,7 +38,12 @@ private fun initialize(userdata: COpaquePointer?, level: GDExtensionInitializati
 
         GDEXTENSION_INITIALIZATION_SERVERS -> println("✓ SERVERS initialized")
 
-        GDEXTENSION_INITIALIZATION_SCENE -> println("✓ SCENE initialized")
+        GDEXTENSION_INITIALIZATION_SCENE -> {
+            println("✓ SCENE initialized")
+            registerCustomSignalClass()
+            // Register the signal for CustomSignalClass
+            registerSignalsForCustomSignalClass()
+        }
 
         GDEXTENSION_INITIALIZATION_EDITOR -> GD.print("✓ EDITOR initialized. Hello from Kotlin Native")
 
