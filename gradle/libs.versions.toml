@@ -2,6 +2,9 @@
 # https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
 
 [versions]
+# https://mvnrepository.com/artifact/androidx.room/room-compiler-processing-testing
+androidx-room-compiler-testing = "2.8.4"
+
 # https://github.com/apache/commons-compress/tags
 apache-commons-compress = "1.28.0"
 
@@ -17,6 +20,9 @@ jetbrains-jvm-annotations = "26.1.0"
 # https://github.com/jspecify/jspecify/releases
 jspecify = "1.0.0"
 
+# https://github.com/google/truth/releases
+google-truth = "1.4.5"
+
 # https://github.com/JetBrains/kotlin/releases
 kotlin = "2.3.20"
 
@@ -25,6 +31,10 @@ kotlinx-serialization = "1.10.0"
 
 # https://github.com/square/kotlinpoet/releases
 kotlinpoet = "2.3.0"
+
+# https://github.com/google/ksp/releases
+ksp-api = "2.3.2"
+ksp-plugin = "2.3.6"
 
 # https://github.com/pinterest/ktlint/releases
 ktlint-pinterest = "1.8.0"
@@ -46,10 +56,21 @@ palantir = "2.86.0"
 undercouch-download = "5.7.0"
 
 [libraries]
+# Kotlin
+kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
+kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
+
 jetbrains-annotations = { group = "org.jetbrains", name = "annotations", version.ref = "jetbrains-jvm-annotations" }
 
 kotlinpoet = { group = "com.squareup", name = "kotlinpoet", version.ref = "kotlinpoet" }
+kotlinpoet-ksp = { group = "com.squareup", name = "kotlinpoet-ksp", version.ref = "kotlinpoet" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+
+# Processor
+ksp-api = { group = "com.google.devtools.ksp", name = "symbol-processing-api", version.ref = "ksp-api" }
+# Processor test
+androidx-room-compiler-testing = { group = "androidx.room", name = "room-compiler-processing-testing", version.ref = "androidx-room-compiler-testing" }
+google-truth = { group = "com.google.truth", name = "truth", version.ref = "google-truth" }
 
 # build-logic
 apache-commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "apache-commons-compress" }
