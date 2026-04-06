@@ -5,8 +5,12 @@ import io.github.kingg22.godot.internal.ffi.GDExtensionVariantOperator
 import io.github.kingg22.godot.internal.ffi.GDExtensionVariantType
 import org.jetbrains.annotations.ApiStatus
 
+/**
+ * Performs conversion from [Variant.Operator] to [GDExtensionVariantOperator].
+ * Both enums are equals, so only change the package and types
+ */
 @ApiStatus.Internal
-public fun Variant.Operator.toGDExtensionVariantOperator(): GDExtensionVariantOperator = when (this) {
+public fun Variant.Operator.toGDE(): GDExtensionVariantOperator = when (this) {
     EQUAL -> GDEXTENSION_VARIANT_OP_EQUAL
     NOT_EQUAL -> GDEXTENSION_VARIANT_OP_NOT_EQUAL
     LESS -> GDEXTENSION_VARIANT_OP_LESS
@@ -35,8 +39,12 @@ public fun Variant.Operator.toGDExtensionVariantOperator(): GDExtensionVariantOp
     MAX -> GDEXTENSION_VARIANT_OP_MAX
 }
 
+/**
+ * Performs conversion from [Variant.Type] to [GDExtensionVariantType].
+ * Both enums are equals, so only change the package and types
+ */
 @ApiStatus.Internal
-public fun Variant.Type.toGDExtensionVariantType(): GDExtensionVariantType = when (this) {
+public fun Variant.Type.toGDE(): GDExtensionVariantType = when (this) {
     NIL -> GDEXTENSION_VARIANT_TYPE_NIL
     BOOL -> GDEXTENSION_VARIANT_TYPE_BOOL
     INT -> GDEXTENSION_VARIANT_TYPE_INT
