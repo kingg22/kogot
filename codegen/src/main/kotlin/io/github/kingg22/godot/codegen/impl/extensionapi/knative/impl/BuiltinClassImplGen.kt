@@ -82,8 +82,6 @@ private fun variantTypeConst(godotName: String?): String? = when (godotName) {
     else -> null
 }
 
-private const val rawPtrCtorArg = "rawPtr"
-
 /**
  * Generates implementation bodies for Godot builtin classes.
  *
@@ -111,28 +109,35 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
         val layout = builtinClass.layout
             ?: error("Missing layout for storage-backed builtin '${builtinClass.name}'")
 
-        classBuilder.primaryConstructor(FunSpec.constructorBuilder().addParameter(rawPtrCtorArg, COPAQUE_POINTER.copy(nullable = true)).build())
+        classBuilder.primaryConstructor(
+            FunSpec
+                .constructorBuilder()
+                .addParameter("rawPtr", COPAQUE_POINTER.copy(nullable = true))
+                .build(),
+        )
+
         val storageProperty = PropertySpec
             .builder("storage", C_POINTER.parameterizedBy(BYTE_VAR), KModifier.PRIVATE)
             .initializer(
                 CodeBlock
                     .builder()
-                    .addStatement(
-                        "${rawPtrCtorArg}?.%M<%T>() ?: %T.alloc(size = %L, align = %L)",
-                        cinteropReinterpret,
-                        BYTE_VAR,
-                        cinteropNativeHeap,
-                        layout.size,
-                        layout.align,
-                    )
-                    .indent()
-                    .addStatement(
-                        ".%M<%T>().%M",
-                        cinteropReinterpret,
-                        BYTE_VAR,
-                        cinteropPtr,
-                    )
-                    .unindent()
+                    .addStatement("rawPtr?.%M()", cinteropReinterpret)
+                    .withIndent {
+                        addStatement(
+                            "?: %T.alloc(size = %L, align = %L)",
+                            cinteropNativeHeap,
+                            layout.size,
+                            layout.align,
+                        )
+                        withIndent {
+                            addStatement(
+                                ".%M<%T>().%M",
+                                cinteropReinterpret,
+                                BYTE_VAR,
+                                cinteropPtr,
+                            )
+                        }
+                    }
                     .build(),
             )
             .build()
@@ -145,7 +150,7 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
                     .builder("closed", BOOLEAN, KModifier.PRIVATE)
                     .mutable(true)
                     // If this object was constructed by opaque pointer, don't allow closing this object
-                    .initializer("$rawPtrCtorArg != null")
+                    .initializer("rawPtr != null")
                     .build(),
             )
         }
