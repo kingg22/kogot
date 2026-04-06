@@ -74,9 +74,6 @@ class NativeVariantGenerator(private val enumGenerator: NativeEnumGenerator, pri
         // companion object with static helpers
         implGen.buildCompanion(classSpec, variantClassName)
 
-        // commented invoke operator stubs
-        implGen.buildInvokeOperatorStub(classSpec, variantTypes)
-
         createFile("Variant", ctx.packageForOrDefault("Variant")) {
             addType(classSpec.build())
 
@@ -106,6 +103,9 @@ class NativeVariantGenerator(private val enumGenerator: NativeEnumGenerator, pri
 
         // ── Typed extractors: asXOrNull + asX ─────────────────────────────
         implGen.buildExtractors(typeBuilder, variantClassName, variantTypes)
+
+        // ── Converter: invoke() ─────────────────────────────
+        implGen.buildInvokeOperators(typeBuilder, variantTypes)
 
         return typeBuilder
     }

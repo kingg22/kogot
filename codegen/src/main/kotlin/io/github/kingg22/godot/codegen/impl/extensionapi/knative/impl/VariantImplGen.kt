@@ -9,6 +9,7 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.*
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.screamingToPascalCase
+import io.github.kingg22.godot.codegen.models.extensionapi.EnumConstant
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEnum
 
 /**
@@ -225,12 +226,7 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
 
         // All builtin/object types — value.rawPtr path
         variantTypes.raw.values.forEach { enumValue ->
-            val subclassName = enumValue.name.removePrefix("TYPE_")
-                .takeUnless { it == "MAX" || it == "NIL" || it == "BOOL" || it == "INT" || it == "FLOAT" }
-                ?: return@forEach
-
-            val godotTypeName = subclassName.screamingToPascalCase().renameGodotClass()
-            val valueType = typeResolver.resolve(godotTypeName)
+            val (valueType, subclassName) = resolveTypeNameAndName(enumValue) ?: return@forEach
 
             classBuilder.addFunction(
                 FunSpec
@@ -295,9 +291,9 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                 .returns(variantClassName.copy(nullable = true))
                 .addParameter("rhs", variantClassName)
                 .addParameter("op", variantOperatorClass)
-                .addKdoc("Evaluate an operator on two Variants")
-                .addKdoc("@param rhs The right-hand side of the operator. The second Variant")
-                .addKdoc("@param op The operator to evaluate. See [VariantOperator].")
+                .addKdoc("Evaluate an operator on two Variants\n\n")
+                .addKdoc("@param rhs The right-hand side of the operator. The second Variant\n")
+                .addKdoc("@param op The operator to evaluate. See [Variant.Operator].\n")
                 .addKdoc("@return The result of the operator, or null if the operation is invalid.")
                 .addCode(
                     CodeBlock
@@ -307,10 +303,10 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                         .indent()
                         .addStatement(
                             ".evaluate(op.%M(), rawPtr, rhs.rawPtr, result.rawPtr)",
-                            implPackageRegistry.memberNameForOrDefault("toGDExtensionVariantOperator"),
+                            implPackageRegistry.memberNameForOrDefault("toGDE"),
                         )
                         .unindent()
-                        .beginControlFlow("return if (status.valid == true)")
+                        .beginControlFlow("return if (status.isOk)")
                         .addStatement("result")
                         .nextControlFlow("else")
                         .addStatement("result.close()")
@@ -642,7 +638,7 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                         .indent()
                         .addStatement(
                             "type.%M(),",
-                            implPackageRegistry.memberNameForOrDefault("toGDExtensionVariantType"),
+                            implPackageRegistry.memberNameForOrDefault("toGDE"),
                         )
                         .addStatement("method.rawPtr,")
                         .addStatement("*args.map { it.rawPtr }.toTypedArray(),")
@@ -748,16 +744,12 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
             FunSpec
                 .builder("getObjectInstanceId")
                 .returns(U_LONG)
-                .addKdoc(
-                    """
-                    Gets the object instance ID from a variant of type GDEXTENSION_VARIANT_TYPE_OBJECT.
-
-                    If the variant isn't of type GDEXTENSION_VARIANT_TYPE_OBJECT, then zero will be returned.
-
-                    The instance ID will be returned even if the object is no longer valid - use [GodotObject.getInstanceId]
-                    to check if the object is still valid.
-                    """.trimIndent(),
-                )
+                .addKdoc("Gets the object instance ID from a variant of type [Variant.Type.OBJECT]")
+                .addKdoc("\n\n")
+                .addKdoc("If the variant isn't of type [Variant.Type.OBJECT], then zero will be returned")
+                .addKdoc("\n\n")
+                .addKdoc("The instance ID will be returned even if the object is no longer valid -\n")
+                .addKdoc("use [GodotObject.getInstanceId] to check if the object is still valid.")
                 .addStatement("return %T.instance.getObjectInstanceIdRaw(rawPtr)", variantBinding)
                 .build(),
         )
@@ -988,9 +980,9 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                 .addParameter("type", variantTypeClass)
                 .addParameter("member", stringNameClass)
                 .addStatement(
-                    "return %T.instance.hasMember(type.%M(), member.rawPtr)",
+                    "return %T.instance♢.hasMember(type.%M(), member.rawPtr)",
                     variantBinding,
-                    implPackageRegistry.memberNameForOrDefault("toGDExtensionVariantType"),
+                    implPackageRegistry.memberNameForOrDefault("toGDE"),
                 )
                 .build(),
         )
@@ -1002,10 +994,10 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                 .addParameter("from", variantTypeClass)
                 .addParameter("to", variantTypeClass)
                 .addStatement(
-                    "return %T.instance.canConvert(from.%M(), to.%M())",
+                    "return %T.instance♢.canConvert(from.%M(), to.%M())",
                     variantBinding,
-                    implPackageRegistry.memberNameForOrDefault("toGDExtensionVariantType"),
-                    implPackageRegistry.memberNameForOrDefault("toGDExtensionVariantType"),
+                    implPackageRegistry.memberNameForOrDefault("toGDE"),
+                    implPackageRegistry.memberNameForOrDefault("toGDE"),
                 )
                 .build(),
         )
@@ -1017,10 +1009,10 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                 .addParameter("from", variantTypeClass)
                 .addParameter("to", variantTypeClass)
                 .addStatement(
-                    "return %T.instance.canConvertStrict(from.%M(), to.%M())",
+                    "return %T.instance♢.canConvertStrict(from.%M(), to.%M())",
                     variantBinding,
-                    implPackageRegistry.memberNameForOrDefault("toGDExtensionVariantType"),
-                    implPackageRegistry.memberNameForOrDefault("toGDExtensionVariantType"),
+                    implPackageRegistry.memberNameForOrDefault("toGDE"),
+                    implPackageRegistry.memberNameForOrDefault("toGDE"),
                 )
                 .build(),
         )
@@ -1037,60 +1029,105 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
      * Left commented for future evaluation — the semantics require destroying the current
      * content before writing the new type, which is possible but has ownership implications.
      */
-    fun buildInvokeOperatorStub(classBuilder: TypeSpec.Builder, variantTypes: ResolvedEnum) {
-        /*
-        val lines = buildString {
-            appendLine("// operator fun invoke — dynamic type reassignment (commented, evaluate before enabling)")
-            appendLine("//")
-            appendLine("// Usage: variant(42L), variant(true), variant(someVector2)")
-            appendLine("// Each overload would call VariantBinding.instance.destroyRaw(rawPtr)")
-            appendLine("// then reinitialise storage via the appropriate fromTypeFptr_X.")
-            appendLine("//")
-            appendLine("// operator fun invoke(value: Boolean): Variant {")
-            appendLine("//     VariantBinding.instance.destroyRaw(rawPtr)")
-            appendLine("//     memScoped { val b = allocGdBool(value); fromTypeFptr_BOOL.invoke(rawPtr, b) }")
-            appendLine("//     return this")
-            appendLine("// }")
-            appendLine("// operator fun invoke(value: Long): Variant {")
-            appendLine("//     VariantBinding.instance.destroyRaw(rawPtr)")
-            appendLine(
-                "//     memScoped { val v = alloc<LongVar>().apply { this.value = value }; fromTypeFptr_INT.invoke(rawPtr, v.ptr) }",
-            )
-            appendLine("//     return this")
-            appendLine("// }")
-            appendLine("// operator fun invoke(value: Int): Variant = invoke(value.toLong())")
-            appendLine("// operator fun invoke(value: Double): Variant {")
-            appendLine("//     VariantBinding.instance.destroyRaw(rawPtr)")
-            appendLine(
-                "//     memScoped { val v = alloc<DoubleVar>().apply { this.value = value }; fromTypeFptr_FLOAT.invoke(rawPtr, v.ptr) }",
-            )
-            appendLine("//     return this")
-            appendLine("// }")
+    context(ctx: Context)
+    fun buildInvokeOperators(classBuilder: TypeSpec.Builder, variantTypes: ResolvedEnum) {
+        val variantBindingClass = implPackageRegistry.classNameForOrDefault("VariantBinding")
+        val variantClassName = ctx.classNameForOrDefault("Variant")
 
-            variantTypes.raw.values.forEach { enumValue ->
-                val subclassName = enumValue.name.removePrefix("TYPE_")
-                    .takeUnless { it == "MAX" || it == "NIL" || it == "BOOL" || it == "INT" || it == "FLOAT" }
-                    ?: return@forEach
-                val godotTypeName = subclassName.screamingToPascalCase().renameGodotClass()
-                appendLine("// operator fun invoke(value: $godotTypeName): Variant {")
-                appendLine("//     VariantBinding.instance.destroyRaw(rawPtr)")
-                appendLine("//     fromTypeFptr_$subclassName.invoke(rawPtr, value.rawPtr)")
-                appendLine("//     return this")
-                appendLine("// }")
-            }
+        fun addFunction(code: CodeBlock, parameterName: String, parameterType: TypeName) {
+            classBuilder.addFunction(
+                FunSpec
+                    .builder("invoke")
+                    .addModifiers(KModifier.OPERATOR)
+                    .returns(variantClassName)
+                    .addParameter(parameterName, parameterType)
+                    .addCode(code)
+                    .build(),
+            )
         }
 
-        // Emit as a file-level comment via a private property with a giant KDoc.
-        // KotlinPoet doesn't have a raw comment API for class bodies, so we use
-        // an INTERNAL marker property that suppression silences.
-        classBuilder.addProperty(
-            PropertySpec
-                .builder("_invokeOperatorStub", UNIT, KModifier.PRIVATE)
-                .addKdoc("%L", lines)
-                .initializer("Unit")
+        // Boolean
+        addFunction(
+            CodeBlock
+                .builder()
+                .addStatement("%T.instance.destroyRaw(rawPtr)", variantBindingClass)
+                .beginControlFlow("%M", memScoped)
+                .addStatement("val b = %M(value)", implPackageRegistry.memberNameForOrDefault("allocGdBool"))
+                .addStatement("fromTypeFptr_BOOL.%M(rawPtr, b)", cinteropInvoke)
+                .endControlFlow()
+                .addStatement("return this")
+                .build(),
+            "value",
+            BOOLEAN,
+        )
+
+        // Long
+        addFunction(
+            CodeBlock
+                .builder()
+                .addStatement("%T.instance.destroyRaw(rawPtr)", variantBindingClass)
+                .beginControlFlow("%M", memScoped)
+                .addStatement("val v = %M<%T>().apply { this.%M = value }", cinteropAlloc, LONG_VAR, cinteropValue)
+                .addStatement("fromTypeFptr_INT.%M(rawPtr, v.%M)", cinteropInvoke, cinteropPtr)
+                .endControlFlow()
+                .addStatement("return this")
+                .build(),
+            "value",
+            LONG,
+        )
+
+        // Int (delegates)
+        classBuilder.addFunction(
+            FunSpec
+                .builder("invoke")
+                .addModifiers(KModifier.OPERATOR)
+                .addParameter("value", INT)
+                .returns(ctx.classNameForOrDefault("Variant"))
+                .addStatement("return invoke(value.toLong())")
                 .build(),
         )
-         */
+
+        // Double
+        addFunction(
+            CodeBlock
+                .builder()
+                .addStatement("%T.instance.destroyRaw(rawPtr)", variantBindingClass)
+                .beginControlFlow("%M", memScoped)
+                .addStatement("val v = %M<%T>().apply { this.%M = value }", cinteropAlloc, DOUBLE_VAR, cinteropValue)
+                .addStatement("fromTypeFptr_FLOAT.%M(rawPtr, v.%M)", cinteropInvoke, cinteropPtr)
+                .endControlFlow()
+                .addStatement("return this")
+                .build(),
+            "value",
+            DOUBLE,
+        )
+
+        // Float (delegates)
+        classBuilder.addFunction(
+            FunSpec
+                .builder("invoke")
+                .addModifiers(KModifier.OPERATOR)
+                .addParameter("value", FLOAT)
+                .returns(variantClassName)
+                .addStatement("return invoke(value.toDouble())")
+                .build(),
+        )
+
+        // Generated types
+        variantTypes.raw.values.forEach { enumValue ->
+            val (typeName, subclassName) = resolveTypeNameAndName(enumValue) ?: return@forEach
+            classBuilder.addFunction(
+                FunSpec
+                    .builder("invoke")
+                    .addModifiers(KModifier.OPERATOR)
+                    .addParameter("value", typeName)
+                    .returns(variantClassName)
+                    .addStatement("%T.instance.destroyRaw(rawPtr)", variantBindingClass)
+                    .addStatement("fromTypeFptr_%L.%M(rawPtr, value.rawPtr)", subclassName, cinteropInvoke)
+                    .addStatement("return this")
+                    .build(),
+            )
+        }
     }
 
     // ── Top-level fptr properties ─────────────────────────────────────────────
@@ -1168,19 +1205,39 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
 
         asVariantType(INT) // delegates to Long ctor inside Variant
 
+        asVariantType(FLOAT) // delegates to Double ctor inside Variant
+
         // All builtin / object types
         variantTypes.raw.values.forEach { enumValue ->
-            val subclassName = enumValue.name.removePrefix("TYPE_")
-                .takeUnless { it == "MAX" || it == "NIL" }
-                ?: return@forEach
-
-            val godotTypeName = subclassName.screamingToPascalCase().renameGodotClass()
-            val receiverType = typeResolver.resolve(godotTypeName)
-
+            val (receiverType) = resolveTypeNameAndName(enumValue) { false } ?: return@forEach
             asVariantType(receiverType)
         }
 
         return funs
+    }
+
+    context(ctx: Context)
+    private fun resolveTypeNameAndName(
+        enumValue: EnumConstant,
+        filter: (String) -> Boolean = { it == "BOOL" || it == "INT" || it == "FLOAT" },
+    ): Pair<TypeName, String>? {
+        val subclassName = enumValue.name.removePrefix("TYPE_")
+            .takeUnless { it == "MAX" || it == "NIL" || filter(it) }
+            ?: return null
+
+        val godotTypeName = subclassName.screamingToPascalCase().renameGodotClass(getTypedClass = true)
+        val receiverType = when {
+            godotTypeName.equals("Array", ignoreCase = true) ||
+                godotTypeName.equals("GodotArray", ignoreCase = true) ->
+                ctx.classNameForOrDefault("Array", typedClass = true).parameterizedBy(STAR)
+
+            godotTypeName.equals("Dictionary", ignoreCase = true) ->
+                ctx.classNameForOrDefault("Dictionary", typedClass = true).parameterizedBy(STAR, STAR)
+
+            else -> typeResolver.resolve(godotTypeName)
+        }
+
+        return receiverType to subclassName
     }
 
     // ── Variant size helpers ──────────────────────────────────────────────────
