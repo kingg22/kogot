@@ -86,21 +86,8 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
     // ── Method body ───────────────────────────────────────────────────────────
 
     context(context: Context)
-    fun buildMethodBody(method: BuiltinClass.BuiltinMethod, className: String): CodeBlock {
-        val propName = methodFptrName(className, method)
-        if ((className == "Dictionary" && method.name == "has") || (className == "Array" && method.name == "set") || (
-                className == "Dictionary" && (
-                    method.name == "erase" ||
-                        method.name == "get" ||
-                        method.name == "get_or_add" ||
-                        method.name == "set"
-                    )
-                )
-        ) {
-            return CodeBlock.of("return TODO(%S)", "Generic types are not yet supported for $className.${method.name}")
-        }
-        return buildFixedArgsBody(method, propName)
-    }
+    fun buildMethodBody(method: BuiltinClass.BuiltinMethod, className: String): CodeBlock =
+        buildFixedArgsBody(method, methodFptrName(className, method))
 
     // ── Operator bodies & fptr naming ────────────────────────────────────────
 

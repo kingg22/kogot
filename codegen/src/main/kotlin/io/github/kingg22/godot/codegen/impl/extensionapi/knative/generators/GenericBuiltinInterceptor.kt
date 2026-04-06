@@ -23,6 +23,7 @@ import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
  * 4. Generar typealiases para versiones untyped
  */
 class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
+
     /** Detecta si una clase builtin debe ser genérica. */
     fun requiresGenerics(builtinClass: BuiltinClass): Boolean = when (builtinClass.name) {
         "Array" -> true
@@ -34,7 +35,7 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
     context(_: Context)
     fun getGenericConfig(builtinClass: BuiltinClass): GenericConfig? = when (builtinClass.name) {
         "Array" -> ArrayGenericConfig(builtinClass, typeResolver)
-        "Dictionary" -> DictionaryGenericConfig(builtinClass, typeResolver)
+        "Dictionary" -> DictionaryGenericConfig()
         else -> null
     }
 
@@ -85,38 +86,14 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
                 return "VariantArray" to untypedArray
             }
 
-        context(context: Context)
-        override fun transformParameterType(
-            method: BuiltinClass.BuiltinMethod,
-            argIndex: Int,
-            originalType: TypeName,
-        ): TypeName {
-            // Si el parámetro es del indexing_return_type, usar T
-            val indexingType = builtinClass.indexingReturnType
-            if (indexingType != null && method.name == "set" && argIndex == 1) {
-                val indexingTypeName = typeResolver.resolve(indexingType)
-                if (originalType == indexingTypeName) {
-                    return typeT
-                }
-            }
-
-            // Parámetros que aceptan Array → Array<T>
-            val arg = method.arguments.getOrNull(argIndex)
-            if (arg?.type == "Array") {
-                val godotArrayClass = context.classNameForOrDefault("Array", "GodotArray", typedClass = true)
-                return godotArrayClass.parameterizedBy(typeT)
-            }
-
-            return originalType
-        }
+        // NO transformar tipos de parámetros - Array<T> internamente usa Variant
+        // Los factory methods (ofInt, ofLong, etc.) se generan aparte
     }
 
-    private class DictionaryGenericConfig(
-        private val builtinClass: BuiltinClass,
-        private val typeResolver: TypeResolver,
-    ) : GenericConfig {
+    private class DictionaryGenericConfig : GenericConfig {
         context(_: Context)
         private val typeKeys get() = TypeVariableName.invoke("K")
+
         context(_: Context)
         private val typeValues get() = TypeVariableName.invoke("V")
 
@@ -132,37 +109,7 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
                 return "VariantDictionary" to untypedDict
             }
 
-        context(context: Context)
-        override fun transformParameterType(
-            method: BuiltinClass.BuiltinMethod,
-            argIndex: Int,
-            originalType: TypeName,
-        ): TypeName {
-            // Dictionary.get(key: Variant) → Dictionary.get(key: K)
-            // Dictionary.set(key: Variant, value: Variant) → Dictionary.set(key: K, value: V)
-            // Dictionary.has(key: Variant) → Dictionary.has(key: K)
-
-            val arg = method.arguments.getOrNull(argIndex) ?: return originalType
-
-            // Primer parámetro (key) → K
-            if (argIndex == 0 && arg.type == "Variant") {
-                when (method.name) {
-                    "get", "set", "has", "erase", "get_or_add" -> return typeKeys
-                }
-            }
-
-            // Segundo parámetro (value) de set → V
-            if (argIndex == 1 && arg.type == "Variant" && method.name == "set") {
-                return typeValues
-            }
-
-            // Parámetros que aceptan Dictionary → Dictionary<K, V>
-            if (arg.type == "Dictionary") {
-                val godotDictClass = context.classNameForOrDefault("Dictionary", typedClass = true)
-                return godotDictClass.parameterizedBy(typeKeys, typeValues)
-            }
-
-            return originalType
-        }
+        // NO transformar tipos de parámetros - Dictionary<K, V> internamente usa Variant
+        // Los factory methods (ofIntInt, etc.) se generan aparte
     }
 }
