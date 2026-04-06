@@ -64,11 +64,7 @@ class NativeEngineClassGenerator(
                 ) {
                     if (method.isVirtual) addModifiers(KModifier.OPEN)
 
-                    if ((method.name == "get" && method.arguments.size == 1) ||
-                        (method.name == "set" && method.arguments.size == 2)
-                    ) {
-                        addModifiers(KModifier.OPERATOR)
-                    }
+                    if (method.name == "get" || method.name == "set") addModifiers(KModifier.OPERATOR)
                 }
 
                 classBuilder.addFunction(methodSpec)

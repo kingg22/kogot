@@ -291,11 +291,7 @@ class NativeBuiltinClassGenerator(
         // Si no hay config genérica, usar generador normal
         if (genericConfig == null) {
             return methodGen.buildMethod(method, className, codeBody = body.buildMethodBody(method, className)) {
-                if ((method.name == "get" && method.arguments.size == 1) ||
-                    (method.name == "set" && method.arguments.size == 2)
-                ) {
-                    addModifiers(KModifier.OPERATOR)
-                }
+                if (method.name == "get" || method.name == "set") addModifiers(KModifier.OPERATOR)
             }
         }
 
@@ -307,11 +303,7 @@ class NativeBuiltinClassGenerator(
 
         // Construir método con tipo transformado
         return methodGen.buildMethod(method, className, codeBody = body.buildMethodBody(method, className)) {
-            if ((method.name == "get" && method.arguments.size == 1) ||
-                (method.name == "set" && method.arguments.size == 2)
-            ) {
-                addModifiers(KModifier.OPERATOR)
-            }
+            if (method.name == "get" || method.name == "set") addModifiers(KModifier.OPERATOR)
 
             if (transformedReturnType != null && transformedReturnType != originalReturnType) {
                 returns(transformedReturnType)
