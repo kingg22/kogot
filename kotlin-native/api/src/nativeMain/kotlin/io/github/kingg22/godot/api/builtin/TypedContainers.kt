@@ -8,6 +8,7 @@ import io.github.kingg22.godot.api.builtin.internal.variantTypeOf
 import io.github.kingg22.godot.internal.binding.ArrayBinding
 import io.github.kingg22.godot.internal.binding.DictionaryBinding
 import kotlin.contracts.contract
+import kotlin.reflect.typeOf
 
 /** Performs a conversion to a typed array of the given [type], returns [VariantArray] */
 public fun GodotArray<*>.toTypedArray(
@@ -24,7 +25,7 @@ public fun GodotArray<*>.toTypedArray(
 @ExperimentalGodotKotlin
 @Suppress("UNCHECKED_CAST")
 public inline fun <reified T : Any> GodotArray<*>.toTypedArray(
-    type: Variant.Type = variantTypeOf(T::class),
+    type: Variant.Type = variantTypeOf(typeOf<T>()),
     className: StringName = StringName(""),
     script: Variant = Variant(),
 ): GodotArray<T> = GodotArray<T>(
@@ -55,8 +56,8 @@ public fun Dictionary<*, *>.toTypedDictionary(
 @ExperimentalGodotKotlin
 @Suppress("UNCHECKED_CAST")
 public inline fun <reified K : Any, reified V : Any> Dictionary<*, *>.toTypedDictionary(
-    keyType: Variant.Type = variantTypeOf(K::class),
-    valueType: Variant.Type = variantTypeOf(V::class),
+    keyType: Variant.Type = variantTypeOf(typeOf<K>()),
+    valueType: Variant.Type = variantTypeOf(typeOf<V>()),
     keyClassName: StringName = StringName(""),
     keyScript: Variant = Variant(),
     valueClassName: StringName = StringName(""),
@@ -94,7 +95,7 @@ public fun GodotArray<*>.setTyped(
 @Suppress("UNCHECKED_CAST")
 @IgnorableReturnValue
 public inline fun <reified T : Any> GodotArray<*>.setTyped(
-    type: Variant.Type = variantTypeOf(T::class),
+    type: Variant.Type = variantTypeOf(typeOf<T>()),
     className: StringName = StringName(""),
     script: Variant = Variant(),
 ): GodotArray<T> {
@@ -115,8 +116,8 @@ public inline fun <reified T : Any> GodotArray<*>.setTyped(
 @Suppress("UNCHECKED_CAST")
 @IgnorableReturnValue
 public inline fun <reified K : Any, reified V : Any> Dictionary<*, *>.setTyped(
-    keyType: Variant.Type = variantTypeOf(K::class),
-    valueType: Variant.Type = variantTypeOf(V::class),
+    keyType: Variant.Type = variantTypeOf(typeOf<K>()),
+    valueType: Variant.Type = variantTypeOf(typeOf<V>()),
     keyClassName: StringName = StringName(""),
     keyScript: Variant = Variant(),
     valueClassName: StringName = StringName(""),
@@ -157,7 +158,7 @@ public fun Dictionary<*, *>.setTyped(
 
 @ExperimentalGodotKotlin
 public inline fun <reified T : Any> godotArrayOf(
-    type: Variant.Type = variantTypeOf(T::class),
+    type: Variant.Type = variantTypeOf(typeOf<T>()),
     className: StringName = StringName(""),
     script: Variant = Variant(),
 ): GodotArray<T> {
@@ -173,7 +174,7 @@ public inline fun <reified T : Any> godotArrayOf(
 @ExperimentalGodotKotlin
 public inline fun <reified T : Any> godotArrayOf(
     vararg elements: T? = arrayOf(),
-    type: Variant.Type = variantTypeOf(T::class),
+    type: Variant.Type = variantTypeOf(typeOf<T>()),
     className: StringName = StringName(""),
     script: Variant = Variant(),
 ): GodotArray<T> {
@@ -189,8 +190,8 @@ public inline fun <reified T : Any> godotArrayOf(
 
 @ExperimentalGodotKotlin
 public inline fun <reified K : Any, reified V : Any> godotDictionaryOf(
-    keyType: Variant.Type = variantTypeOf(K::class),
-    valueType: Variant.Type = variantTypeOf(V::class),
+    keyType: Variant.Type = variantTypeOf(typeOf<K>()),
+    valueType: Variant.Type = variantTypeOf(typeOf<V>()),
     keyClassName: StringName = StringName(""),
     keyScript: Variant = Variant(),
     valueClassName: StringName = StringName(""),
@@ -212,8 +213,8 @@ public inline fun <reified K : Any, reified V : Any> godotDictionaryOf(
 @ExperimentalGodotKotlin
 public inline fun <reified K : Any, reified V : Any> godotDictionaryOf(
     vararg pairs: Pair<K, V> = arrayOf(),
-    keyType: Variant.Type = variantTypeOf(K::class),
-    valueType: Variant.Type = variantTypeOf(V::class),
+    keyType: Variant.Type = variantTypeOf(typeOf<K>()),
+    valueType: Variant.Type = variantTypeOf(typeOf<V>()),
     keyClassName: StringName = StringName(""),
     keyScript: Variant = Variant(),
     valueClassName: StringName = StringName(""),

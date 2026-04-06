@@ -7,108 +7,102 @@ import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.pushError
 import org.jetbrains.annotations.ApiStatus
 import kotlin.contracts.contract
-import kotlin.reflect.KClass
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
 
 @ExperimentalGodotKotlin
 @ApiStatus.Internal
-public fun <T : Any> variantTypeOf(kClass: KClass<out T>): Variant.Type = when (kClass) {
-    Unit::class -> {
+public fun variantTypeOf(kType: KType): Variant.Type = when (kType) {
+    typeOf<Unit>() -> {
         GD.pushError(
             "Variant of Unit is not supported, returning Variant.Type.NIL as fallback, define the type explicitly",
         )
         Variant.Type.NIL
     }
 
-    Boolean::class -> Variant.Type.BOOL
+    typeOf<Boolean>() -> Variant.Type.BOOL
 
-    Long::class, Int::class -> Variant.Type.INT
+    typeOf<Long>(), typeOf<Int>() -> Variant.Type.INT
 
-    Double::class, Float::class -> Variant.Type.FLOAT
+    typeOf<Double>(), typeOf<Float>() -> Variant.Type.FLOAT
 
-    String::class -> Variant.Type.STRING
+    typeOf<String>() -> Variant.Type.STRING
 
-    GodotString::class -> Variant.Type.STRING
+    typeOf<GodotString>() -> Variant.Type.STRING
 
-    Vector2::class -> Variant.Type.VECTOR2
+    typeOf<Vector2>() -> Variant.Type.VECTOR2
 
-    Vector2i::class -> Variant.Type.VECTOR2I
+    typeOf<Vector2i>() -> Variant.Type.VECTOR2I
 
-    Rect2::class -> Variant.Type.RECT2
+    typeOf<Rect2>() -> Variant.Type.RECT2
 
-    Rect2i::class -> Variant.Type.RECT2I
+    typeOf<Rect2i>() -> Variant.Type.RECT2I
 
-    Vector3::class -> Variant.Type.VECTOR3
+    typeOf<Vector3>() -> Variant.Type.VECTOR3
 
-    Vector3i::class -> Variant.Type.VECTOR3I
+    typeOf<Vector3i>() -> Variant.Type.VECTOR3I
 
-    Transform2D::class -> Variant.Type.TRANSFORM2D
+    typeOf<Transform2D>() -> Variant.Type.TRANSFORM2D
 
-    Vector4::class -> Variant.Type.VECTOR4
+    typeOf<Vector4>() -> Variant.Type.VECTOR4
 
-    Vector4i::class -> Variant.Type.VECTOR4I
+    typeOf<Vector4i>() -> Variant.Type.VECTOR4I
 
-    Plane::class -> Variant.Type.PLANE
+    typeOf<Plane>() -> Variant.Type.PLANE
 
-    Quaternion::class -> Variant.Type.QUATERNION
+    typeOf<Quaternion>() -> Variant.Type.QUATERNION
 
-    AABB::class -> Variant.Type.AABB
+    typeOf<AABB>() -> Variant.Type.AABB
 
-    Basis::class -> Variant.Type.BASIS
+    typeOf<Basis>() -> Variant.Type.BASIS
 
-    Transform3D::class -> Variant.Type.TRANSFORM3D
+    typeOf<Transform3D>() -> Variant.Type.TRANSFORM3D
 
-    Projection::class -> Variant.Type.PROJECTION
+    typeOf<Projection>() -> Variant.Type.PROJECTION
 
-    Color::class -> Variant.Type.COLOR
+    typeOf<Color>() -> Variant.Type.COLOR
 
-    StringName::class -> Variant.Type.STRING_NAME
+    typeOf<StringName>() -> Variant.Type.STRING_NAME
 
-    NodePath::class -> Variant.Type.NODE_PATH
+    typeOf<NodePath>() -> Variant.Type.NODE_PATH
 
-    RID::class -> Variant.Type.RID
+    typeOf<RID>() -> Variant.Type.RID
 
-    Callable::class -> Variant.Type.CALLABLE
+    typeOf<Callable>() -> Variant.Type.CALLABLE
 
-    Signal::class -> Variant.Type.SIGNAL
+    typeOf<Signal>() -> Variant.Type.SIGNAL
 
-    GodotArray::class -> Variant.Type.ARRAY
+    typeOf<GodotArray<*>>() -> Variant.Type.ARRAY
 
-    Dictionary::class -> Variant.Type.DICTIONARY
+    typeOf<Dictionary<*, *>>() -> Variant.Type.DICTIONARY
 
-    PackedByteArray::class -> Variant.Type.PACKED_BYTE_ARRAY
+    typeOf<PackedByteArray>() -> Variant.Type.PACKED_BYTE_ARRAY
 
-    PackedInt32Array::class -> Variant.Type.PACKED_INT32_ARRAY
+    typeOf<PackedInt32Array>() -> Variant.Type.PACKED_INT32_ARRAY
 
-    PackedInt64Array::class -> Variant.Type.PACKED_INT64_ARRAY
+    typeOf<PackedInt64Array>() -> Variant.Type.PACKED_INT64_ARRAY
 
-    PackedFloat32Array::class -> Variant.Type.PACKED_FLOAT32_ARRAY
+    typeOf<PackedFloat32Array>() -> Variant.Type.PACKED_FLOAT32_ARRAY
 
-    PackedFloat64Array::class -> Variant.Type.PACKED_FLOAT64_ARRAY
+    typeOf<PackedFloat64Array>() -> Variant.Type.PACKED_FLOAT64_ARRAY
 
-    PackedStringArray::class -> Variant.Type.PACKED_STRING_ARRAY
+    typeOf<PackedStringArray>() -> Variant.Type.PACKED_STRING_ARRAY
 
-    PackedVector2Array::class -> Variant.Type.PACKED_VECTOR2_ARRAY
+    typeOf<PackedVector2Array>() -> Variant.Type.PACKED_VECTOR2_ARRAY
 
-    PackedVector3Array::class -> Variant.Type.PACKED_VECTOR3_ARRAY
+    typeOf<PackedVector3Array>() -> Variant.Type.PACKED_VECTOR3_ARRAY
 
-    PackedColorArray::class -> Variant.Type.PACKED_COLOR_ARRAY
+    typeOf<PackedColorArray>() -> Variant.Type.PACKED_COLOR_ARRAY
 
-    PackedVector4Array::class -> Variant.Type.PACKED_VECTOR4_ARRAY
+    typeOf<PackedVector4Array>() -> Variant.Type.PACKED_VECTOR4_ARRAY
 
     else -> {
         // fallback: GodotObject o script
-        when {
-            GodotObject::class.isInstance(kClass) -> {
-                Variant.Type.OBJECT
-            }
-
-            GodotArray::class.isInstance(kClass) -> Variant.Type.ARRAY
-
-            Dictionary::class.isInstance(kClass) -> Variant.Type.DICTIONARY
-
-            else -> {
-                error("Unsupported type for Variant: ${kClass.simpleName} $kClass")
-            }
+        when (kType.classifier) {
+            GodotObject::class -> Variant.Type.OBJECT
+            GodotArray::class -> Variant.Type.ARRAY
+            Dictionary::class -> Variant.Type.DICTIONARY
+            else -> error("Unsupported type for Variant: $kType")
         }
     }
 }
@@ -119,8 +113,8 @@ internal val stringToTypes: Array<Variant.Type> = arrayOf(STRING, STRING_NAME, N
 
 @ExperimentalGodotKotlin
 @ApiStatus.Internal
-public inline fun <reified T : Any> checkVariantCompatibility(type: Variant.Type) {
-    val expected = variantTypeOf(T::class)
+public inline fun <reified T> checkVariantCompatibility(type: Variant.Type) {
+    val expected = variantTypeOf(typeOf<T>())
     require(type == expected || (T::class == String::class && type in stringToTypes)) {
         "Variant.Type mismatch: expected=$expected but got=$type for T=${T::class}"
     }
@@ -132,11 +126,7 @@ public inline fun <reified T : Any> checkVariantCompatibility(type: Variant.Type
  */
 @ExperimentalGodotKotlin
 @ApiStatus.Internal
-public inline fun <reified T> checkVariantTypeAndConvert(
-    element: T?,
-    type: Variant.Type,
-    lenient: Boolean = true,
-): Variant {
+public fun <T> checkVariantTypeAndConvert(element: T?, type: Variant.Type, lenient: Boolean = true): Variant {
     contract {
         returns() implies (
             element == null ||
@@ -456,7 +446,7 @@ public inline fun <reified T> checkVariantTypeAndConvert(
     }
 
     require(condition || (lenient && element == null)) {
-        "Expected $expected, got $element of ${T::class.simpleName} for type $type"
+        "Expected $expected, got $element for type $type"
     }
 
     return result ?: if (lenient) Variant() else error("Expected $expected, got null for type $type")
