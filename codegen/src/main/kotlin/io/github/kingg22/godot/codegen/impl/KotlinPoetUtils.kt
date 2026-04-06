@@ -17,6 +17,7 @@ val K_TODO = MemberName("kotlin", "TODO")
 val K_OPT_IN = ClassName("kotlin", "OptIn")
 val K_REQUIRE_NOT_NULL = MemberName("kotlin", "requireNotNull")
 val K_CHECK_NOT_NULL = MemberName("kotlin", "checkNotNull")
+val K_IGNORABLE_RETURNS = ClassName("kotlin", "IgnorableReturnValue")
 
 internal inline fun <T> withExceptionContext(metadata: () -> String, block: () -> T): T = try {
     block()
@@ -59,6 +60,7 @@ fun FileSpec.Builder.commonConfiguration() = apply {
             .addMember("%S", "SpellCheckingInspection")
             .addMember("%S", "GrazieInspection")
             .addMember("%S", "GrazieStyle")
+            .addMember("%S", "NOTHING_TO_INLINE")
             .build(),
     )
 }
