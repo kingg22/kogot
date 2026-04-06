@@ -104,9 +104,6 @@ class NativeVariantGenerator(private val enumGenerator: NativeEnumGenerator, pri
         // ── Typed extractors: asXOrNull + asX ─────────────────────────────
         implGen.buildExtractors(typeBuilder, variantClassName, variantTypes)
 
-        // ── Converter: invoke() ─────────────────────────────
-        implGen.buildInvokeOperators(typeBuilder, variantTypes)
-
         return typeBuilder
     }
 }
