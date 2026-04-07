@@ -113,7 +113,7 @@ internal val stringToTypes: Array<Variant.Type> = arrayOf(STRING, STRING_NAME, N
 
 @ExperimentalGodotKotlin
 @ApiStatus.Internal
-public inline fun <reified T> checkVariantCompatibility(type: Variant.Type) {
+public inline fun <@MustBeVariant reified T> checkVariantCompatibility(type: Variant.Type) {
     val expected = variantTypeOf(typeOf<T>())
     require(type == expected || (T::class == String::class && type in stringToTypes)) {
         "Variant.Type mismatch: expected=$expected but got=$type for T=${T::class}"
@@ -126,7 +126,11 @@ public inline fun <reified T> checkVariantCompatibility(type: Variant.Type) {
  */
 @ExperimentalGodotKotlin
 @ApiStatus.Internal
-public fun <T> checkVariantTypeAndConvert(element: T?, type: Variant.Type, lenient: Boolean = true): Variant {
+public fun <@MustBeVariant T> checkVariantTypeAndConvert(
+    element: T?,
+    type: Variant.Type,
+    lenient: Boolean = true,
+): Variant {
     contract {
         returns() implies (
             element == null ||

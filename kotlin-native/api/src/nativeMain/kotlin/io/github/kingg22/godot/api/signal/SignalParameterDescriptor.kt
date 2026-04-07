@@ -1,6 +1,7 @@
 package io.github.kingg22.godot.api.signal
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
+import io.github.kingg22.godot.api.builtin.MustBeVariant
 import kotlin.reflect.KType
 
 /**
@@ -14,7 +15,7 @@ import kotlin.reflect.KType
  * @property kType The Kotlin type for Variant conversion
  * @constructor Prefers factory method [param]
  */
-public class SignalParameterDescriptor<P> @ExperimentalGodotKotlin constructor(
+public class SignalParameterDescriptor<@MustBeVariant P> @ExperimentalGodotKotlin constructor(
     public val name: String,
     public val kType: KType,
 ) {

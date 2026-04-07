@@ -8,7 +8,7 @@ import io.github.kingg22.godot.api.ExperimentalGodotKotlin
  * Prefers explicit converter method over this function.
  */
 @ExperimentalGodotKotlin
-public fun Variant.getValue(): Any? = when (getType()) {
+public fun Variant.getValue(): @MustBeVariant Any? = when (getType()) {
     NIL -> null
     BOOL -> asBool()
     INT -> asInt()

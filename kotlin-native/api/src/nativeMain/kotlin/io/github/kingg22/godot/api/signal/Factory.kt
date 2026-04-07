@@ -1,5 +1,7 @@
 package io.github.kingg22.godot.api.signal
 
+import io.github.kingg22.godot.api.builtin.MustBeVariant
+
 // ---------------------------------------------------------------------------
 // Factory functions (top-level DSL)
 // ---------------------------------------------------------------------------
@@ -22,4 +24,5 @@ public fun signal(name: String): Signal0 = Signal0(name)
  * val vidaCambio = signal("vida_cambio", param<Int>("nueva_vida"))
  * ```
  */
-public fun <P1> signal(name: String, param1: SignalParameterDescriptor<P1>): Signal1<P1> = Signal1(name, param1)
+public fun <@MustBeVariant P1> signal(name: String, param1: SignalParameterDescriptor<P1>): Signal1<P1> =
+    Signal1(name, param1)
