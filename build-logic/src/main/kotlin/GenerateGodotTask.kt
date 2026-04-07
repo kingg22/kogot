@@ -44,6 +44,9 @@ abstract class GenerateGodotTask : JavaExec() {
     @get:[Input Optional Option(option = "generate-docs", description = "Generate docs")]
     abstract val generateDocs: Property<Boolean>
 
+    @get:[Input Optional Option(option = "skip-platform-specific-apis", description = "Skip platform-specific APIs")]
+    abstract val skipPlatformSpecificApis: Property<Boolean>
+
     init {
         group = "codegen"
         description = "Generate Godot Extension API wrappers"
@@ -56,6 +59,9 @@ abstract class GenerateGodotTask : JavaExec() {
                 }
                 if (generateDocs.isPresent) {
                     add("--generate-docs")
+                }
+                if (skipPlatformSpecificApis.isPresent) {
+                    add("--skip-platform-specific-apis=${skipPlatformSpecificApis.get()}")
                 }
             }.toTypedArray()
 

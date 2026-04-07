@@ -21,6 +21,7 @@ import io.github.kingg22.godot.codegen.impl.extensionapi.knative.lazyMethod
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.memScoped
 import io.github.kingg22.godot.codegen.models.extensioninterface.GDExtensionInterface
 import io.github.kingg22.godot.codegen.models.extensioninterface.Interface
+import io.github.kingg22.godot.codegen.models.internal.CodegenOptions
 
 private val PLATFORM_TYPES = setOf(
     "string_new_with_wide_chars",
@@ -32,9 +33,10 @@ private val PLATFORM_TYPES = setOf(
 class RuntimeFFIGenerator(private val packageName: String) {
     private val convenienceGen = RuntimeFFIConvenienceGen()
 
-    fun generate(interfaceModel: GDExtensionInterface): Sequence<FileSpec> {
+    fun generate(interfaceModel: GDExtensionInterface, options: CodegenOptions): Sequence<FileSpec> {
         val packageRegistry = RuntimePackageRegistry(packageName, interfaceModel)
         val resolver = RuntimeTypeResolver(interfaceModel, packageName)
+        val skipPlatformSpecificApis = options.skipPlatformSpecificApis
 
         return interfaceModel.interfaces
             .groupBy { prefixOf(it) }
@@ -42,13 +44,17 @@ class RuntimeFFIGenerator(private val packageName: String) {
             .asSequence()
             .map { (prefix, interfaces) ->
                 context(packageRegistry, resolver) {
-                    generateGroupFile(prefix, interfaces)
+                    generateGroupFile(prefix, interfaces, skipPlatformSpecificApis)
                 }
             }
     }
 
     context(packageRegistry: RuntimePackageRegistry, resolver: RuntimeTypeResolver)
-    private fun generateGroupFile(prefix: String, interfaces: List<Interface>): FileSpec {
+    private fun generateGroupFile(
+        prefix: String,
+        interfaces: List<Interface>,
+        skipPlatformSpecificApis: Boolean,
+    ): FileSpec {
         val className = packageRegistry.bindingClassName(prefix)
         val constructorParam = ParameterSpec
             .builder(
@@ -87,7 +93,7 @@ class RuntimeFFIGenerator(private val packageName: String) {
             .addType(buildCompanionObject(className))
             .apply {
                 interfaces.forEach { iface ->
-                    if (iface.name in PLATFORM_TYPES) return@forEach
+                    if (skipPlatformSpecificApis && iface.name in PLATFORM_TYPES) return@forEach
                     addProperty(buildFunctionPointerProperty(iface))
                     addFunction(buildRawWrapper(iface))
                     convenienceGen.buildConvenienceWrappers(iface).forEach(::addFunction)

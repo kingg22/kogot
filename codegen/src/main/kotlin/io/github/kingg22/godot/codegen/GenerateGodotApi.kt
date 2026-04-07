@@ -25,8 +25,6 @@ import io.github.kingg22.godot.codegen.models.internal.GeneratorKind
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import java.util.concurrent.StructuredTaskScope
 import kotlin.time.Duration
 import kotlin.time.measureTime
@@ -60,6 +58,12 @@ private class CodegenCommand : CliktCommand("Generador de Extension API para God
     private val generateDocs by option("--docs", "--generate-docs", help = "Generar los KDocs o no")
         .boolean()
         .default(true)
+
+    private val skipPlatformSpecificApis by option(
+        "--skip-platform-specific-apis",
+        help =
+        "Skip platform-specific APIs (e.g., string_new_with_wide_chars) that are not common across all native targets",
+    ).boolean().default(true)
 
     private val outputDir by option("-o", "--output", "--output-dir", help = "Directorio de salida")
         .path(canBeFile = false)
@@ -107,7 +111,10 @@ private class CodegenCommand : CliktCommand("Generador de Extension API para God
                         echo("---Generating Runtime FFI Layer---")
                         val extensionInterface = json.decodeFromStream<GDExtensionInterface>(inputInterface)
                         val runtimeGenerator = RuntimeFFIGenerator(packageName)
-                        runtimeGenerator.generate(extensionInterface)
+                        runtimeGenerator.generate(
+                            extensionInterface,
+                            CodegenOptions(skipPlatformSpecificApis = skipPlatformSpecificApis),
+                        )
                     }
                 }
 

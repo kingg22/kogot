@@ -1,9 +1,14 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
-// Registrar la configuración para el classpath del generador
-val codegenConfig = configurations.create("codegenConfig")
+// Configuration interna para el classpath del generador
+val codegenConfig = configurations.register("codegenConfig") {
+    description = "Internal configuration for the godot-codegen plugin. MUST NOT BE USED OUTSIDE THIS PLUGIN."
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
 
 dependencies {
     codegenConfig(project(":codegen"))
@@ -11,7 +16,7 @@ dependencies {
 
 // Registrar la task de forma genérica
 val generateGodotTask = tasks.register<GenerateGodotTask>("generateGodotExtensionApi") {
-    classpath = codegenConfig
+    classpath(codegenConfig)
 
     inputExtension.convention(
         rootProject.layout.projectDirectory
@@ -31,6 +36,12 @@ val generateGodotTask = tasks.register<GenerateGodotTask>("generateGodotExtensio
 // ---------- KOTLIN JVM ----------
 plugins.withId("org.jetbrains.kotlin.jvm") {
     extensions.configure(KotlinJvmProjectExtension::class.java) {
+        generateGodotTask {
+            skipPlatformSpecificApis.convention(
+                providers.gradleProperty("codegen.skipPlatformSpecificApis")
+                    .map { it.toBoolean() },
+            )
+        }
         sourceSets {
             named(SourceSet.MAIN_SOURCE_SET_NAME) {
                 @OptIn(ExperimentalKotlinGradlePluginApi::class)
@@ -43,10 +54,20 @@ plugins.withId("org.jetbrains.kotlin.jvm") {
 // ---------- KOTLIN Multiplatform ----------
 plugins.withId("org.jetbrains.kotlin.multiplatform") {
     extensions.configure(KotlinMultiplatformExtension::class.java) {
+        val isMultiTargetNativeProvider = project.provider {
+            targets.count { it.platformType == KotlinPlatformType.native } > 1
+        }
+        generateGodotTask {
+            skipPlatformSpecificApis.convention(
+                providers.gradleProperty("codegen.skipPlatformSpecificApis")
+                    .map { it.toBoolean() }
+                    .orElse(isMultiTargetNativeProvider),
+            )
+        }
         sourceSets {
             nativeMain {
-                // @OptIn(ExperimentalKotlinGradlePluginApi::class)
-                kotlin.srcDir(generateGodotTask.map { it.outputDir })
+                @OptIn(ExperimentalKotlinGradlePluginApi::class)
+                generatedKotlin.srcDir(generateGodotTask.map { it.outputDir })
             }
         }
     }
