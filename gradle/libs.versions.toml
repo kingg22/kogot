@@ -3,7 +3,7 @@
 
 [versions]
 # https://mvnrepository.com/artifact/androidx.room/room-compiler-processing-testing
-androidx-room-compiler-testing = "2.8.4"
+androidx-room-compiler = "2.8.4"
 
 # https://github.com/apache/commons-compress/tags
 apache-commons-compress = "1.28.0"
@@ -68,8 +68,9 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 
 # Processor
 ksp-api = { group = "com.google.devtools.ksp", name = "symbol-processing-api", version.ref = "ksp-api" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler-processing", version.ref = "androidx-room-compiler" }
 # Processor test
-androidx-room-compiler-testing = { group = "androidx.room", name = "room-compiler-processing-testing", version.ref = "androidx-room-compiler-testing" }
+androidx-room-compiler-testing = { group = "androidx.room", name = "room-compiler-processing-testing", version.ref = "androidx-room-compiler" }
 google-truth = { group = "com.google.truth", name = "truth", version.ref = "google-truth" }
 
 # build-logic

@@ -82,5 +82,5 @@ project(":kotlin-native-api").projectDir = file("kotlin-native/api")
 project(":kotlin-native-runtime").projectDir = file("kotlin-native/runtime")
 project(":kotlin-native-sample").projectDir = file("kotlin-native/sample")
 
-// codegen and processor
-include("codegen", "processor")
+// codegen, processor, and analysis
+include("codegen", "processor", "analysis")
