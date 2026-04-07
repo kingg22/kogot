@@ -9,7 +9,7 @@ androidx-room-compiler-testing = "2.8.4"
 apache-commons-compress = "1.28.0"
 
 # https://github.com/google/error-prone/releases
-errorprone-core = "2.48.0"
+errorprone-core = "2.49.0"
 
 # https://github.com/tbroyer/gradle-errorprone-plugin/releases
 errorprone-gradle = "5.1.0"
