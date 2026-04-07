@@ -2,6 +2,7 @@ package io.github.kingg22.godot.api.signal
 
 import io.github.kingg22.godot.api.EnumMask
 import io.github.kingg22.godot.api.builtin.GodotString
+import io.github.kingg22.godot.api.builtin.MustBeVariant
 import io.github.kingg22.godot.api.builtin.StringName
 import io.github.kingg22.godot.api.builtin.asGodotString
 import io.github.kingg22.godot.api.builtin.internal.checkVariantTypeAndConvert
@@ -25,7 +26,11 @@ import io.github.kingg22.godot.api.internal.checkGodotError
  * vidaCambio.emit(100)
  * ```
  */
-public class Signal1<P1>(public val nameKString: String, private val param1: SignalParameterDescriptor<P1>) : Signal {
+public class Signal1<@MustBeVariant P1>(
+    public val nameKString: String,
+    private val param1: SignalParameterDescriptor<P1>,
+) : Signal,
+    Function1<P1, Unit> {
     override val name: GodotString = nameKString.asGodotString()
 
     @PublishedApi
@@ -76,5 +81,9 @@ public class Signal1<P1>(public val nameKString: String, private val param1: Sig
         StringName(name).use { signalName ->
             owner.disconnect(signalName, callable)
         }
+    }
+
+    override operator fun invoke(p1: P1) {
+        emit(p1)
     }
 }

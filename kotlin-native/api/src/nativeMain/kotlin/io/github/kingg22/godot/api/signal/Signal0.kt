@@ -15,7 +15,9 @@ import io.github.kingg22.godot.api.internal.checkGodotError
  * val gameOver: Signal0 = signal("game_over")
  * ```
  */
-public class Signal0(public val nameKString: String) : Signal {
+public class Signal0(public val nameKString: String) :
+    Signal,
+    Function0<Unit> {
     override val name: GodotString = nameKString.asGodotString()
 
     @PublishedApi
@@ -56,5 +58,9 @@ public class Signal0(public val nameKString: String) : Signal {
         val signalName = StringName(name)
         owner.disconnect(signalName, callable)
         signalName.close()
+    }
+
+    override operator fun invoke() {
+        emit()
     }
 }
