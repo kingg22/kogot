@@ -70,12 +70,14 @@ project(":jvm-ffm-runtime").projectDir = file("jvm-ffm/runtime")
 // Kotlin using Native Cinterop
 include(
     "kotlin-native-ffi",
+    "kotlin-native-annotations",
     "kotlin-native-api",
     "kotlin-native-runtime",
     "kotlin-native-sample",
 )
 
 project(":kotlin-native-ffi").projectDir = file("kotlin-native/ffi")
+project(":kotlin-native-annotations").projectDir = file("kotlin-native/annotations")
 project(":kotlin-native-api").projectDir = file("kotlin-native/api")
 project(":kotlin-native-runtime").projectDir = file("kotlin-native/runtime")
 project(":kotlin-native-sample").projectDir = file("kotlin-native/sample")
