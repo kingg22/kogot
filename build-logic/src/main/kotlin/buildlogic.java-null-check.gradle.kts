@@ -17,7 +17,7 @@ dependencies {
     api("org.jspecify:jspecify:1.0.0")
 
     // Required, but disable checks for this plugin
-    errorprone("com.google.errorprone:error_prone_core:2.48.0")
+    errorprone("com.google.errorprone:error_prone_core:2.49.0")
 }
 
 nullaway {
