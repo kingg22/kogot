@@ -72,6 +72,7 @@ include(
     "kotlin-native:ffi",
     "kotlin-native:annotations",
     "kotlin-native:api",
+    "kotlin-native:binding",
     "kotlin-native:runtime",
     "kotlin-native:sample",
 )
