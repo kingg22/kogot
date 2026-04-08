@@ -28,8 +28,8 @@ kotlin {
 
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
     dependencies {
-        implementation(projects.kotlinNativeApi)
-        implementation(projects.kotlinNativeAnnotations)
+        implementation(projects.kotlinNative.api)
+        implementation(projects.kotlinNative.annotations)
     }
 
     applyDefaultHierarchyTemplate()
