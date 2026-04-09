@@ -10,7 +10,7 @@
       </option>
       <option name="taskNames">
         <list>
-          <option value=":kotlin-native-api:assemble" />
+          <option value=":kotlin-native:api:assemble" />
         </list>
       </option>
       <option name="vmOptions" />
