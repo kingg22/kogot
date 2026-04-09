@@ -11,6 +11,7 @@ kotlin {
     dependencies {
         api(projects.kotlinNative.api)
         implementation(projects.kotlinNative.annotations)
+        implementation(projects.kotlinNative.binding)
     }
 
     applyDefaultHierarchyTemplate()
@@ -22,4 +23,9 @@ kotlin {
 dependencies {
     add("kspCommonMainMetadata", projects.processor)
     add("kspLinuxX64", projects.processor)
+    // put KSP on nativeMain source set when have more than one target
+}
+
+ksp {
+    arg("kogot.outputMode", "KOTLIN")
 }
