@@ -7,6 +7,8 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.buildCodeBlock
+import com.squareup.kotlinpoet.withIndent
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.COPAQUE_POINTER
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.lazyMethod
@@ -82,7 +84,7 @@ class EngineClassImplGen {
      * @param className       The [ClassName] of the class under generation.
      * @param companionBuilder The companion object builder, populated only for singletons.
      */
-    context(_: Context)
+    context(ctx: Context)
     fun configureConstructor(
         cls: ResolvedEngineClass,
         classBuilder: TypeSpec.Builder,
@@ -94,6 +96,32 @@ class EngineClassImplGen {
             cls.isSingleton -> configureSingleton(cls, classBuilder, className, companionBuilder)
             isRoot -> configureRoot(classBuilder)
             else -> configureDerived(classBuilder, cls)
+        }
+
+        if (!cls.isSingleton || isRoot) {
+            classBuilder.addFunction(
+                FunSpec
+                    .constructorBuilder()
+                    .callThisConstructor(
+                        buildCodeBlock {
+                            add("\n")
+                            withIndent {
+                                addStatement("%T", ctx.classNameForOrDefault("ClassDB"))
+                                withIndent {
+                                    addStatement(".instance")
+                                    addStatement(
+                                        ".instantiate(%T(%S))",
+                                        ctx.classNameForOrDefault("StringName"),
+                                        cls.shortName,
+                                    )
+                                    addStatement(".asObject()")
+                                    addStatement(".rawPtr,")
+                                }
+                            }
+                        },
+                    )
+                    .build(),
+            )
         }
     }
 
