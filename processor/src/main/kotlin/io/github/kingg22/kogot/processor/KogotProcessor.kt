@@ -1,6 +1,7 @@
 package io.github.kingg22.kogot.processor
 
 import com.google.devtools.ksp.processing.CodeGenerator
+import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
@@ -14,8 +15,9 @@ import io.github.kingg22.kogot.processor.diagnostics.DiagnosticMessage
 import io.github.kingg22.kogot.processor.diagnostics.DiagnosticRenderer
 import io.github.kingg22.kogot.processor.generation.GeneratedOutput
 import io.github.kingg22.kogot.processor.generation.GeneratorContext
+import io.github.kingg22.kogot.processor.generation.GeneratorOptions
 import io.github.kingg22.kogot.processor.generation.json.JsonGenerator
-import io.github.kingg22.kogot.processor.generation.kotlin.KotlinGenerator
+import io.github.kingg22.kogot.processor.generation.kotlin.GodotBindingGenerator
 import io.github.kingg22.kogot.processor.validation.ValidationContext
 import io.github.kingg22.kogot.processor.validation.ValidationResultImpl
 import io.github.kingg22.kogot.processor.validation.ValidatorPipeline
@@ -30,9 +32,15 @@ class KogotProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor 
     private val logger: KSPLogger = environment.logger
 
     override fun process(resolver: Resolver): List<KSClassDeclaration> {
-        val classes = extractClasses(resolver)
+        logger.info("KogotProcessor: Starting processing")
 
-        if (classes.isEmpty()) return emptyList()
+        val classes = extractClasses(resolver)
+        logger.info("KogotProcessor: Found ${classes.size} classes with @Godot annotation")
+
+        if (classes.isEmpty()) {
+            logger.info("KogotProcessor: No classes found, returning emptyList")
+            return emptyList()
+        }
 
         // Run validation
         val validationResult = runValidation(classes)
@@ -71,20 +79,10 @@ class KogotProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor 
     private fun extractClasses(resolver: Resolver): List<KSClassDeclaration> {
         val classes = mutableListOf<KSClassDeclaration>()
 
-        // Find all classes with our annotations
-        val exportAnnotation = "io.github.kingg22.godot.api.annotations.Export"
-        val rpcAnnotation = "io.github.kingg22.godot.api.annotations.Rpc"
-        val toolAnnotation = "io.github.kingg22.godot.api.annotations.Tool"
+        // Find all classes with @Godot annotation
+        val godotAnnotation = "io.github.kingg22.godot.api.annotations.Godot"
 
-        resolver.getSymbolsWithAnnotation(exportAnnotation)
-            .filterIsInstance<KSClassDeclaration>()
-            .forEach { if (!classes.contains(it)) classes.add(it) }
-
-        resolver.getSymbolsWithAnnotation(rpcAnnotation)
-            .filterIsInstance<KSClassDeclaration>()
-            .forEach { if (!classes.contains(it)) classes.add(it) }
-
-        resolver.getSymbolsWithAnnotation(toolAnnotation)
+        resolver.getSymbolsWithAnnotation(godotAnnotation)
             .filterIsInstance<KSClassDeclaration>()
             .forEach { if (!classes.contains(it)) classes.add(it) }
 
@@ -152,14 +150,14 @@ class KogotProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor 
         val classInfos = classes.map { it.toClassInfo() }
         val context = GeneratorContext(
             outputPackage = options.generatedPackage,
-            options = io.github.kingg22.kogot.processor.generation.GeneratorOptions(),
+            options = GeneratorOptions(),
         )
 
         val outputs = mutableListOf<GeneratedOutput>()
 
         // Generate Kotlin code if requested
         if (options.outputMode == OutputMode.KOTLIN || options.outputMode == OutputMode.BOTH) {
-            val kotlinGenerator = KotlinGenerator()
+            val kotlinGenerator = GodotBindingGenerator()
             outputs.add(kotlinGenerator.generate(context, classInfos))
         }
 
@@ -177,8 +175,21 @@ class KogotProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor 
     }
 
     private fun writeGeneratedFile(relativePath: String, content: String) {
-        // For now, just log that we would generate this file
-        logger.info("Would generate file: $relativePath with ${content.length} chars")
+        val parts = relativePath.split("/")
+        val packageName = if (parts.size > 1) parts.dropLast(1).joinToString(".") else ""
+        // Remove .kt extension if present since extensionName will add it
+        val fileNameWithExt = parts.last()
+        val fileName = fileNameWithExt.removeSuffix(".kt")
+        check(fileName.isNotBlank()) { "File name is empty" }
+
+        logger.info("Generating file: $relativePath with ${content.length} chars")
+
+        codeGenerator.createNewFile(
+            packageName = packageName,
+            fileName = fileName,
+            extensionName = "kt",
+            dependencies = Dependencies.ALL_FILES, // FIXME
+        ).writer().use { it.write(content) }
     }
 
     class Provider : SymbolProcessorProvider {
