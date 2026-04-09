@@ -2,5 +2,5 @@ package io.github.kingg22.godot.internal.binding
 
 @RequiresOptIn(level = ERROR, message = "This API is internal and should not be used by users.")
 @Retention(BINARY)
-@Target(CLASS, FUNCTION, PROPERTY, CONSTRUCTOR)
+@Target(CLASS, FUNCTION, PROPERTY, CONSTRUCTOR, TYPEALIAS)
 public annotation class InternalBinding
