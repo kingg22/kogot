@@ -1,4 +1,9 @@
-@file:OptIn(ExperimentalNativeApi::class, ExperimentalForeignApi::class) // Usage of C-interop API
+@file:OptIn(
+    // Usage of C-interop API
+    ExperimentalNativeApi::class,
+    ExperimentalForeignApi::class,
+    InternalBinding::class, // Generated code is allowed to register binding
+)
 
 import io.github.kingg22.godot.internal.binding.BindingInitializationCallbacks
 import io.github.kingg22.godot.internal.binding.BindingProcAddressHolder
@@ -18,8 +23,8 @@ import kotlin.experimental.ExperimentalNativeApi
 
 // This is the entry point for kotlin-native, provide a concrete class of BindingInitializationCallbacks
 // with the methods onScene overridden to register classes
+private val callbacks: StableRef<BindingInitializationCallbacks> = StableRef.create(BindingInitializationCallbacks())
 
-@OptIn(InternalBinding::class) // Generated code is allowed to register binding
 @Suppress("unused") // Invoked by .Godot
 @CName("godot_kotlin_init") // DON'T EDIT THIS NAME, must be equals in the gdextension file
 fun godotKotlinInit(
@@ -28,11 +33,10 @@ fun godotKotlinInit(
     initialization: CPointer<GDExtensionInitialization>,
 ): GDExtensionBool {
     BindingProcAddressHolder.initialize(pGetProcAddress, pLibrary)
-    val callbacks = StableRef.create<BindingInitializationCallbacks>(BindingInitializationCallbacks())
 
     val initialization = initialization.pointed
-    initialization.initialize = staticCFunction(callbacks.get()::initialize)
-    initialization.deinitialize = staticCFunction(callbacks.get()::deinitialize)
+    initialization.initialize = staticCFunction { userdata, level -> callbacks.get().initialize(userdata, level) }
+    initialization.deinitialize = staticCFunction { userdata, level -> callbacks.get().deinitialize(userdata, level) }
     initialization.userdata = null
     initialization.minimum_initialization_level = GDExtensionInitializationLevel.GDEXTENSION_INITIALIZATION_SCENE
 
