@@ -1,3 +1,6 @@
+@file:OptIn(ExperimentalForeignApi::class)
+
+import io.github.kingg22.godot.api.annotations.Godot
 import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.core.node.Sprite2D
 import kotlinx.cinterop.COpaquePointer
@@ -8,11 +11,7 @@ import kotlin.math.sin
 import kotlin.random.Random
 import kotlin.random.nextInt
 
-// TODO create a factory function named "Spite" without params to allow build it without nativePtr
-@Godot
-class Sprite
-@OptIn(ExperimentalForeignApi::class)
-constructor(nativePtr: COpaquePointer) : Sprite2D(nativePtr) {
+@Godot class Sprite(nativePtr: COpaquePointer) : Sprite2D(nativePtr) {
     private var angle: Double = Random.nextDouble(0.0, PI * 2)
     private var speed: Int = Random.nextInt(100..600)
     var pos: Vector2 = Vector2.ZERO
