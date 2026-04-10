@@ -345,11 +345,22 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
         val cVarType = primitiveKotlinToCVar(resolvedReturn)
         return when {
             resolvedReturn == BOOLEAN -> "retPtr"
-            cVarType != null -> "retPtr.ptr"
-            returnType.startsWith("enum::") || returnType.startsWith("bitfield::") -> "retPtr.ptr"
-            ctx.isBuiltin(returnType) -> "retPtr.rawPtr"
-            ctx.findEngineClass(returnType) != null -> "retPtr.ptr"
-            else -> "null"
+
+            cVarType != null ||
+                returnType.startsWith("enum::") ||
+                returnType.startsWith("bitfield::") ||
+                ctx.findEngineClass(returnType) != null ||
+                (resolvedReturn is ParameterizedTypeName && resolvedReturn.rawType == C_POINTER) ||
+                resolvedReturn == COPAQUE_POINTER
+            -> "retPtr.ptr"
+
+            ctx.isBuiltin(returnType) ||
+                returnType.startsWith("array") ||
+                returnType.startsWith("dictionary") ||
+                returnType.startsWith("typeddictionary") ||
+                returnType.startsWith("typedarray") -> "retPtr.rawPtr"
+
+            else -> "retPtr"
         }
     }
 
