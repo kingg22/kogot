@@ -5,6 +5,7 @@
     InternalBinding::class, // Generated code is allowed to register binding
 )
 
+import generated.GeneratedBindings
 import io.github.kingg22.godot.internal.binding.BindingInitializationCallbacks
 import io.github.kingg22.godot.internal.binding.BindingProcAddressHolder
 import io.github.kingg22.godot.internal.binding.InternalBinding
@@ -23,7 +24,7 @@ import kotlin.experimental.ExperimentalNativeApi
 
 // This is the entry point for kotlin-native, provide a concrete class of BindingInitializationCallbacks
 // with the methods onScene overridden to register classes
-private val callbacks: StableRef<BindingInitializationCallbacks> = StableRef.create(BindingInitializationCallbacks())
+private val callbacks: StableRef<BindingInitializationCallbacks> = StableRef.create(GeneratedBindings())
 
 @Suppress("unused") // Invoked by .Godot
 @CName("godot_kotlin_init") // DON'T EDIT THIS NAME, must be equals in the gdextension file
