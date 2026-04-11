@@ -27,7 +27,7 @@ google-truth = "1.4.5"
 kotlin = "2.3.20"
 
 # https://github.com/Kotlin/kotlinx.serialization/releases
-kotlinx-serialization = "1.10.0"
+kotlinx-serialization = "1.11.0"
 
 # https://github.com/square/kotlinpoet/releases
 kotlinpoet = "2.3.0"
