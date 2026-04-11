@@ -26,7 +26,7 @@ import kotlinx.cinterop.COpaquePointer
  * val myObject: MyGodotClass = MyGodotClass(Node().rawPtr)
  * ```
  */
-public inline fun <reified T : GodotObject> instantiate(constructor: (parentPtr: COpaquePointer) -> T): T = constructor(
+public inline fun <reified T : GodotObject> instantiate(constructor: (nativePtr: COpaquePointer) -> T): T = constructor(
     ClassDB.instance.instantiate(
         requireNotNull(T::class.simpleName) {
             "Cannot instantiate ${T::class.qualifiedName} without a valid class name"
