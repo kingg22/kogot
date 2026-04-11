@@ -80,7 +80,7 @@ class GodotBindingGenerator : Generator {
             .addFunction(generateRegisterFun(classInfo, classType, godotBaseClass))
             .build()
 
-        fileSpec.addFunction(generateCreateInstanceFun(classInfo, classType))
+        fileSpec.addFunction(generateCreateInstanceFun(classInfo, classType, godotBaseClass))
         fileSpec.addType(typeSpec)
 
         val content = StringBuilder()
@@ -92,16 +92,16 @@ class GodotBindingGenerator : Generator {
         )
     }
 
-    private fun generateCreateInstanceFun(classInfo: ClassInfo, classType: ClassName) = FunSpec
+    private fun generateCreateInstanceFun(classInfo: ClassInfo, classType: ClassName, godotBaseClass: String) = FunSpec
         .builder(classInfo.shortName)
         .returns(classType)
         .addCode("return %T(\n", classType)
-        .addStatement("⇥%T", ClassDBClassName)
-        .addStatement("⇥.instance")
-        .addStatement(".instantiate(%S.%M())", classInfo.shortName, AS_STRING_NAME)
-        .addStatement(".asObject()")
-        .addStatement(".rawPtr,")
-        .addCode("⇤⇤)")
+        .addStatement("⇥%M(", CREATE_INSTANCE_FUN)
+        .addStatement("⇥%S,", godotBaseClass)
+        .addStatement("%S,", classInfo.shortName)
+        .addStatement("::%T,", classType)
+        .addStatement("⇤)!!,")
+        .addCode("⇤)")
         .build()
 
     private fun generateRegisterFun(classInfo: ClassInfo, classType: ClassName, baseClass: String): FunSpec = FunSpec
@@ -111,13 +111,15 @@ class GodotBindingGenerator : Generator {
         .addStatement("%M<%T>(", REGISTER_CLASS, classType)
         .addStatement("⇥%S,", classInfo.shortName)
         .addStatement("%S,", baseClass)
-        .addStatement("%M { _, _ ->", STATIC_C_FUNCTION)
+        .addStatement("%M { _, notifyPostInitialize ->", STATIC_C_FUNCTION)
         .addStatement(
-            "⇥%M(%S, %S, ::%T)⇤",
+            "⇥%M(%S, %S, ::%T, notifyPostInitialize == %T.%M)⇤",
             CREATE_INSTANCE_FUN,
             baseClass,
             classInfo.shortName,
             classType,
+            GDExtensionBoolClassName,
+            GDExtensionBoolTrueMember,
         )
         .addStatement("},")
         .addStatement("freeInstance,")

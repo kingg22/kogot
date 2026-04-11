@@ -12,6 +12,7 @@ private const val GODOT_INTERNAL_BINDING_PKG = "$GODOT_PKG.internal.binding"
 val InternalBindingClassName = ClassName(GODOT_INTERNAL_BINDING_PKG, "InternalBinding")
 private const val K_CINTEROP_PKG = "kotlinx.cinterop"
 val ExperimentalForeignApi = ClassName(K_CINTEROP_PKG, "ExperimentalForeignApi")
+val COpaquePointerClassName = ClassName(K_CINTEROP_PKG, "COpaquePointer")
 
 val STATIC_C_FUNCTION = MemberName(K_CINTEROP_PKG, "staticCFunction")
 val MEM_SCOPED = MemberName(K_CINTEROP_PKG, "memScoped")
@@ -28,6 +29,8 @@ private const val GODOT_INTERNAL_FFI_PKG = "$GODOT_PKG.internal.ffi"
 val GDExtensionObjectPtrClassName = ClassName(GODOT_INTERNAL_FFI_PKG, "GDExtensionObjectPtr")
 val GDExtensionInstanceBindingCallbacksClassName =
     ClassName(GODOT_INTERNAL_FFI_PKG, "GDExtensionInstanceBindingCallbacks")
+val GDExtensionBoolClassName = ClassName(GODOT_INTERNAL_FFI_PKG, "GDExtensionBool")
+val GDExtensionBoolTrueMember = MemberName(GODOT_INTERNAL_FFI_PKG, "TRUE")
 
 val BindingInitializationCallbacksClassName =
     ClassName(GODOT_INTERNAL_BINDING_PKG, "BindingInitializationCallbacks")
