@@ -3,6 +3,7 @@ package io.github.kingg22.godot.codegen.impl.extensionapi.knative.impl
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.kingg22.godot.codegen.impl.K_REQUIRE_NOT_NULL
+import io.github.kingg22.godot.codegen.impl.K_TODO
 import io.github.kingg22.godot.codegen.impl.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.COPAQUE_POINTER
@@ -77,7 +78,7 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
     fun buildTopLevelFptrProperties(cls: ResolvedEngineClass): List<PropertySpec> {
         val classDBBinding = implPackageRegistry.classNameForOrDefault("ClassDBBinding")
         val stringNameClass = ctx.classNameForOrDefault("StringName")
-        return cls.raw.methods.map { buildMethodBindProperty(it, cls.name, classDBBinding, stringNameClass) }
+        return cls.raw.methods.mapNotNull { buildMethodBindProperty(it, cls.name, classDBBinding, stringNameClass) }
     }
 
     private fun buildMethodBindProperty(
@@ -85,7 +86,8 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
         className: String,
         classDBBinding: ClassName,
         stringNameClass: ClassName,
-    ): PropertySpec {
+    ): PropertySpec? {
+        if (method.isVirtual) return null
         val bindType = implPackageRegistry.classNameForOrDefault("GDExtensionMethodBindPtr")
         val body = buildLazyBlock {
             beginControlFlow("%T(%S).use { cn ->", stringNameClass, className)
@@ -96,7 +98,11 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
                     method.hash,
                 )
                 .withIndent {
-                    addStatement("?: error(%S)", "Missing method bind '$className.${method.name}' hash:${method.hash}")
+                    addStatement(
+                        "?: error(\"Missing method bind '%L', hash: %L\")",
+                        "$className.${method.name}",
+                        method.hash,
+                    )
                 }
                 .endControlFlow()
             endControlFlow()
@@ -110,18 +116,37 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
     // ── Method bodies ─────────────────────────────────────────────────────────
 
     context(_: Context)
-    fun buildMethodBody(method: EngineClass.ClassMethod, className: String): CodeBlock =
-        buildPtrcallBody(method, className)
+    fun buildMethodBody(method: EngineClass.ClassMethod, className: String): CodeBlock {
+        if (method.isVirtual) {
+            val rv = method.returnValue
+            val returnType = rv?.type ?: rv?.meta
+            val hasReturn = returnType != null && returnType != "void"
+            return if (hasReturn) {
+                CodeBlock.of(
+                    "%M(%P)",
+                    K_TODO,
+                    $$"Virtual method '$${method.name}' of '$$className' requires override in ${this::class.simpleName}",
+                )
+            } else {
+                CodeBlock.of("")
+            }
+        }
+        return buildPtrcallBody(method, className)
+    }
 
     // ── Property bodies ───────────────────────────────────────────────────────
 
     context(_: Context)
-    fun buildPropertyGetterBody(getter: EngineClass.ClassMethod, cls: ResolvedEngineClass): CodeBlock =
-        buildPtrcallBody(getter, cls.name)
+    fun buildPropertyGetterBody(getter: EngineClass.ClassMethod, cls: ResolvedEngineClass): CodeBlock {
+        if (getter.isVirtual) println("WARNING: Found virtual getter: $getter in $cls")
+        return buildPtrcallBody(getter, cls.name)
+    }
 
     context(_: Context)
-    fun buildPropertySetterBody(setter: EngineClass.ClassMethod, cls: ResolvedEngineClass): CodeBlock =
-        buildPtrcallBody(setter, cls.name, true)
+    fun buildPropertySetterBody(setter: EngineClass.ClassMethod, cls: ResolvedEngineClass): CodeBlock {
+        if (setter.isVirtual) println("WARNING: Found virtual setter: $setter in $cls")
+        return buildPtrcallBody(setter, cls.name, true)
+    }
 
     // ── ptrcall body ───────────────────────────────────────────────
 
@@ -143,6 +168,7 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
         return buildCodeBlock {
             if (hasReturn && !setterMode) add("return ")
 
+            // TODO check if this is still needed when doesn't have to alloc anything
             beginControlFlow("%M", memScoped)
 
             // 1. Return buffer
