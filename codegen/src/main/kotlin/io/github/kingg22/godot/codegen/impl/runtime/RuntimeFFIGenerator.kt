@@ -11,11 +11,9 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import io.github.kingg22.godot.codegen.impl.K_OPT_IN
 import io.github.kingg22.godot.codegen.impl.K_SUPPRESS
-import io.github.kingg22.godot.codegen.impl.buildKdoc
 import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.cinteropCstr
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.cinteropInvoke
-import io.github.kingg22.godot.codegen.impl.extensionapi.knative.cinteropPtr
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.cinteropReinterpret
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.lazyMethod
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.memScoped
@@ -146,7 +144,7 @@ class RuntimeFFIGenerator(private val packageName: String) {
                         CodeBlock
                             .builder()
                             .beginControlFlow("%M", memScoped)
-                            .addStatement("getProcAddress(%S.%M.%M)", iface.name, cinteropCstr, cinteropPtr)
+                            .addStatement("getProcAddress(%S.%M.ptr)", iface.name, cinteropCstr)
                             .indent()
                             .addStatement("?.%M()", cinteropReinterpret)
                             .addStatement("?: error(%S)", "Failed to load Godot symbol '${iface.name}'")
@@ -178,11 +176,7 @@ class RuntimeFFIGenerator(private val packageName: String) {
                 }
 
                 addKdoc("C symbol: `%L`.", iface.name)
-                val kdoc = buildKdoc(
-                    description = iface.description,
-                    see = iface.see,
-                    since = iface.since,
-                )
+                val kdoc = buildKdoc(iface)
                 if (kdoc.isNotBlank()) {
                     addKdoc("\n\n%L", kdoc)
                 }

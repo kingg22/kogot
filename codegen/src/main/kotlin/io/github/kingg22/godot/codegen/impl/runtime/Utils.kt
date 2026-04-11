@@ -4,11 +4,19 @@ import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ParameterSpec
 import io.github.kingg22.godot.codegen.impl.K_DEPRECATED
 import io.github.kingg22.godot.codegen.impl.K_REPLACE_WITH
+import io.github.kingg22.godot.codegen.impl.buildKdoc
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.impl.snakeCaseToCamelCase
 import io.github.kingg22.godot.codegen.models.extensioninterface.Arguments
 import io.github.kingg22.godot.codegen.models.extensioninterface.Deprecated
 import io.github.kingg22.godot.codegen.models.extensioninterface.Interface
+
+fun buildKdoc(iface: Interface) = buildKdoc(
+    description = iface.description,
+    see = iface.see,
+    since = iface.since,
+    returns = iface.returnValue?.description.orEmpty(),
+)
 
 context(resolver: RuntimeTypeResolver)
 fun buildParameter(argument: Arguments, index: Int): ParameterSpec = ParameterSpec

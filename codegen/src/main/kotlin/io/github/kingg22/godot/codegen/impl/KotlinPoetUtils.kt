@@ -66,16 +66,19 @@ fun FileSpec.Builder.commonConfiguration() = apply {
 }
 
 // Consider using KDocFormatter
-fun buildKdoc(
-    description: List<String> = emptyList(),
-    see: List<String> = emptyList(),
-    since: String? = null,
-): String {
+fun buildKdoc(description: List<String>, see: List<String>, since: String?, returns: List<String>): String {
     val lines = StringBuilder()
     if (description.isNotEmpty()) {
         description.forEach {
             lines.appendLine(it)
             if (!it.endsWith('\n')) lines.appendLine()
+        }
+    }
+    if (returns.isNotEmpty()) {
+        lines.append("@return ")
+        returns.forEach { line ->
+            lines.appendLine(line)
+            if (!line.endsWith('\n')) lines.appendLine()
         }
     }
     if (!since.isNullOrBlank()) {

@@ -9,9 +9,7 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.joinToCode
-import io.github.kingg22.godot.codegen.impl.buildKdoc
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.cinteropCstr
-import io.github.kingg22.godot.codegen.impl.extensionapi.knative.cinteropPtr
 import io.github.kingg22.godot.codegen.impl.extensionapi.knative.memScoped
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensioninterface.Arguments
@@ -54,11 +52,7 @@ class RuntimeFFIConvenienceGen {
                 transformedReturn?.let { returns(it) }
 
                 addKdoc("Convenience wrapper for `%L`.", iface.name)
-                val kdoc = buildKdoc(
-                    description = iface.description,
-                    see = iface.see,
-                    since = iface.since,
-                )
+                val kdoc = buildKdoc(iface)
                 if (kdoc.isNotBlank()) addKdoc("\n\n%L", kdoc)
                 iface.deprecated?.let { addAnnotation(deprecatedAnnotation(it)) }
             }
@@ -107,11 +101,7 @@ class RuntimeFFIConvenienceGen {
                 returns(returnType)
 
                 addKdoc("Status wrapper for `%L`.", iface.name)
-                val kdoc = buildKdoc(
-                    description = iface.description,
-                    see = iface.see,
-                    since = iface.since,
-                )
+                val kdoc = buildKdoc(iface)
                 if (kdoc.isNotBlank()) addKdoc("\n\n%L", kdoc)
                 iface.deprecated?.let { addAnnotation(deprecatedAnnotation(it)) }
             }
@@ -148,11 +138,7 @@ class RuntimeFFIConvenienceGen {
                 returns(packageRegistry.callErrorInfoClassName())
 
                 addKdoc("Error snapshot wrapper for `%L`.", iface.name)
-                val kdoc = buildKdoc(
-                    description = iface.description,
-                    see = iface.see,
-                    since = iface.since,
-                )
+                val kdoc = buildKdoc(iface)
                 if (kdoc.isNotBlank()) addKdoc("\n\n%L", kdoc)
                 iface.deprecated?.let { addAnnotation(deprecatedAnnotation(it)) }
             }
@@ -325,7 +311,7 @@ class RuntimeFFIConvenienceGen {
                         }
                     }
                     .build(),
-                argumentExpression = CodeBlock.of("%N.%M.%M", name, cinteropCstr, cinteropPtr),
+                argumentExpression = CodeBlock.of("%N.%M.ptr", name, cinteropCstr),
                 requiresMemScoped = true,
             )
 
