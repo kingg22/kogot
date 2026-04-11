@@ -6,15 +6,7 @@
 package io.github.kingg22.godot.internal.binding
 
 import io.github.kingg22.godot.internal.ffi.*
-import kotlinx.cinterop.CArrayPointer
-import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.MemScope
-import kotlinx.cinterop.alloc
-import kotlinx.cinterop.allocArray
-import kotlinx.cinterop.pointed
-import kotlinx.cinterop.ptr
-import kotlinx.cinterop.set
-import kotlinx.cinterop.value
+import kotlinx.cinterop.*
 import org.jetbrains.annotations.ApiStatus
 
 @ApiStatus.Internal
@@ -64,37 +56,34 @@ public inline fun GDExtensionCallError.toBindingCallErrorInfo(): BindingCallErro
     expected = expected,
 )
 
-@ApiStatus.Internal
-public fun MemScope.allocConstTypePtrArray(
-    vararg values: GDExtensionConstTypePtr?,
-): CArrayPointer<GDExtensionConstTypePtrVar>? = values.takeIf { it.isNotEmpty() }?.let { array ->
-    allocArray<GDExtensionConstTypePtrVar>(array.size).also { pointers ->
-        array.forEachIndexed { index, value ->
-            pointers[index] = value
-        }
+@PublishedApi
+internal inline fun <T : CPointer<*>> MemScope.allocPtrArrayImpl(
+    values: Array<out T?>,
+): CArrayPointer<CPointerVarOf<T>>? {
+    if (values.isEmpty()) return null
+
+    val result = allocArray<CPointerVarOf<T>>(values.size)
+
+    values.forEachIndexed { i, value ->
+        result[i] = value
     }
+
+    return result
 }
 
 @ApiStatus.Internal
-public fun MemScope.allocTypePtrArray(vararg values: GDExtensionTypePtr?): CPointer<GDExtensionTypePtrVar>? =
-    values.takeIf { it.isNotEmpty() }?.let { array ->
-        allocArray<GDExtensionTypePtrVar>(array.size).also { pointers ->
-            array.forEachIndexed { index, value ->
-                pointers[index] = value
-            }
-        }
-    }
+public fun MemScope.allocConstTypePtrArray(
+    vararg values: GDExtensionConstTypePtr?,
+): CArrayPointer<GDExtensionConstTypePtrVar>? = allocPtrArrayImpl(values)
+
+@ApiStatus.Internal
+public fun MemScope.allocTypePtrArray(vararg values: GDExtensionTypePtr?): CArrayPointer<GDExtensionTypePtrVar>? =
+    allocPtrArrayImpl(values)
 
 @ApiStatus.Internal
 public fun MemScope.allocConstVariantPtrArray(
     vararg values: GDExtensionConstVariantPtr?,
-): CArrayPointer<GDExtensionConstVariantPtrVar>? = values.takeIf { it.isNotEmpty() }?.let { array ->
-    allocArray<GDExtensionConstVariantPtrVar>(array.size).also { pointers ->
-        array.forEachIndexed { index, value ->
-            pointers[index] = value
-        }
-    }
-}
+): CArrayPointer<GDExtensionConstVariantPtrVar>? = allocPtrArrayImpl(values)
 
 /**
  * Throws [IllegalStateException] if the call did not succeed with [GDExtensionCallErrorType.GDEXTENSION_CALL_OK].
