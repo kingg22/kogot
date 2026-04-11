@@ -44,8 +44,8 @@ public inline fun GDExtensionBool.toBoolean(): Boolean = this != 0u.toUByte()
 public inline fun MemScope.allocGdBool(): CPointer<GDExtensionBoolVar> = alloc<GDExtensionBoolVar>().ptr
 
 @ApiStatus.Internal
-public inline fun MemScope.allocGdBool(initialValue: Boolean = false): CPointer<GDExtensionBoolVar> =
-    alloc<GDExtensionBoolVar> { this.value = initialValue.toGdBool() }.ptr
+public inline fun MemScope.allocGdBool(value: Boolean): CPointer<GDExtensionBoolVar> =
+    alloc<GDExtensionBoolVar> { this.value = value.toGdBool() }.ptr
 
 @ApiStatus.Internal
 public inline fun CPointer<GDExtensionBoolVar>.readGdBool(): Boolean = pointed.value.toBoolean()
