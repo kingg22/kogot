@@ -1,6 +1,7 @@
 package io.github.kingg22.godot.internal.binding
 
 import io.github.kingg22.godot.api.builtin.asStringName
+import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.internal.ffi.*
 import kotlinx.cinterop.COpaquePointer
@@ -45,17 +46,18 @@ public val notificationFunc: GDExtensionClassNotification2 = staticCFunction { i
  * @param factory A lambda that creates a new instance of T wrapped in StableRef
  */
 @InternalBinding
-public fun <T : Any> createInstanceFunc(
+public fun <T : GodotObject> createInstanceFunc(
     parentClassName: String,
     className: String,
     factory: (parentPtr: GDExtensionObjectPtr) -> T,
+    notifyPostInitialize: Boolean = false,
 ): GDExtensionObjectPtr? {
     contract { callsInPlace(factory, InvocationKind.AT_MOST_ONCE) }
 
     println("[Kogot] CreateInstance: Creating $parentClassName instance")
     val base = ClassDBBinding.instance.constructObject2Raw(parentClassName.asStringName().rawPtr)
         ?: error("Failed to construct base $parentClassName")
-    println("[Kogot] CreateInstance: Base $parentClassName constructed")
+    println("[Kogot] CreateInstance: Base $parentClassName constructed. $base")
 
     val instance = try {
         factory(base)
@@ -86,7 +88,13 @@ public fun <T : Any> createInstanceFunc(
         )
     }
 
-    println("[Kogot] CreateInstance: Instance created successfully")
+    // Send NOTIFICATION_POSTINITIALIZE if Godot requests it
+    if (notifyPostInitialize) {
+        println("[Kogot] CreateInstance: Sending NOTIFICATION_POSTINITIALIZE")
+        instance.notification(GodotObject.NOTIFICATION_POSTINITIALIZE.toInt())
+    }
+
+    println("[Kogot] CreateInstance: Instance created successfully, instance: ${instance.rawPtr}. $instance")
     return base
 }
 
