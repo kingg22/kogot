@@ -259,6 +259,7 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
 
     // ── Arg marshalling ───────────────────────────────────────────────────────
 
+    context(ctx: Context)
     private fun buildArgAlloc(arg: MethodArg, resolvedType: TypeName): CodeBlock {
         val name = safeIdentifier(arg.name)
         val varName = "${name}Var"
@@ -281,7 +282,17 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
                     addStatement("val %N = %M<%T>()", varName, cinteropAlloc, LONG_VAR)
                     addStatement("%N.%M = %N.value", varName, cinteropValue, name)
                 }
-                // Builtin / engine class → rawPtr, no alloc
+
+                ctx.isEngineClass(arg.type) || ctx.isSingleton(arg.type) -> {
+                    addStatement("val %N = %M<%T>()", varName, cinteropAlloc, C_OPAQUE_POINTER_VAR)
+                    addStatement(
+                        "%N.%M = %N${if (arg.isNullable) "?" else ""}.rawPtr",
+                        varName,
+                        cinteropValue,
+                        name,
+                    )
+                }
+                // Builtin → rawPtr, no alloc
             }
         }
     }
@@ -307,7 +318,10 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
             arg.type.startsWith("enum::") || arg.type.startsWith("bitfield::") ->
                 CodeBlock.ofStatement("%N.%M,", varName, cinteropPtr)
 
-            ctx.isGodotType(arg.type) ||
+            ctx.isEngineClass(arg.type) || ctx.isSingleton(arg.type) ->
+                CodeBlock.ofStatement("%N.%M,", varName, cinteropPtr)
+
+            ctx.isBuiltin(arg.type) ||
                 arg.type.startsWith("array") ||
                 arg.type.startsWith("dictionary") ||
                 arg.type.startsWith("typeddictionary") ||
