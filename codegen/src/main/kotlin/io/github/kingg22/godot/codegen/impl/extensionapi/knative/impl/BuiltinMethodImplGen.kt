@@ -525,24 +525,35 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
         endControlFlow()
     }
 
+    context(ctx: Context)
     private fun buildArgAlloc(arg: MethodArg): CodeBlock = buildCodeBlock {
         val name = safeIdentifier(arg.name)
-        when (arg.type) {
-            "float", "double" -> {
+        when {
+            arg.type == "float" || arg.type == "double" -> {
                 addStatement("val %LVar = %M<%T>()", name, cinteropAlloc, DOUBLE_VAR)
                 addStatement("%LVar.%M = %N", name, cinteropValue, name)
             }
 
-            "int" -> {
+            arg.type == "int" -> {
                 addStatement("val %LVar = %M<%T>()", name, cinteropAlloc, LONG_VAR)
                 addStatement("%LVar.%M = %N", name, cinteropValue, name)
             }
 
-            "bool" -> {
+            arg.type == "bool" -> {
                 addStatement(
                     "val %LVar = %M(%N)",
                     name,
                     implPackageRegistry.memberNameForOrDefault("allocGdBool"),
+                    name,
+                )
+            }
+
+            ctx.isEngineClass(arg.type) || ctx.isSingleton(arg.type) -> {
+                addStatement("val %LVar = %M<%T>()", name, cinteropAlloc, C_OPAQUE_POINTER_VAR)
+                addStatement(
+                    "%LVar.%M = %N${if (arg.isNullable) "?" else ""}.rawPtr",
+                    name,
+                    cinteropValue,
                     name,
                 )
             }
@@ -569,6 +580,12 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
                 cinteropAlloc,
                 LONG_VAR,
                 cinteropValue,
+                name,
+                cinteropPtr,
+            )
+
+            ctx.isEngineClass(arg.type) || ctx.isSingleton(arg.type) -> CodeBlock.ofStatement(
+                "%LVar.%M,",
                 name,
                 cinteropPtr,
             )
