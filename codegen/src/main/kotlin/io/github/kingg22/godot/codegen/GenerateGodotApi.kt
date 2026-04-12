@@ -118,20 +118,22 @@ private class CodegenCommand : CliktCommand("Generador de Extension API para God
                     }
                 }
 
-                StructuredTaskScope.open<Nothing?>().use { scope ->
+                StructuredTaskScope
+                    .ShutdownOnFailure("Godot CodeGen", Thread.ofVirtual().factory())
+                    .use { scope ->
                         // El hilo principal recorre la secuencia (Lazy)
                         for (fileSpec in sequenceFiles) {
                             // El hilo principal solo envía la tarea, no espera aquí
                             // El 'writeTo' ocurre DENTRO del Virtual Thread.
-                            scope.fork(java.util.concurrent.Callable {
+                            scope.fork {
                                 val path = fileSpec.writeTo(outputDir)
                                 if (firstPathParent == null) firstPathParent = path.parent.toString()
-                                null
-                            })
+                            }
                             generatedFilesCount++
                         }
 
-                        scope.join() // espera; lanza FailedException si algún thread falló
+                        scope.join() // espera
+                        scope.exception().ifPresent { throw it } // lanza si algún thread falló
                     }
             }
         } finally {
