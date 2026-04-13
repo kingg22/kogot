@@ -48,6 +48,7 @@ private const val SPRITE_COUNT = 20_000
             println("[SpriteBench] Creating $SPRITE_COUNT sprites (WITHOUT texture first)...")
             (0 until SPRITE_COUNT).forEach { i ->
                 try {
+                    // Prefer the top-level factory function, this is a fallback method!!
                     val sprite = instantiate(::Sprite)
                     // Skip texture assignment for now - test addChild first
                     sprite.halfSize = halfSize
@@ -90,13 +91,13 @@ private const val SPRITE_COUNT = 20_000
                         Node(child.asObject().rawPtr).queueFree()
                     }
 
-                    val edit = TextEdit()
                     val outText = StringBuilder(FRAME_COUNT * 12)
                     for (t in frameTimes) {
-                        outText.append("(").append(t).append(")\n")
+                        outText.append("(").append(t).appendLine(")")
                     }
+                    val edit = TextEdit()
                     edit.text = outText.toString().asGodotString()
-                    edit.setSize(windowSize)
+                    edit.size = windowSize
                     addChild(node = edit)
                     println("[SpriteBench] TextEdit added")
                 } else if (frameIndex < FRAME_COUNT) {
