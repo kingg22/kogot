@@ -54,7 +54,7 @@ private const val SPRITE_COUNT = 20_000
                     sprite.windowSize = windowSize
                     sprite.pos = windowSize / 2.0
                     sprite.position = sprite.pos
-                    addChildTest(node = sprite)
+                    addChild(node = sprite)
                     if (i % 1000 == 0) {
                         println("[SpriteBench] Added $i sprites")
                     }
@@ -97,7 +97,7 @@ private const val SPRITE_COUNT = 20_000
                     }
                     edit.text = outText.toString().asGodotString()
                     edit.setSize(windowSize)
-                    addChildTest(node = edit)
+                    addChild(node = edit)
                     println("[SpriteBench] TextEdit added")
                 } else if (frameIndex < FRAME_COUNT) {
                     frameTimes[frameIndex] = delta
