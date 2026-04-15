@@ -55,8 +55,9 @@ public fun <T : GodotObject> createInstanceFunc(
     contract { callsInPlace(factory, InvocationKind.AT_MOST_ONCE) }
 
     println("[Kogot] CreateInstance: Creating $parentClassName instance")
-    val base = ClassDBBinding.instance.constructObject2Raw(parentClassName.asStringName().rawPtr)
-        ?: error("Failed to construct base $parentClassName")
+    val base = parentClassName.asStringName().use { str ->
+        ClassDBBinding.instance.constructObject2Raw(str.rawPtr)
+    } ?: error("Failed to construct base $parentClassName")
     println("[Kogot] CreateInstance: Base $parentClassName constructed. $base")
 
     val instance = try {
@@ -69,11 +70,13 @@ public fun <T : GodotObject> createInstanceFunc(
     val selfRef = StableRef.create(instance)
     val selfPtr = selfRef.asCPointer()
 
-    ObjectBinding.instance.setInstanceRaw(
-        base,
-        className.asStringName().rawPtr,
-        selfPtr,
-    )
+    className.asStringName().use { str ->
+        ObjectBinding.instance.setInstanceRaw(
+            base,
+            str.rawPtr,
+            selfPtr,
+        )
+    }
 
     memScoped {
         ObjectBinding.instance.setInstanceBindingRaw(
@@ -158,13 +161,17 @@ public inline fun <reified T : Any> registerClass(
 ) {
     val info = classCreationInfo5(createInstance, freeInstance, getVirtual, StableRef.create(T::class).asCPointer())
 
-    memScoped {
-        ClassDBBinding.instance.registerExtensionClass5Raw(
-            BindingProcAddressHolder.library,
-            className.asStringName().rawPtr,
-            parentClassName.asStringName().rawPtr,
-            info.ptr,
-        )
+    className.asStringName().use { classStringName ->
+        parentClassName.asStringName().use { parentStringName ->
+            memScoped {
+                ClassDBBinding.instance.registerExtensionClass5Raw(
+                    BindingProcAddressHolder.library,
+                    classStringName.rawPtr,
+                    parentStringName.rawPtr,
+                    info.ptr,
+                )
+            }
+        }
     }
 
     println("[Kogot] Registered class: '$className' extends '$parentClassName'")
