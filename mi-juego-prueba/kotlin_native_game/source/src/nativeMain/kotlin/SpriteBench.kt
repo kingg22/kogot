@@ -1,15 +1,17 @@
 @file:OptIn(ExperimentalForeignApi::class)
 
 import io.github.kingg22.godot.api.annotations.Godot
-import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.Vector2
+import io.github.kingg22.godot.api.builtin.Vector2i
 import io.github.kingg22.godot.api.builtin.asGodotString
 import io.github.kingg22.godot.api.castTo
 import io.github.kingg22.godot.api.core.Node
+import io.github.kingg22.godot.api.core.SceneTree
 import io.github.kingg22.godot.api.core.node.Node2D
 import io.github.kingg22.godot.api.core.node.TextEdit
+import io.github.kingg22.godot.api.core.node.Window
 import io.github.kingg22.godot.api.core.refcounted.Texture2D
-import io.github.kingg22.godot.api.singleton.ProjectSettings
+import io.github.kingg22.godot.api.singleton.Engine
 import io.github.kingg22.godot.api.singleton.ResourceLoader
 import io.github.kingg22.godot.binding.instantiate
 import kotlinx.cinterop.COpaquePointer
@@ -33,16 +35,16 @@ private const val SPRITE_COUNT = 20_000
             val icon = ResourceLoader.instance.load("res://icon.svg".asGodotString()).castTo(::Texture2D)
             println("[SpriteBench] Texture2D wrapper created")
 
-            // From Swift:
-            // TODO: When running from the editor, getWindow().size and getViewportRect() return zero values.
-            val vpw = ProjectSettings.instance
-                .getSetting(name = "display/window/size/viewport_width".asGodotString(), defaultValue = Variant(1920))
-                .asIntOrNull()
-            val vph = ProjectSettings.instance
-                .getSetting(name = "display/window/size/viewport_height".asGodotString(), defaultValue = Variant(1080))
-                .asIntOrNull()
-            windowSize = Vector2(x = (vpw ?: 1920L).toDouble(), y = (vph ?: 1080L).toDouble())
-            val halfSize = icon.getSize() / 2.0
+            // get root from the engine singleton
+            val mainloop: SceneTree = Engine.instance.getMainLoop().castTo(::SceneTree)
+            // use mainloop to call the get_root from the scenetree class
+            val root: Window = mainloop.root // return as object
+            // use root as the object for the window class method to call get_size
+            val vpwh: Vector2i = root.size // return as Vector2i
+
+            windowSize = Vector2(from = vpwh)
+
+            val halfSize: Vector2 = icon.getSize() / 2.0
             println(
                 "[SpriteBench] Window: (${windowSize.x}, ${windowSize.y}), HalfSize: (${halfSize.x}, ${halfSize.y})",
             )
