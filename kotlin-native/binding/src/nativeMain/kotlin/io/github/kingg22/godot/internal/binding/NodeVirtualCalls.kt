@@ -2,6 +2,8 @@ package io.github.kingg22.godot.internal.binding
 
 import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.internal.ffi.GDExtensionClassCallVirtual
+import io.github.kingg22.godot.internal.ffi.GDExtensionConstTypePtrVar
+import kotlinx.cinterop.CArrayPointer
 import kotlinx.cinterop.DoubleVar
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.get
@@ -22,7 +24,11 @@ public object NodeVirtualCalls {
     }
 
     /** Binding virtual call for [Node._process] */
-    public val process: GDExtensionClassCallVirtual = staticCFunction { instancePtr, args, _ ->
+    public val process: GDExtensionClassCallVirtual = staticCFunction {
+            instancePtr,
+            args: CArrayPointer<GDExtensionConstTypePtrVar>?,
+            _,
+        ->
         val instance = instancePtr.getInstance<Node>()
 
         val delta = args
