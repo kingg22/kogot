@@ -1,5 +1,9 @@
-package io.github.kingg22.godot.api
+@file:OptIn(ExperimentalGodotKotlin::class)
 
+package io.github.kingg22.godot
+
+import io.github.kingg22.godot.api.ExperimentalGodotKotlin
+import io.github.kingg22.godot.api.GodotNative
 import io.github.kingg22.godot.api.builtin.asStringName
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.internal.binding.ClassDBBinding
@@ -28,6 +32,8 @@ internal inline fun <Convert : GodotNative> castToInternal(
         classTagPtr,
     ) ?: return null
 
+    // FIXME must getInstance of the already kotlin instance instead of creating a new one!!
+    // But only create if the instance is not already a kotlin instance
     return factory(castedPtr)
 }
 

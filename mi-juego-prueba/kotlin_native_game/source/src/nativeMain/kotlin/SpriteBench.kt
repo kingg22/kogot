@@ -4,7 +4,6 @@ import io.github.kingg22.godot.api.annotations.Godot
 import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.builtin.Vector2i
 import io.github.kingg22.godot.api.builtin.asGodotString
-import io.github.kingg22.godot.api.castTo
 import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.api.core.SceneTree
 import io.github.kingg22.godot.api.core.node.Node2D
@@ -16,6 +15,7 @@ import io.github.kingg22.godot.api.singleton.ResourceLoader
 import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.print
 import io.github.kingg22.godot.binding.instantiate
+import io.github.kingg22.godot.castTo
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
 
