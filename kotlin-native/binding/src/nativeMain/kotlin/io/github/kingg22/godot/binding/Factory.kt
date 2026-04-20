@@ -3,6 +3,29 @@ package io.github.kingg22.godot.binding
 import io.github.kingg22.godot.api.builtin.asStringName
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.api.singleton.ClassDB
+import io.github.kingg22.godot.internal.binding.BindingProcAddressHolder
+import io.github.kingg22.godot.internal.binding.InternalBinding
+import io.github.kingg22.godot.internal.binding.ObjectBinding
+import io.github.kingg22.godot.internal.binding.getInstance
+import io.github.kingg22.godot.internal.ffi.GDExtensionClassInstancePtr
+import io.github.kingg22.godot.internal.ffi.GDExtensionInstanceBindingCallbacks
+import io.github.kingg22.godot.internal.ffi.GDExtensionObjectPtr
+import kotlinx.cinterop.cValue
+import kotlinx.cinterop.memScoped
+
+// Tienes que usar la función de GDExtension para obtener el binding
+@InternalBinding
+public fun getInstanceBinding(objectPtr: GDExtensionObjectPtr): GDExtensionClassInstancePtr? = memScoped {
+    ObjectBinding.instance.getInstanceBindingRaw(
+        pO = objectPtr,
+        pToken = BindingProcAddressHolder.library,
+        pCallbacks = cValue<GDExtensionInstanceBindingCallbacks> {
+            create_callback = null
+            free_callback = null
+            reference_callback = null
+        }.ptr,
+    )
+}
 
 /**
  * Instantiate a Godot object of type [T].
@@ -34,6 +57,7 @@ public inline fun <reified T : GodotObject> instantiate(): T {
         ClassDB.instance.instantiate(str)
     }.asObject().rawPtr
 
-    @Suppress("CAST_NEVER_SUCCEEDS")
-    return nativePtr as T
+    // Ahora sí, ese bindingPtr es el `selfPtr` (StableRef) que guardamos antes.
+    @OptIn(InternalBinding::class)
+    return getInstanceBinding(nativePtr).getInstance()
 }
