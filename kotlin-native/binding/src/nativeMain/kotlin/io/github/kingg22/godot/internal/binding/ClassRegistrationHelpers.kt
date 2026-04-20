@@ -15,10 +15,10 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
 /**
- * Inline function to get an instance from a COpaquePointer.
+ * Inline function to get an instance from a [GDExtensionClassInstancePtr] ([COpaquePointer]) that is assumed to be a [StableRef].
  */
 @InternalBinding
-public inline fun <reified T : Any> COpaquePointer?.getInstance(): T {
+public inline fun <reified T : Any> GDExtensionClassInstancePtr?.getInstance(): T {
     contract { returns() implies (this@getInstance != null) }
     return requireNotNull(this).asStableRef<T>().get()
 }
@@ -63,7 +63,7 @@ public fun <T : GodotObject> createInstanceFunc(
     val instance = try {
         factory(base)
     } catch (e: Exception) {
-        println("Failed to create instance of $parentClassName")
+        println("[Kogot] CreateInstance: Failed to create instance of $className with $parentClassName: $base")
         e.printStackTrace()
         return null
     }
@@ -93,11 +93,14 @@ public fun <T : GodotObject> createInstanceFunc(
 
     // Send NOTIFICATION_POSTINITIALIZE if Godot requests it
     if (notifyPostInitialize) {
-        println("[Kogot] CreateInstance: Sending NOTIFICATION_POSTINITIALIZE")
+        println("[Kogot] CreateInstance: Sending NOTIFICATION_POSTINITIALIZE to $className ($instance)")
         instance.notification(GodotObject.NOTIFICATION_POSTINITIALIZE.toInt())
     }
 
-    println("[Kogot] CreateInstance: Instance created successfully, instance: ${instance.rawPtr}. $instance")
+    println(
+        "[Kogot] CreateInstance: Instance of $className created successfully, instance: ${instance.rawPtr}. $instance",
+    )
+
     return base
 }
 
@@ -105,10 +108,10 @@ public fun <T : GodotObject> createInstanceFunc(
  * Creates a free_instance function that disposes the StableRef.
  */
 @InternalBinding
-public fun createFreeInstanceFunc(): GDExtensionClassFreeInstance = staticCFunction { _, ptr ->
-    require(ptr != null) { "FreeInstance: ptr is null" }
-    println("[Kogot] FreeInstance: Freeing $ptr")
-    ptr.asStableRef<Any>().dispose()
+public fun createFreeInstanceFunc(): GDExtensionClassFreeInstance = staticCFunction { userData, ptr ->
+    println("[Kogot] FreeInstance: Freeing userdata: $userData, instance: $ptr")
+    userData?.asStableRef<Any>()?.dispose()
+    ptr?.asStableRef<Any>()?.dispose()
 }
 
 @InternalBinding
@@ -152,13 +155,15 @@ public fun classCreationInfo5(
  * @param getVirtual The get_virtual function
  */
 @InternalBinding
-public inline fun <reified T : Any> registerClass(
+public inline fun <reified T : GodotObject> registerClass(
     className: String,
     parentClassName: String,
     createInstance: GDExtensionClassCreateInstance2,
     freeInstance: GDExtensionClassFreeInstance,
     getVirtual: GDExtensionClassGetVirtual2,
 ) {
+    println("[Kogot] Registering $className extends $parentClassName")
+
     val info = classCreationInfo5(createInstance, freeInstance, getVirtual, StableRef.create(T::class).asCPointer())
 
     className.asStringName().use { classStringName ->
@@ -174,5 +179,5 @@ public inline fun <reified T : Any> registerClass(
         }
     }
 
-    println("[Kogot] Registered class: '$className' extends '$parentClassName'")
+    println("[Kogot] Registered class: '$className' extends '$parentClassName' successfully")
 }
