@@ -31,8 +31,16 @@ public inline fun <reified T : Any> GDExtensionClassInstancePtr?.getInstance(): 
  */
 @InternalBinding
 public val notificationFunc: GDExtensionClassNotification2 = staticCFunction { instancePtr, notification, _ ->
-    if (notification.toLong() == Node.NOTIFICATION_READY) {
-        instancePtr.getInstance<Node>()._ready()
+    when (notification.toLong()) {
+        Node.NOTIFICATION_READY -> {
+            println("[Kogot] NotificationFunc: Received Node.NOTIFICATION_READY, calling _ready to $instancePtr")
+            instancePtr.getInstance<Node>()._ready()
+        }
+
+        else -> {
+            // Floods the console with notifications, not useful
+            // println("[Kogot] NotificationFunc: Received notification: $notification")
+        }
     }
 }
 
