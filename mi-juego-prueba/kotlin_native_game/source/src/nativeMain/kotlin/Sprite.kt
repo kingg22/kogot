@@ -3,6 +3,8 @@
 import io.github.kingg22.godot.api.annotations.Godot
 import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.core.node.Sprite2D
+import io.github.kingg22.godot.api.utils.GD
+import io.github.kingg22.godot.api.utils.print
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlin.math.PI
@@ -16,6 +18,10 @@ import kotlin.random.Random
     var pos: Vector2 = Vector2.ZERO
     var windowSize: Vector2 = Vector2.ZERO
     var halfSize: Vector2 = Vector2.ZERO
+
+    init {
+        GD.print("a new Sprite was created with pointer ${nativePtr.rawValue}")
+    }
 
     override fun _process(delta: Double) {
         // Prefers kotlin math functions instead of GD utils

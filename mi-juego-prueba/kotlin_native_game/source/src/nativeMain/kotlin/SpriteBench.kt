@@ -13,6 +13,8 @@ import io.github.kingg22.godot.api.core.node.Window
 import io.github.kingg22.godot.api.core.refcounted.Texture2D
 import io.github.kingg22.godot.api.singleton.Engine
 import io.github.kingg22.godot.api.singleton.ResourceLoader
+import io.github.kingg22.godot.api.utils.GD
+import io.github.kingg22.godot.api.utils.print
 import io.github.kingg22.godot.binding.instantiate
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -26,6 +28,10 @@ private const val SPRITE_COUNT = 20_000
     private var currentFrame = 0
     private var frameIndex = 0
     private var windowSize: Vector2 = Vector2.ZERO
+
+    init {
+        GD.print("A new SpriteBench was created with pointer ${nativePtr.rawValue}")
+    }
 
     override fun _ready() {
         try {
@@ -52,8 +58,8 @@ private const val SPRITE_COUNT = 20_000
             println("[SpriteBench] Creating $SPRITE_COUNT sprites")
             for (i in 0..<SPRITE_COUNT) {
                 try {
-                    // Prefer the top-level factory function, this is a fallback method!!
-                    val sprite = instantiate(::Sprite)
+                    // Prefer the top-level factory function, this is a fallback way!!
+                    val sprite: Sprite = instantiate()
                     sprite.halfSize = halfSize
                     sprite.windowSize = windowSize
                     sprite.pos = windowSize / 2.0
