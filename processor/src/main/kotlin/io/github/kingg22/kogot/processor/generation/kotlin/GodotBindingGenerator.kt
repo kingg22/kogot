@@ -80,7 +80,7 @@ class GodotBindingGenerator : Generator {
             .addFunction(generateRegisterFun(classInfo, classType, godotBaseClass))
             .build()
 
-        fileSpec.addFunction(generateCreateInstanceFun(classInfo, classType, godotBaseClass))
+        // fileSpec.addFunction(generateCreateInstanceFun(classInfo, classType, godotBaseClass))
         fileSpec.addType(typeSpec)
 
         val content = StringBuilder()
@@ -106,8 +106,6 @@ class GodotBindingGenerator : Generator {
 
     private fun generateRegisterFun(classInfo: ClassInfo, classType: ClassName, baseClass: String): FunSpec = FunSpec
         .builder("register")
-        .addStatement("println(%S)", "[Kogot] Registering '${classInfo.shortName}'")
-        .addStatement("val freeInstance = %M()", CREATE_FREE_INSTANCE_FUN)
         .addStatement("%M<%T>(", REGISTER_CLASS, classType)
         .addStatement("⇥%S,", classInfo.shortName)
         .addStatement("%S,", baseClass)
@@ -122,13 +120,9 @@ class GodotBindingGenerator : Generator {
             GDExtensionBoolTrueMember,
         )
         .addStatement("},")
-        .addStatement("freeInstance,")
+        .addStatement("%M(),", CREATE_FREE_INSTANCE_FUN)
         .addStatement("%T.getVirtual,", NodeVirtualDispatcherClassName)
         .addStatement("⇤)")
-        .addStatement(
-            "println(%S)",
-            "[Kogot] Registered '${classInfo.shortName}' extends '$baseClass'",
-        )
         .build()
 
     private fun generateCallbacksFile(classes: List<ClassInfo>): GeneratedFile {
