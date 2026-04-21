@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION") // TODO find a better API to obtain the type of a Variant, or remove all overloads
+
 package io.github.kingg22.godot.api.builtin
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin

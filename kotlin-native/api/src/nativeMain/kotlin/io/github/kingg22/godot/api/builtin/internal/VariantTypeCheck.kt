@@ -3,20 +3,25 @@ package io.github.kingg22.godot.api.builtin.internal
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.builtin.*
 import io.github.kingg22.godot.api.core.GodotObject
-import io.github.kingg22.godot.api.utils.GD
-import io.github.kingg22.godot.api.utils.pushError
 import org.jetbrains.annotations.ApiStatus
 import kotlin.contracts.contract
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
+/**
+ * Convert a [KType] to a [Variant.Type]
+ *
+ * **Safety**:
+ * - [Unit] is not supported, returns [Variant.Type.NIL] as fallback
+ * - Inheritance of [GodotObject] is not supported
+ * - [Variant] is not supported
+ */
+@Deprecated("This function doesn't support inheritance of GodotObject, prefers others methods", level = WARNING)
 @ExperimentalGodotKotlin
 @ApiStatus.Internal
 public fun variantTypeOf(kType: KType): Variant.Type = when (kType) {
     typeOf<Unit>() -> {
-        GD.pushError(
-            "Variant of Unit is not supported, returning Variant.Type.NIL as fallback, define the type explicitly",
-        )
+        println("Variant of Unit is not supported, returning Variant.Type.NIL as fallback, define the type explicitly")
         Variant.Type.NIL
     }
 
@@ -68,6 +73,8 @@ public fun variantTypeOf(kType: KType): Variant.Type = when (kType) {
 
     typeOf<RID>() -> Variant.Type.RID
 
+    typeOf<GodotObject>() -> Variant.Type.OBJECT
+
     typeOf<Callable>() -> Variant.Type.CALLABLE
 
     typeOf<Signal>() -> Variant.Type.SIGNAL
@@ -96,24 +103,18 @@ public fun variantTypeOf(kType: KType): Variant.Type = when (kType) {
 
     typeOf<PackedVector4Array>() -> Variant.Type.PACKED_VECTOR4_ARRAY
 
-    else -> {
-        // fallback: GodotObject o script
-        when (kType.classifier) {
-            GodotObject::class -> Variant.Type.OBJECT
-            GodotArray::class -> Variant.Type.ARRAY
-            Dictionary::class -> Variant.Type.DICTIONARY
-            else -> error("Unsupported type for Variant: $kType")
-        }
-    }
+    else -> error("Unsupported type for Variant: $kType, must be explicitly type defined")
 }
 
 /** Compatible Variant.Type for kotlin String */
 @PublishedApi
 internal val stringToTypes: Array<Variant.Type> = arrayOf(STRING, STRING_NAME, NODE_PATH)
 
+@Deprecated("This function doesn't support inheritance of GodotObject, prefers others methods", level = WARNING)
 @ExperimentalGodotKotlin
 @ApiStatus.Internal
 public inline fun <@MustBeVariant reified T> checkVariantCompatibility(type: Variant.Type) {
+    @Suppress("DEPRECATION") // this is deprecated too
     val expected = variantTypeOf(typeOf<T>())
     require(type == expected || (T::class == String::class && type in stringToTypes)) {
         "Variant.Type mismatch: expected=$expected but got=$type for T=${T::class}"

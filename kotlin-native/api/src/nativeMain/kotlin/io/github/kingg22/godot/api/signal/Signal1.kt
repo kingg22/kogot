@@ -6,7 +6,6 @@ import io.github.kingg22.godot.api.builtin.MustBeVariant
 import io.github.kingg22.godot.api.builtin.StringName
 import io.github.kingg22.godot.api.builtin.asGodotString
 import io.github.kingg22.godot.api.builtin.internal.checkVariantTypeAndConvert
-import io.github.kingg22.godot.api.builtin.internal.variantTypeOf
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.api.internal.checkGodotError
 
@@ -47,11 +46,13 @@ public class Signal1<@MustBeVariant P1>(
      * @param p1 The first parameter value
      */
     public fun emit(p1: P1) {
-        val variantType = variantTypeOf(param1.kType)
-        val arg1 = checkVariantTypeAndConvert(p1, variantType)
-        StringName(name).use { signalName ->
-            checkGodotError("emit signal: $nameKString", owner.emitSignal(signalName, arg1))
-        }
+        val arg1 = checkVariantTypeAndConvert(p1, param1.variantType)
+        checkGodotError(
+            "emit signal: $nameKString",
+            StringName(name).use { signalName ->
+                owner.emitSignal(signalName, arg1)
+            },
+        )
     }
 
     /**
@@ -65,9 +66,12 @@ public class Signal1<@MustBeVariant P1>(
             @Suppress("UNCHECKED_CAST")
             callback(args[0] as P1)
         }
-        StringName(name).use { signalName ->
-            checkGodotError("connect signal: $nameKString", owner.connect(signalName, callable, flags.value.toUInt()))
-        }
+        checkGodotError(
+            "connect signal: $nameKString",
+            StringName(name).use { signalName ->
+                owner.connect(signalName, callable, flags.value.toUInt())
+            },
+        )
     }
 
     /**

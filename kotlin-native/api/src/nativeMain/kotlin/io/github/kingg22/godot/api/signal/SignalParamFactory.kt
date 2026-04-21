@@ -1,5 +1,6 @@
 package io.github.kingg22.godot.api.signal
 
+import io.github.kingg22.godot.api.builtin.MustBeVariant
 import kotlin.reflect.typeOf
 
 /**
@@ -10,5 +11,5 @@ import kotlin.reflect.typeOf
  * signal("vida_cambio", param<Int>("nueva_vida"))
  * ```
  */
-public inline fun <reified P> param(name: String): SignalParameterDescriptor<P> =
+public inline fun <@MustBeVariant reified P> param(name: String): SignalParameterDescriptor<P> =
     SignalParameterDescriptor(name, typeOf<P>())

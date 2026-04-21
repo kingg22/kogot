@@ -2,6 +2,8 @@ package io.github.kingg22.godot.api.signal
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.builtin.MustBeVariant
+import io.github.kingg22.godot.api.builtin.Variant
+import io.github.kingg22.godot.api.builtin.internal.variantTypeOf
 import kotlin.reflect.KType
 
 /**
@@ -19,5 +21,8 @@ public class SignalParameterDescriptor<@MustBeVariant P> @ExperimentalGodotKotli
     public val name: String,
     public val kType: KType,
 ) {
+    @Suppress("DEPRECATION") // TODO find a better way to do this
+    public val variantType: Variant.Type = variantTypeOf(kType)
+
     public val isOptional: Boolean get() = kType.isMarkedNullable
 }

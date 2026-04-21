@@ -6,6 +6,10 @@ import io.github.kingg22.godot.api.ExperimentalGodotKotlin
  * Returns the value of this [Variant].
  *
  * Prefers explicit converter method over this function.
+ *
+ * Doesn't return [kotlin.String]!!
+ *
+ * @throws [IllegalStateException] if the type of variant is [MAX][Variant.Type.MAX]
  */
 @ExperimentalGodotKotlin
 public fun Variant.getValue(): @MustBeVariant Any? = when (getType()) {
