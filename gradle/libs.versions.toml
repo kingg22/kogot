@@ -43,7 +43,7 @@ ksp-plugin = "2.3.7"
 ktlint-pinterest = "1.8.0"
 
 # https://github.com/uber/NullAway/releases
-nullaway = "0.13.3"
+nullaway = "0.13.4"
 
 # https://github.com/tbroyer/gradle-nullaway-plugin/releases
 nullaway-gradle = "3.0.0"

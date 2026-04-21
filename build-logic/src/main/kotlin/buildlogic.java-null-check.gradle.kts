@@ -10,7 +10,7 @@ plugins {
 }
 
 dependencies {
-    errorprone("com.uber.nullaway:nullaway:0.13.3")
+    errorprone("com.uber.nullaway:nullaway:0.13.4")
 
     // Some source of nullability annotations; JSpecify recommended,
     // but others supported as well.
