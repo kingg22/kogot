@@ -16,18 +16,25 @@ import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.print
 import io.github.kingg22.godot.binding.instantiate
 import io.github.kingg22.godot.castTo
+import io.github.kingg22.godot.internal.binding.InternalBinding
+import io.github.kingg22.godot.internal.callback.CallableFactory
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
 
 private const val FRAME_COUNT = 1_000
 private const val START_FRAME = 100
-private const val SPRITE_COUNT = 20_000
+private const val SPRITE_COUNT = 5
 
 @Godot class SpriteBench(nativePtr: COpaquePointer) : Node2D(nativePtr) {
     private val frameTimes = DoubleArray(FRAME_COUNT) { 0.0 }
     private var currentFrame = 0
     private var frameIndex = 0
     private var windowSize: Vector2 = Vector2.ZERO
+
+    @OptIn(InternalBinding::class)
+    private val callable = CallableFactory.create {
+        println("Hello from Kotlin inside a Callable!")
+    }
 
     init {
         GD.print("A new SpriteBench was created with pointer ${nativePtr.rawValue}")
@@ -76,6 +83,12 @@ private const val SPRITE_COUNT = 20_000
                 }
             }
             println("[SpriteBench] All $SPRITE_COUNT sprites added successfully")
+
+            println("[SpriteBench] _ready finished, going to call deferred callable")
+            val returnVariant = callable.call()
+            println(
+                "[SpriteBench] Callable returned: ${returnVariant.stringify().rawPtr}, is nil: ${returnVariant.isNil()}",
+            )
         } catch (e: Throwable) {
             println("[SpriteBench] === _ready failed ===")
             e.printStackTrace()
