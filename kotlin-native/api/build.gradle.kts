@@ -22,6 +22,8 @@ kotlin {
     dependencies {
         api(libs.jetbrains.annotations)
         api(projects.kotlinNative.runtime)
+        testImplementation(libs.kotlin.test)
+        testImplementation(libs.kotest.assertions.core)
     }
 
     applyDefaultHierarchyTemplate()
@@ -33,7 +35,7 @@ kotlin {
 fun KotlinNativeTarget.configureGodotInterop() {
     compilations.getByName("main").cinterops.create("godotNativeStructures") {
         packageName = "io.github.kingg22.godot.api.native"
-        defFile(project.file("nativeInterop/cinterop/extension_api_native.def"))
+        defFile("nativeInterop/cinterop/extension_api_native.def")
         includeDirs.allHeaders("nativeInterop/cinterop")
     }
 }
