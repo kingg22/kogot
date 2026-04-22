@@ -1,0 +1,11 @@
+[configuration]
+
+entry_symbol = "godot_kotlin_init"
+compatibility_minimum = "4.6"
+
+[libraries]
+linux.debug.x86_64 = "res://build/bin/linuxX64/debugShared/libgodot_kotlin_sample.so"
+linux.release.x86_64 = "res://build/bin/linuxX64/releaseShared/libgodot_kotlin_sample.so"
+
+windows.debug.x86_64 = "res://build/bin/mingwX64/debugShared/godot_kotlin_sample.dll"
+windows.release.x86_64 = "res://build/bin/mingwX64/releaseShared/godot_kotlin_sample.dll"
