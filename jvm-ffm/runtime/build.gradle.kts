@@ -7,5 +7,5 @@ plugins {
 }
 
 dependencies {
-    implementation(projects.jvmFfmFfm)
+    implementation(projects.jvmFfm.ffm)
 }
