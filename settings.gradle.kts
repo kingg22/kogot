@@ -55,13 +55,14 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 // If there are changes in only one of the projects, Gradle will rebuild only the one that has changed.
 // Learn more about structuring projects with Gradle - https://docs.gradle.org/8.7/userguide/multi_project_builds.html
 
-// JVM using FFM API
+/* JVM using FFM API
 include(
     "jvm-ffm:ffm",
     "jvm-ffm:api",
     "jvm-ffm:native-register",
     "jvm-ffm:runtime",
 )
+ */
 
 // Kotlin using Native Cinterop
 include(
