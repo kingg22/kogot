@@ -183,6 +183,7 @@ class VariantTypeCheckTest {
     fun `variantTypeOf throws for custom class`() {
         // ── Custom Test Classes for Error Cases ───────────────────────────────────
 
+        // When GodotObject inheritance support is added, this should pass
         class CustomTestClass
 
         val customType = typeOf<CustomTestClass>()
@@ -338,9 +339,8 @@ class VariantTypeCheckTest {
 
     @Test
     fun `checkVariantCompatibility GodotObject with OBJECT passes`() {
-        // This test documents current behavior: GodotObject is NOT in variantTypeOf
-        // so this will throw an IllegalStateException from variantTypeOf
-        // When GodotObject support is added, this should pass
+        // This test documents current behavior: GodotObject is in variantTypeOf
+        // so this will pass, but inheritance of GodotObject throws IllegalStateException
         shouldNotThrowAny { checkVariantCompatibility<GodotObject>(Variant.Type.OBJECT) }
     }
 
