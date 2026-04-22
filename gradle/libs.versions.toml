@@ -23,6 +23,9 @@ jspecify = "1.0.0"
 # https://github.com/google/truth/releases
 google-truth = "1.4.5"
 
+# https://github.com/kotest/kotest/releases
+kotest = "6.1.11"
+
 # https://github.com/JetBrains/kotlin/releases
 kotlin = "2.3.20"
 
@@ -59,6 +62,9 @@ undercouch-download = "5.7.0"
 # Kotlin
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
 kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
+
+# Kotest test DSL
+kotest-assertions-core = { group = "io.kotest", name = "kotest-assertions-core", version.ref = "kotest" }
 
 jetbrains-annotations = { group = "org.jetbrains", name = "annotations", version.ref = "jetbrains-jvm-annotations" }
 
