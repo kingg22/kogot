@@ -1,0 +1,4 @@
+headers = jni.h
+headerFilter = jni.h
+
+strictEnums = _jobjectType
