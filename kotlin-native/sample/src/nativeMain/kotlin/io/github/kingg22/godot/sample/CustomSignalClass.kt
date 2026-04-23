@@ -27,10 +27,6 @@ class CustomSignalClass(nativePtr: COpaquePointer) : Node(nativePtr) {
         val mySignal = signal("my_signal", param<Int>("value"))
     }
 
-    fun registerSignal() {
-        mySignal.register(this)
-    }
-
     fun emitSignal(value: Int) {
         mySignal.emit(value)
     }
