@@ -28,16 +28,15 @@ import io.github.kingg22.godot.api.internal.checkGodotError
 public class Signal1<@MustBeVariant P1>(
     public val nameKString: String,
     private val param1: SignalParameterDescriptor<P1>,
-) : Signal,
-    Function1<P1, Unit> {
-    override val name: GodotString = nameKString.asGodotString()
+) : Function1<P1, Unit> {
+    public val name: GodotString by lazy(PUBLICATION) { nameKString.asGodotString() }
 
     @PublishedApi
     internal lateinit var owner: GodotObject
 
-    override fun register(owner: GodotObject) {
+    public fun register(owner: GodotObject) {
         this.owner = owner
-        owner.addUserSignal(GodotString(name))
+        owner.addUserSignal(name)
     }
 
     /**

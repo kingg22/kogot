@@ -15,15 +15,14 @@ import io.github.kingg22.godot.api.internal.checkGodotError
  * val gameOver: Signal0 = signal("game_over")
  * ```
  */
-public class Signal0(public val nameKString: String) :
-    Signal,
-    Function0<Unit> {
-    override val name: GodotString = nameKString.asGodotString()
+public class Signal0(public val nameKString: String) : Function0<Unit> {
+    public val name: GodotString by lazy { nameKString.asGodotString() }
 
     @PublishedApi
     internal lateinit var owner: GodotObject
+        private set
 
-    override fun register(owner: GodotObject) {
+    public fun register(owner: GodotObject) {
         this.owner = owner
         owner.addUserSignal(name)
     }
