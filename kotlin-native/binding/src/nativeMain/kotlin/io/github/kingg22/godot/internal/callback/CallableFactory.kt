@@ -36,14 +36,15 @@ public object CallableFactory {
     /**
      * Creates a Godot Callable from a Kotlin lambda with 0 arguments.
      *
-     * @param T The return type of the lambda must be a [Variant type compatible][MustBeVariant].
+     * The return type of the lambda must be a [Variant type compatible][MustBeVariant].
      * Allows [Unit] as return type, is converted to [Variant.Type.NIL] internally.
+     *
      * @param lambda The Kotlin lambda to wrap
      * @return A Callable that wraps the Kotlin lambda
      */
-    public inline fun <@MustBeVariant reified T> create(noinline lambda: () -> T): Callable {
+    public inline fun create(crossinline lambda: () -> @MustBeVariant Any?): Callable {
         // Create a KotlinCallable wrapper
-        val kotlinCallable = Callable0(lambda)
+        val kotlinCallable = Callable0 { lambda() }
 
         // Register it in the map and get a unique ID
         val id = CallableUserdataMap.add(kotlinCallable)

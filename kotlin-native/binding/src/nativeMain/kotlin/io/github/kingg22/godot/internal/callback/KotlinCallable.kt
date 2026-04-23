@@ -24,12 +24,12 @@ public interface KotlinCallable {
     /**
      * Returns a hash value for this callable.
      */
-    public fun hash(): Int
+    public override fun hashCode(): Int
 
     /**
      * Checks equality with another KotlinCallable.
      */
-    public fun equals(other: KotlinCallable): Boolean
+    public override fun equals(other: Any?): Boolean
 
     /**
      * Returns a string representation for debugging.

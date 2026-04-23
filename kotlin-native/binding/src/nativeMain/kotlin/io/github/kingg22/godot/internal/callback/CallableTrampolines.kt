@@ -13,7 +13,6 @@ import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomIsValid
 import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomLessThan
 import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomToString
 import io.github.kingg22.godot.internal.ffi.TRUE
-import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.set
 import kotlinx.cinterop.staticCFunction
@@ -25,7 +24,6 @@ import kotlinx.cinterop.staticCFunction
  * They extract the userdata (which is a StableRef containing a Long ID),
  * retrieve the KotlinCallable from the map, and dispatch to it.
  */
-@OptIn(ExperimentalForeignApi::class)
 @InternalBinding
 public object CallableTrampolines {
 
@@ -44,7 +42,7 @@ public object CallableTrampolines {
      * Hash trampoline - returns hash of the callable.
      */
     public val hashFunc: GDExtensionCallableCustomHash = staticCFunction { userdata ->
-        CallableUserdataMap.get(userdata.getInstance())?.hash()?.toUInt() ?: 0u
+        CallableUserdataMap.get(userdata.getInstance())?.hashCode()?.toUInt() ?: 0u
     }
 
     /**
@@ -63,7 +61,7 @@ public object CallableTrampolines {
         val callableA = CallableUserdataMap.get(userdataA.getInstance())
         val callableB = CallableUserdataMap.get(userdataB.getInstance())
         if (callableA != null && callableB != null &&
-            callableA.equals(callableB)
+            callableA == callableB
         ) {
             GDExtensionBool.TRUE
         } else {
@@ -103,8 +101,7 @@ public object CallableTrampolines {
      * To string trampoline - returns string representation for debugging.
      */
     public val toStringFunc: GDExtensionCallableCustomToString = staticCFunction { userdata, rIsValid, rReturnPtr ->
-        val callableId = userdata.getInstance<Long>()
-        val callable = CallableUserdataMap.get(callableId)
+        val callable = CallableUserdataMap.get(userdata.getInstance())
         if (rIsValid != null) {
             val validFlag = if (callable != null && callable.isValid()) GDExtensionBool.TRUE else GDExtensionBool.FALSE
             rIsValid[0] = validFlag
