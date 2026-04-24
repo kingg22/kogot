@@ -42,7 +42,7 @@ Run the `mi-juego-prueba` project with [Godot v4.6.1](https://godotengine.org/do
 
 - [CLAUDE.md](CLAUDE.md) — Agent directives and project context
 - [binding-roadmap.md](.claude/skills/binding-roadmap.md) — Track what's implemented, in progress, and pending
-- [docs/signal-design.md](docs/signal-design.md) — Signal implementation design
+- [docs/signal-design.md](docs/technical-design/signal-design.md) — Signal implementation design
 - [docs/kogot_binding_philosophy.md](docs/kogot_binding_philosophy.md) — Design principles and architecture guidelines
 - [Java 25 SE – Foreign Function and Memory API](https://docs.oracle.com/en/java/javase/25/core/foreign-function-and-memory-api.html)
 - [Kotlin/Native Guide](https://kotlinlang.org/docs/native-overview.html)
