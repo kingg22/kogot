@@ -1,7 +1,6 @@
 package io.github.kingg22.godot.api.signal
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
-import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.MustBeVariant
 import io.github.kingg22.godot.api.builtin.Signal
 import io.github.kingg22.godot.api.builtin.Variant
@@ -25,8 +24,6 @@ public data class SignalParameterDescriptor<@MustBeVariant P> @ExperimentalGodot
     public val kType: KType,
 ) {
     init {
-        require(kType != typeOf<Signal>()) { "Signal cannot be a signal parameter" }
-        require(kType != typeOf<Callable>()) { "Callable cannot be a signal parameter" }
         require(kType != typeOf<SignalParameterDescriptor<*>>()) { "SignalParameter cannot be a signal parameter" }
     }
 

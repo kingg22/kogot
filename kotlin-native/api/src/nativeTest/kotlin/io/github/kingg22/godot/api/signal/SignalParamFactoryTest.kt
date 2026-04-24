@@ -52,7 +52,7 @@ class SignalParamFactoryTest {
     @Test
     fun `param variantType maps types correctly`() {
         assertSoftly {
-            for (tc in td.signalParamTypes()) {
+            for (tc in td.allTypes()) {
                 val descriptor = createParam(tc.kotlinType)
                 descriptor.variantType shouldEqual tc.expectedVariantType
             }
@@ -64,7 +64,7 @@ class SignalParamFactoryTest {
     @Test
     fun `param and SignalParameterDescriptor produce equivalent descriptors`() {
         assertSoftly {
-            for (tc in td.signalParamTypes()) {
+            for (tc in td.allTypes()) {
                 val name = "test_param"
                 val paramDescriptor = paramByType(tc.kotlinType, name)
                 val manualDescriptor = SignalParameterDescriptor<Any>(name, tc.kotlinType)

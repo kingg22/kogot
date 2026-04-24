@@ -1,40 +1,6 @@
 package io.github.kingg22.godot.api
 
-import io.github.kingg22.godot.api.builtin.Aabb
-import io.github.kingg22.godot.api.builtin.Basis
-import io.github.kingg22.godot.api.builtin.Callable
-import io.github.kingg22.godot.api.builtin.Color
-import io.github.kingg22.godot.api.builtin.Dictionary
-import io.github.kingg22.godot.api.builtin.GodotArray
-import io.github.kingg22.godot.api.builtin.GodotString
-import io.github.kingg22.godot.api.builtin.NodePath
-import io.github.kingg22.godot.api.builtin.PackedByteArray
-import io.github.kingg22.godot.api.builtin.PackedColorArray
-import io.github.kingg22.godot.api.builtin.PackedFloat32Array
-import io.github.kingg22.godot.api.builtin.PackedFloat64Array
-import io.github.kingg22.godot.api.builtin.PackedInt32Array
-import io.github.kingg22.godot.api.builtin.PackedInt64Array
-import io.github.kingg22.godot.api.builtin.PackedStringArray
-import io.github.kingg22.godot.api.builtin.PackedVector2Array
-import io.github.kingg22.godot.api.builtin.PackedVector3Array
-import io.github.kingg22.godot.api.builtin.PackedVector4Array
-import io.github.kingg22.godot.api.builtin.Plane
-import io.github.kingg22.godot.api.builtin.Projection
-import io.github.kingg22.godot.api.builtin.Quaternion
-import io.github.kingg22.godot.api.builtin.Rect2
-import io.github.kingg22.godot.api.builtin.Rect2i
-import io.github.kingg22.godot.api.builtin.Rid
-import io.github.kingg22.godot.api.builtin.Signal
-import io.github.kingg22.godot.api.builtin.StringName
-import io.github.kingg22.godot.api.builtin.Transform2D
-import io.github.kingg22.godot.api.builtin.Transform3D
-import io.github.kingg22.godot.api.builtin.Variant
-import io.github.kingg22.godot.api.builtin.Vector2
-import io.github.kingg22.godot.api.builtin.Vector2i
-import io.github.kingg22.godot.api.builtin.Vector3
-import io.github.kingg22.godot.api.builtin.Vector3i
-import io.github.kingg22.godot.api.builtin.Vector4
-import io.github.kingg22.godot.api.builtin.Vector4i
+import io.github.kingg22.godot.api.builtin.*
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.api.core.Node
 import kotlin.reflect.KType
@@ -152,14 +118,6 @@ object VariantTypeTestData {
     fun allTypes(): List<TypeCase> = primitiveTypes() + stringTypes() + vector2Types() +
         vector3Types() + vector4Types() + mathTypes() + coreTypes() +
         callableSignalTypes() + containerTypes() + packedArrayTypes()
-
-    /**
-     * Types valid for signal parameters (excludes Callable and Signal).
-     * Callable/Signal are Variant types but are not valid as signal parameter types.
-     */
-    fun signalParamTypes(): List<TypeCase> = primitiveTypes() + stringTypes() + vector2Types() +
-        vector3Types() + vector4Types() + mathTypes() + coreTypes() +
-        containerTypes() + packedArrayTypes()
 
     /**
      * Error case test data: types that should throw for variantTypeOf.

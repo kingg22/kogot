@@ -45,7 +45,7 @@ class SignalParameterDescriptorTest {
     @Test
     fun `SignalParameterDescriptor variantType maps types correctly`() {
         assertSoftly {
-            for (tc in td.signalParamTypes()) {
+            for (tc in td.allTypes()) {
                 val descriptor = createDescriptor(tc.kotlinType)
                 descriptor.variantType shouldEqual tc.expectedVariantType
             }
