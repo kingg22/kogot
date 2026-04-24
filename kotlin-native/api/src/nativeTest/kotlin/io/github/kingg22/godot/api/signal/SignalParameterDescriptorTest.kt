@@ -150,6 +150,8 @@ class SignalParameterDescriptorTest {
         typeOf<PackedVector3Array>() -> SignalParameterDescriptor<PackedVector3Array>("test", kType)
         typeOf<PackedColorArray>() -> SignalParameterDescriptor<PackedColorArray>("test", kType)
         typeOf<PackedVector4Array>() -> SignalParameterDescriptor<PackedVector4Array>("test", kType)
+        typeOf<Callable>() -> SignalParameterDescriptor<Callable>("test", kType)
+        typeOf<Signal>() -> SignalParameterDescriptor<Signal>("test", kType)
         else -> error("Unsupported type for test: $kType")
     }
 }

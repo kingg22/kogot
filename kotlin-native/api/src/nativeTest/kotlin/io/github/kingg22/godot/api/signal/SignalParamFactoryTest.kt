@@ -174,6 +174,8 @@ class SignalParamFactoryTest {
         typeOf<PackedVector3Array>() -> param<PackedVector3Array>(name)
         typeOf<PackedColorArray>() -> param<PackedColorArray>(name)
         typeOf<PackedVector4Array>() -> param<PackedVector4Array>(name)
+        typeOf<Callable>() -> param<Callable>(name)
+        typeOf<Signal>() -> param<Signal>(name)
         else -> error("Unsupported type for test: $kType")
     }
 
