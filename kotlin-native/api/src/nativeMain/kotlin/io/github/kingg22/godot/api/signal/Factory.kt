@@ -21,7 +21,7 @@ public fun signal(name: String): Signal0 = Signal0(name)
  *
  * Example:
  * ```kotlin
- * val vidaCambio = signal("vida_cambio", param<Int>("nueva_vida"))
+ * val lifeChange = signal("life_change", param<Int>("new_life"))
  * ```
  */
 public fun <@MustBeVariant P1> signal(name: String, param1: SignalParameterDescriptor<P1>): Signal1<P1> =

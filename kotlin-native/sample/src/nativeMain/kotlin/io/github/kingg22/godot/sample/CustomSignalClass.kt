@@ -3,7 +3,6 @@ package io.github.kingg22.godot.sample
 import io.github.kingg22.godot.api.builtin.StringName
 import io.github.kingg22.godot.api.builtin.asGodotString
 import io.github.kingg22.godot.api.builtin.asStringName
-import io.github.kingg22.godot.api.builtin.asVariantString
 import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.api.signal.param
 import io.github.kingg22.godot.api.signal.signal
@@ -24,16 +23,8 @@ import kotlinx.cinterop.memScoped
 
 class CustomSignalClass(nativePtr: COpaquePointer) : Node(nativePtr) {
     companion object {
-        val mySignal = signal("my_signal", param<Int>("value"))
-    }
-
-    fun emitSignal(value: Int) {
-        mySignal.emit(value)
-    }
-
-    fun testSignal() {
-        GD.print("Test signal called!")
-        emitSignal(42)
+        val mySignal = signal("my_signal")
+        val mySignal1 = signal("my_signal", param<Int>("value"))
     }
 }
 
@@ -101,9 +92,9 @@ fun registerSignalsForCustomSignalClass(
             )
         }
 
-        GD.print("Signal registered successfully!".asVariantString())
+        GD.print("Signal registered successfully!")
     } catch (e: Throwable) {
-        GD.print("Error registering signal: ${e.message}".asVariantString())
+        GD.print("Error registering signal: ${e.message}")
         e.printStackTrace()
     }
 }
