@@ -9,6 +9,13 @@ import org.jetbrains.annotations.ApiStatus
  * Converts an arbitrary type to a [Variant].
  *
  * Equivalent to call `asVariant()` on the type.
+ *
+ * **Safety**:
+ * - `null` is converted to [Variant.Type.NIL]
+ * - [Variant] is returned the same Variant, not a copy
+ * - [Unit] is converted to [Variant.Type.NIL]
+ * - [Throwable] is not supported, throws [IllegalStateException]
+ *
  * @param element The element to convert, [must be a variant type compatible][MustBeVariant].
  * @see Variant
  * @see GodotObject.asVariant
@@ -21,6 +28,7 @@ public fun <T> anyToVariant(element: @MustBeVariant T?): Variant {
 
     return when (element) {
         is Variant -> element
+        is Unit -> Variant()
         is Boolean -> element.asVariant()
         is Int -> element.asVariant()
         is Long -> element.asVariant()
@@ -62,6 +70,7 @@ public fun <T> anyToVariant(element: @MustBeVariant T?): Variant {
         is PackedVector3Array -> element.asVariant()
         is PackedVector4Array -> element.asVariant()
         is PackedColorArray -> element.asVariant()
+        is Throwable -> throw IllegalStateException("Cannot convert Throwable to Variant", element)
         else -> error("Unsupported type for Variant: $element (${element::class})")
     }
 }
