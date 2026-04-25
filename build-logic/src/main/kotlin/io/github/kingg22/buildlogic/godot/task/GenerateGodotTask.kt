@@ -1,3 +1,5 @@
+package io.github.kingg22.buildlogic.godot.task
+
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
@@ -52,7 +54,18 @@ abstract class GenerateGodotTask : JavaExec() {
         description = "Generate Godot Extension API wrappers"
         mainClass.set("io.github.kingg22.godot.codegen.GenerateGodotApiKt")
         argumentProviders += CommandLineArgumentProvider {
-            val optionals = buildList {
+            buildList {
+                add("--input-interface")
+                add(inputInterface.get().asFile.absolutePath)
+                add("--input-extension")
+                add(inputExtension.get().asFile.absolutePath)
+                add("--output")
+                add(outputDir.get().asFile.absolutePath)
+                add("--package")
+                add(packageName.get())
+                add("--backend")
+                add(backendName.get())
+
                 if (outputKindName.isPresent) {
                     add("--kind")
                     add(outputKindName.get())
@@ -63,21 +76,7 @@ abstract class GenerateGodotTask : JavaExec() {
                 if (skipPlatformSpecificApis.isPresent) {
                     add("--skip-platform-specific-apis=${skipPlatformSpecificApis.get()}")
                 }
-            }.toTypedArray()
-
-            listOf(
-                "--input-interface",
-                inputInterface.get().asFile.absolutePath,
-                "--input-extension",
-                inputExtension.get().asFile.absolutePath,
-                "--output",
-                outputDir.get().asFile.absolutePath,
-                "--package",
-                packageName.get(),
-                "--backend",
-                backendName.get(),
-                *optionals,
-            )
+            }
         }
     }
 }

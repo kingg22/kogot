@@ -39,9 +39,6 @@ kotlinpoet = "2.3.0"
 ksp-api = "2.3.2"
 ksp-plugin = "2.3.7"
 
-# https://github.com/pinterest/ktlint/releases
-ktlint-pinterest = "1.8.0"
-
 # https://github.com/uber/NullAway/releases
 nullaway = "0.13.4"
 
@@ -51,9 +48,6 @@ nullaway-gradle = "3.0.0"
 # https://github.com/diffplug/spotless/blob/main/plugin-gradle/CHANGES.md
 # https://github.com/diffplug/spotless/releases
 spotless = "8.4.0"
-
-# https://github.com/palantir/palantir-java-format/releases
-palantir = "2.86.0"
 
 # https://github.com/michel-kraemer/gradle-download-task/releases
 undercouch-download = "5.7.0"
@@ -111,3 +105,19 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp-plugin" }
 error-prone = { id = "net.ltgt.errorprone", version.ref = "errorprone-gradle" }
 nullaway = { id = "net.ltgt.nullaway", version.ref = "nullaway-gradle" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+
+# buildlogic convention plugins
+kotlin-jvm-common-conventions = { id = "buildlogic.kotlin-jvm-common-conventions" }
+kotlin-library-conventions = { id = "buildlogic.kotlin-library-conventions" }
+kotlin-application-conventions = { id = "buildlogic.kotlin-application-conventions" }
+kotlin-multiplatform-conventions = { id = "buildlogic.kotlin-multiplatform-conventions" }
+kotlin-styles-conventions = { id = "buildlogic.kotlin-styles-conventions" }
+java-library-conventions = { id = "buildlogic.java-library-conventions" }
+java-nullsafety = { id = "buildlogic.java-null-check" }
+java-styles-conventions = { id = "buildlogic.java-styles-conventions" }
+jvm-toolchain-conventions = { id = "buildlogic.jvm-toolchain-conventions" }
+testing-jvm-conventions = { id = "buildlogic.testing-jvm-conventions" }
+common-styles-conventions = { id = "buildlogic.common-styles-conventions" }
+godot-export-conventions = { id = "buildlogic.godot-export-conventions" }
+godot-codegen = { id = "buildlogic.godot-codegen" }
+jextract = { id = "buildlogic.jextract" }

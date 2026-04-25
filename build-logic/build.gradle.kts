@@ -19,10 +19,88 @@ dependencies {
 gradlePlugin {
     plugins {
         create("jextractPlugin") {
-            id = "buildlogic.jextract"
+            id = libs.plugins.jextract.get().pluginId
             implementationClass = "io.github.kingg22.jextract.gradle.JextractPlugin"
             displayName = "Jextract Gradle Plugin"
             description = "Downloads, caches, and runs jextract to generate Java FFM bindings from C headers"
+        }
+        create("kotlinCommonConventionsPlugin") {
+            id = libs.plugins.kotlin.jvm.common.conventions.get().pluginId
+            implementationClass = "io.github.kingg22.buildlogic.kotlin.KotlinJvmCommonConventionsPlugin"
+            displayName = "Kotlin Common Conventions"
+            description = "Base Kotlin JVM convention plugin with testing and toolchain setup"
+        }
+        create("kotlinLibraryConventionsPlugin") {
+            id = libs.plugins.kotlin.library.conventions.get().pluginId
+            implementationClass = "io.github.kingg22.buildlogic.kotlin.KotlinLibraryConventionsPlugin"
+            displayName = "Kotlin Library Conventions"
+            description = "Kotlin library convention with spotless formatting"
+        }
+        create("kotlinApplicationConventionsPlugin") {
+            id = libs.plugins.kotlin.application.conventions.get().pluginId
+            implementationClass = "io.github.kingg22.buildlogic.kotlin.KotlinApplicationConventionsPlugin"
+            displayName = "Kotlin Application Conventions"
+            description = "Kotlin CLI application convention"
+        }
+        create("kotlinMultiplatformConventionsPlugin") {
+            id = libs.plugins.kotlin.multiplatform.conventions.get().pluginId
+            implementationClass = "io.github.kingg22.buildlogic.kotlin.KotlinMultiplatformConventionsPlugin"
+            displayName = "Kotlin Multiplatform Conventions"
+            description = "Kotlin multiplatform convention with strict compiler options"
+        }
+        create("kotlinStylesConventionsPlugin") {
+            id = libs.plugins.kotlin.styles.conventions.get().pluginId
+            implementationClass = "io.github.kingg22.buildlogic.kotlin.KotlinStylesConventionsPlugin"
+            displayName = "Kotlin Styles Conventions"
+            description = "Kotlin styles convention plugin"
+        }
+        create("javaLibraryConventionsPlugin") {
+            id = libs.plugins.java.library.conventions.get().pluginId
+            implementationClass = "io.github.kingg22.buildlogic.java.JavaLibraryConventionsPlugin"
+            displayName = "Java Library Conventions"
+            description = "Java library convention with JVM toolchain and testing"
+        }
+        create("javaNullCheckConventionsPlugin") {
+            id = libs.plugins.java.nullsafety.get().pluginId
+            implementationClass = "io.github.kingg22.buildlogic.java.JavaNullCheckConventionsPlugin"
+            displayName = "Java Null Check Conventions"
+            description = "Java null-safety using Error Prone and NullAway with JSpecify"
+        }
+        create("javaStylesConventionsPlugin") {
+            id = libs.plugins.java.styles.conventions.get().pluginId
+            implementationClass = "io.github.kingg22.buildlogic.java.JavaStylesConventionsPlugin"
+            displayName = "Java Styles Conventions"
+            description = "Java styles with Palantir Java Format"
+        }
+        create("jvmToolchainConventionsPlugin") {
+            id = libs.plugins.jvm.toolchain.conventions.get().pluginId
+            implementationClass = "io.github.kingg22.buildlogic.jvm.JvmToolchainConventionsPlugin"
+            displayName = "JVM Toolchain Conventions"
+            description = "JVM version config with spotless for Kotlin Gradle files"
+        }
+        create("testingJvmConventionsPlugin") {
+            id = libs.plugins.testing.jvm.conventions.get().pluginId
+            implementationClass = "io.github.kingg22.buildlogic.jvm.TestingJvmConventionsPlugin"
+            displayName = "Testing JVM Conventions"
+            description = "JUnit Jupiter 5.14.3 configuration for JVM testing"
+        }
+        create("commonStylesConventionsPlugin") {
+            id = libs.plugins.common.styles.conventions.get().pluginId
+            implementationClass = "io.github.kingg22.buildlogic.common.CommonStylesConventionsPlugin"
+            displayName = "Common Styles Conventions"
+            description = "Shared spotless configuration for both Kotlin and Java"
+        }
+        create("godotExportConventionsPlugin") {
+            id = libs.plugins.godot.export.conventions.get().pluginId
+            implementationClass = "io.github.kingg22.buildlogic.godot.GodotExportConventionsPlugin"
+            displayName = "Godot Export Conventions"
+            description = "Runtime dependency and JAR copying for Godot export"
+        }
+        create("godotCodegenConventionsPlugin") {
+            id = libs.plugins.godot.codegen.get().pluginId
+            implementationClass = "io.github.kingg22.buildlogic.godot.GodotCodegenConventionsPlugin"
+            displayName = "Godot Codegen Conventions"
+            description = "Godot API code generation from extension_api.json"
         }
     }
 }
