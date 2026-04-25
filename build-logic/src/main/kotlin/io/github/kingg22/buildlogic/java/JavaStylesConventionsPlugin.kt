@@ -13,7 +13,7 @@ class JavaStylesConventionsPlugin : Plugin<Project> {
             java {
                 removeUnusedImports()
                 // https://github.com/palantir/palantir-java-format/releases
-                palantirJavaFormat("2.89.0").formatJavadoc(false)
+                palantirJavaFormat("2.90.0").formatJavadoc(false)
                 importOrder("", "java", "javax", "\\#")
                 formatAnnotations()
             }
