@@ -11,7 +11,7 @@ val codegenConfig = configurations.register("codegenConfig") {
 }
 
 dependencies {
-    codegenConfig(project(":codegen"))
+    codegenConfig(project(":codegen:cli"))
 }
 
 // Registrar la task de forma genérica

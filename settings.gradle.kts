@@ -81,9 +81,21 @@ include(
 include("mi-juego-prueba:kotlin_native_game:source")
 include("mi-juego-prueba:kotlin_native_game:exported")
 
-// codegen, processor, and analysis
+// processor, and analysis
 include(
-    "codegen",
     "processor",
     "analysis",
+)
+
+// codegen
+include(
+    // "codegen",
+    "codegen:api:common",
+    "codegen:api:java-ffm",
+    "codegen:api:kotlin-native",
+    "codegen:common",
+    "codegen:common:kotlin-native",
+    "codegen:cli",
+    "codegen:runtime:common",
+    "codegen:runtime:kotlin-native",
 )
