@@ -1,11 +1,10 @@
 import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
-    // Apply the java conventions plugin from build-logic.
-    id("buildlogic.java-library-conventions")
-    id("buildlogic.java-null-check")
-    id("buildlogic.java-styles-conventions")
-    id("buildlogic.jextract")
+    alias(libs.plugins.java.library.conventions)
+    alias(libs.plugins.java.styles.conventions)
+    alias(libs.plugins.java.nullsafety)
+    alias(libs.plugins.jextract)
 }
 
 jextract {

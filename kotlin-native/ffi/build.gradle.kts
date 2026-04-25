@@ -1,8 +1,8 @@
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
-    id("buildlogic.kotlin-multiplatform-conventions")
-    id("buildlogic.kotlin-styles-conventions")
+    alias(libs.plugins.kotlin.multiplatform.conventions)
+    alias(libs.plugins.kotlin.styles.conventions)
 }
 
 kotlin {

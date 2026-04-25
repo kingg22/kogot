@@ -3,8 +3,8 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 
 plugins {
-    id("buildlogic.kotlin-multiplatform-conventions")
-    id("buildlogic.kotlin-styles-conventions")
+    alias(libs.plugins.kotlin.multiplatform.conventions)
+    alias(libs.plugins.kotlin.styles.conventions)
 }
 
 val isRelease = hasProperty("releaseMode") || hasProperty("release")

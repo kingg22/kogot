@@ -1,5 +1,5 @@
 plugins {
-    id("buildlogic.kotlin-library-conventions")
+    alias(libs.plugins.kotlin.library.conventions)
 }
 
 dependencies {

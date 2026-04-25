@@ -1,6 +1,6 @@
 plugins {
-    id("buildlogic.kotlin-library-conventions")
-    id("buildlogic.kotlin-styles-conventions")
+    alias(libs.plugins.kotlin.library.conventions)
+    alias(libs.plugins.kotlin.styles.conventions)
     alias(libs.plugins.kotlin.serialization)
 }
 

@@ -1,9 +1,9 @@
 plugins {
-    id("buildlogic.java-library-conventions")
-    id("buildlogic.java-styles-conventions")
-    id("buildlogic.java-null-check")
-    id("buildlogic.kotlin-library-conventions")
-    id("buildlogic.kotlin-styles-conventions")
+    alias(libs.plugins.java.library.conventions)
+    alias(libs.plugins.java.styles.conventions)
+    alias(libs.plugins.java.nullsafety)
+    alias(libs.plugins.kotlin.library.conventions)
+    alias(libs.plugins.kotlin.styles.conventions)
 }
 
 dependencies {

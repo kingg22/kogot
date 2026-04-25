@@ -1,21 +1,14 @@
+import io.github.kingg22.buildlogic.kotlin.disableJvmAssertions
+import io.github.kingg22.buildlogic.kotlin.enableContextParameters
+
 plugins {
-    id("buildlogic.kotlin-application-conventions")
-    id("buildlogic.kotlin-styles-conventions")
+    alias(libs.plugins.kotlin.application.conventions)
+    alias(libs.plugins.kotlin.styles.conventions)
 }
 
 kotlin {
-    compilerOptions {
-        freeCompilerArgs.addAll(
-            "-Xcontext-parameters",
-            "-Xno-param-assertions",
-            "-Xno-call-assertions",
-            "-Xno-receiver-assertions",
-            "-Xwhen-expressions=indy",
-        )
-        // The Kotlin Compiler adds intrinsic assertions which are only relevant
-        // when the code is consumed by Java users. Therefore, we can turn this off
-        // when code is being consumed by Kotlin users.
-    }
+    enableContextParameters()
+    disableJvmAssertions()
 }
 
 dependencies {
