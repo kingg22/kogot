@@ -4,6 +4,7 @@ data class CodegenOptions(
     val buildConfiguration: BuildConfiguration? = null,
     val pointerBits: Int = inferredPointerBits(),
     val skipPlatformSpecificApis: Boolean = true,
+    val filters: ApiFilters = ApiFilters.ALL,
 ) {
     fun resolveBuildConfiguration(precision: String): BuildConfiguration =
         buildConfiguration ?: BuildConfiguration.defaultFor(precision, pointerBits)
