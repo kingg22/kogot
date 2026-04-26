@@ -96,11 +96,5 @@ gradlePlugin {
             displayName = "Godot Export Conventions"
             description = "Runtime dependency and JAR copying for Godot export"
         }
-        create("godotCodegenConventionsPlugin") {
-            id = libs.plugins.godot.codegen.get().pluginId
-            implementationClass = "io.github.kingg22.buildlogic.godot.GodotCodegenConventionsPlugin"
-            displayName = "Godot Codegen Conventions"
-            description = "Godot API code generation from extension_api.json"
-        }
     }
 }
