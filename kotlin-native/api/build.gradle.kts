@@ -1,10 +1,12 @@
+import io.github.kingg22.godot.codegen.models.config.GeneratorBackend
+import io.github.kingg22.godot.codegen.models.config.GeneratorKind
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform.conventions)
     alias(libs.plugins.kotlin.styles.conventions)
-    alias(libs.plugins.godot.codegen)
+    alias(libs.plugins.godot.codegen.simple)
 }
 
 kotlin {
@@ -40,6 +42,8 @@ fun KotlinNativeTarget.configureGodotInterop() {
     }
 }
 
-tasks.generateGodotExtensionApi.configure {
-    backendName.set("kotlin_native")
+godotCodegen {
+    backend = GeneratorBackend.KOTLIN_NATIVE
+    outputKind = GeneratorKind.API
+    packageName = "io.github.kingg22.godot"
 }

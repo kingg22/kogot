@@ -1,9 +1,11 @@
+import io.github.kingg22.godot.codegen.models.config.GeneratorBackend
+import io.github.kingg22.godot.codegen.models.config.GeneratorKind
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform.conventions)
     alias(libs.plugins.kotlin.styles.conventions)
-    alias(libs.plugins.godot.codegen)
+    alias(libs.plugins.godot.codegen.simple)
 }
 
 kotlin {
@@ -29,7 +31,8 @@ kotlin {
     // mingwX64()
 }
 
-tasks.generateGodotExtensionApi.configure {
-    backendName.set("kotlin_native")
-    outputKindName.set("runtime")
+godotCodegen {
+    backend = GeneratorBackend.KOTLIN_NATIVE
+    outputKind = GeneratorKind.RUNTIME
+    packageName = "io.github.kingg22.godot"
 }
