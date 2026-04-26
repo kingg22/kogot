@@ -14,6 +14,8 @@ import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodDescriptor
 import io.github.kingg22.godot.codegen.models.extensionapi.UtilityFunction
+import io.github.kingg22.godot.codegen.utils.logger
+import io.github.kingg22.godot.codegen.utils.trace
 import io.github.kingg22.godot.codegen.utils.withExceptionContext
 
 /**
@@ -30,6 +32,7 @@ class NativeMethodGenerator(
     private val body: BodyGenerator,
     private val defaultValueGenerator: DefaultValueGenerator,
 ) {
+    private val logger = logger()
 
     /**
      * Builds a [FunSpec] from raw method data.
@@ -122,7 +125,7 @@ class NativeMethodGenerator(
     context(context: Context)
     private fun String.fixAccidentalOverride(godotName: String, returnType: TypeName): String = when (godotName) {
         "to_string" if this == "toString" && returnType == context.classNameFor("String", "GodotString") -> {
-            println("INFO: renaming toString() → toGodotString() to avoid Any clash")
+            logger.trace { "INFO: renaming toString() → toGodotString() to avoid `Any` clash" }
 
             "toGodotString"
         }

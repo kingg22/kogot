@@ -2,6 +2,9 @@ package io.github.kingg22.godot.codegen.extensionapi.resolver
 
 import io.github.kingg22.godot.codegen.models.extensionapi.EnumDescriptor
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
+import io.github.kingg22.godot.codegen.utils.debug
+import io.github.kingg22.godot.codegen.utils.info
+import io.github.kingg22.godot.codegen.utils.logger
 
 /**
  * Resolves enum constant names (after prefix-shortening) for a given parent class and enum name.
@@ -44,8 +47,10 @@ class EnumConstantResolver(
     // parent → enumName → ordered list of (numericValue, shortName)
     private val enumsByParent: Map<String, Map<String, List<Pair<Long, String>>>>,
 ) {
+    private val logger = logger()
+
     init {
-        println("INFO: Enum Constant Resolver started with ${enumsByParent.keys.size} entries")
+        logger.info { "INFO: Enum Constant Resolver started with ${enumsByParent.keys.size} entries" }
     }
 
     /**
@@ -98,11 +103,11 @@ class EnumConstantResolver(
         if (matches.size > 1) {
             val qualified = "${parentClass?.let { "$it." } ?: ""}$enumName"
             val aliases = matches.joinToString { it.second }
-            println(
+            logger.debug {
                 "INFO: Enum '$qualified' has ${matches.size} aliases for value $value: [$aliases]. " +
                     "Emitting first-declared '${matches.first().second}'." +
-                    if (context.isNotBlank()) " Context: $context" else "",
-            )
+                    if (context.isNotBlank()) " Context: $context" else ""
+            }
         }
         return matches.firstOrNull()?.second
     }

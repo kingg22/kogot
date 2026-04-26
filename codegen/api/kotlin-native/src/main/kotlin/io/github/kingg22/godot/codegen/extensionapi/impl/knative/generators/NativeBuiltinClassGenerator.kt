@@ -19,7 +19,10 @@ import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinClass
 import io.github.kingg22.godot.codegen.types.K_AUTOCLOSEABLE
+import io.github.kingg22.godot.codegen.utils.debug
 import io.github.kingg22.godot.codegen.utils.filterValuesNotNull
+import io.github.kingg22.godot.codegen.utils.logger
+import io.github.kingg22.godot.codegen.utils.warning
 
 /**
  * Generates Kotlin Native class declarations for Godot builtin classes
@@ -44,6 +47,8 @@ class NativeBuiltinClassGenerator(
     private val genericInterceptor: GenericBuiltinInterceptor,
     private val typeAliasGenerator: TypeAliasGenerator,
 ) {
+    private val logger = logger()
+
     companion object {
         /**
          * Godot builtin "types" that map to Kotlin primitives — no class is generated for these.
@@ -228,9 +233,9 @@ class NativeBuiltinClassGenerator(
 
             if (raw.operators.any { compareMethodOperator(method, it) }) {
                 val existingOperator = raw.operators.first { compareMethodOperator(method, it) }
-                println(
-                    "INFO: Skipping operator overload for ${builtinClass.name}.${method.name}(${existingOperator.rightType}): ${existingOperator.returnType} because it's already defined as operator",
-                )
+                logger.debug {
+                    "Skipping operator overload for ${builtinClass.name}.${method.name}(${existingOperator.rightType}): ${existingOperator.returnType} because it's already defined as operator"
+                }
                 return@mapNotNull null
             }
 
@@ -408,9 +413,9 @@ class NativeBuiltinClassGenerator(
 
                 // Unknown operator — delegate to named method (infix if binary)
                 else -> {
-                    println(
-                        "WARNING: Unknown operator found ${builtinClass.name}.${op.name}(${op.rightType.orEmpty()}): ${op.returnType}",
-                    )
+                    logger.warning {
+                        "Unknown operator found ${builtinClass.name}.${op.name}(${op.rightType.orEmpty()}): ${op.returnType}"
+                    }
                     buildFallbackOperatorMethod(op, builtinClass.name)
                 }
             }

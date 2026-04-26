@@ -4,6 +4,8 @@ import com.squareup.kotlinpoet.*
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
+import io.github.kingg22.godot.codegen.utils.logger
+import io.github.kingg22.godot.codegen.utils.warning
 import io.github.kingg22.godot.codegen.utils.withExceptionContext
 
 private val TYPED_ARRAY_REGEX = Regex("""Array\[[\w:]+]\(.*\)""")
@@ -65,6 +67,7 @@ private data class ConstructorMapper(val rawArgCount: Int, val groupingSize: Int
  * - Special cases: `nil` → `Variant.NIL`
  */
 class DefaultValueGenerator(private val typeResolver: TypeResolver) {
+    private val logger = logger()
     private val cache = LinkedHashMap<Triple<String, String, TypeName>, CodeBlock>(2048)
 
     context(_: Context)
@@ -137,7 +140,7 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
 
         // Unknown → null fallback
         else -> {
-            println("WARNING: Unknown default value pattern: '$value' for type $godotType")
+            logger.warning { "Unknown default value pattern: '$value' for type $godotType" }
             null
         }
     }
@@ -230,7 +233,7 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
             enumName = enumName,
             value = value,
         ) ?: run {
-            println("WARNING: Enum constant not found: $enumTypeStr = $value, using raw value")
+            logger.warning { "Enum constant not found: $enumTypeStr = $value, using raw value" }
             return CodeBlock.of("%LL", value)
         }
 
@@ -272,7 +275,7 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
 
         // Fallback
         else -> {
-            println("WARNING: Unknown numeric type $kotlinType for value '$value', assuming Int")
+            logger.warning { "Unknown numeric type $kotlinType for value '$value', assuming Int" }
             CodeBlock.of(value)
         }
     }
@@ -406,7 +409,7 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
         val constructor = context.resolveConstructor(className, mappedArgs)
 
         if (constructor == null) {
-            println("WARNING: Constructor not found for $className with ${mappedArgs.size} args")
+            logger.warning { "Constructor not found for $className with ${mappedArgs.size} args" }
             return parseConstructorWithRawArgs(kotlinClass, mappedArgs)
         }
 
@@ -446,9 +449,10 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
         return parseDefaultValue(value, expectedType, expectedParam.meta ?: expectedParam.type)
             ?: run {
                 // Fallback al valor crudo si parseDefaultValue devuelve null
-                println(
-                    "WARNING: Unable to parse default value '$value' for ${expectedParam.name}: ${expectedParam.type} on constructor args, using raw value",
-                )
+                logger.warning {
+                    "Unable to parse default value '$value' for ${expectedParam.name}: ${expectedParam.type} on constructor args, using raw value"
+                }
+
                 CodeBlock.of("%L", value)
             }
     }
@@ -527,7 +531,7 @@ class DefaultValueGenerator(private val typeResolver: TypeResolver) {
         // Buscar el constant por nombre original
         val constantName = allConstants.find { it == value }
             ?: run {
-                println("WARNING: Enum constant '$value' not found in $className.$enumName")
+                logger.warning { "Enum constant '$value' not found in $className.$enumName" }
                 return CodeBlock.of(value) // Fallback: usar valor raw
             }
 

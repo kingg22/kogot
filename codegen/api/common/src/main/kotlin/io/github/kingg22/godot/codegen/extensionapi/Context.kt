@@ -17,6 +17,8 @@ import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngine
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEnum
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedNativeStructure
 import io.github.kingg22.godot.codegen.services.PackageRegistry
+import io.github.kingg22.godot.codegen.utils.currentClassLogger
+import io.github.kingg22.godot.codegen.utils.info
 
 /**
  * Inmutable, built once from [ExtensionApi]
@@ -35,8 +37,11 @@ class Context(
     packageRegistry: PackageRegistry,
     val options: CodegenOptions,
 ) : PackageRegistry by packageRegistry {
+
     init {
-        println("INFO: Context created to generate for Godot: $godotVersion (${model.buildConfiguration.jsonName})")
+        currentClassLogger().info {
+            "INFO: Context created to generate for Godot: $godotVersion (${model.buildConfiguration.jsonName})"
+        }
     }
 
     val precision: String get() = extensionApi.header.precision

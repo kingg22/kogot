@@ -20,10 +20,13 @@ import io.github.kingg22.godot.codegen.types.C_STRUCT_VAR
 import io.github.kingg22.godot.codegen.types.C_STRUCT_VAR_TYPE
 import io.github.kingg22.godot.codegen.types.INTERPRET_C_POINTER
 import io.github.kingg22.godot.codegen.types.K_SUPPRESS
+import io.github.kingg22.godot.codegen.utils.error
+import io.github.kingg22.godot.codegen.utils.logger
 
 private val primitiveKotlinTypes = setOf(BOOLEAN, BYTE, U_BYTE, SHORT, U_SHORT, INT, U_INT, LONG, U_LONG, FLOAT, DOUBLE)
 
 class KNativeStructureGenerator(private val typeResolver: TypeResolver, private val bodyImpl: KNativeImplGen) {
+    private val logger = logger()
     private data class FieldLayout(val name: String, val offset: Int, val size: Int, val align: Int)
     private data class StructLayout(val size: Int, val align: Int, val fields: List<FieldLayout>)
 
@@ -214,7 +217,7 @@ class KNativeStructureGenerator(private val typeResolver: TypeResolver, private 
 
         if (isKnownNativeType(clean)) return FieldKind.NativeStruct(resolvedType, fieldSizeBytes)
 
-        println("WARNING: Unknown native struct field type '$clean' in ${field.name}")
+        logger.error { "Unknown native struct field type '$clean' in ${field.name}" }
         return FieldKind.Unimplemented
     }
 
@@ -281,7 +284,7 @@ class KNativeStructureGenerator(private val typeResolver: TypeResolver, private 
             }
 
             // Fallback: treat as pointer to keep generator running (but warn loudly).
-            println("WARNING: Unknown native struct field type '$clean' in $structName; treating as pointer.")
+            logger.error { "Unknown native struct field type '$clean' in $structName; treating as pointer." }
             return pointerLayout()
         }
 
