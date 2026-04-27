@@ -4,9 +4,9 @@ import com.squareup.kotlinpoet.FileSpec
 import io.github.kingg22.godot.codegen.models.config.CodegenConfig
 import io.github.kingg22.godot.codegen.models.config.GeneratorBackend
 import io.github.kingg22.godot.codegen.models.config.GeneratorKind
+import io.github.kingg22.godot.codegen.utils.currentClassLogger
 import io.github.kingg22.godot.codegen.utils.debug
 import io.github.kingg22.godot.codegen.utils.info
-import org.slf4j.Logger
 import java.nio.file.Path
 import java.util.concurrent.StructuredTaskScope
 import kotlin.io.path.createDirectories
@@ -21,8 +21,8 @@ import kotlin.time.measureTime
 abstract class AbstractCodegenRunner(
     final override val backend: GeneratorBackend,
     final override val kind: GeneratorKind,
-    protected val logger: Logger,
 ) : CodegenRunner {
+    protected val logger get() = currentClassLogger()
 
     final override fun run(config: CodegenConfig) {
         var generatedFilesCount = 0

@@ -7,9 +7,11 @@ import io.github.kingg22.godot.codegen.models.extensioninterface.GDExtensionInte
 import io.github.kingg22.godot.codegen.runner.AbstractCodegenRunner
 import io.github.kingg22.godot.codegen.runtime.impl.RuntimeFFIGenerator
 import io.github.kingg22.godot.codegen.utils.info
-import org.slf4j.Logger
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromStream
 
-class KotlinNativeRuntimeRunner(logger: Logger) : AbstractCodegenRunner(KOTLIN_NATIVE, RUNTIME, logger) {
+class KotlinNativeRuntimeRunner : AbstractCodegenRunner(KOTLIN_NATIVE, RUNTIME) {
 
     @OptIn(ExperimentalSerializationApi::class)
     override fun execute(config: CodegenConfig): Sequence<FileSpec> {

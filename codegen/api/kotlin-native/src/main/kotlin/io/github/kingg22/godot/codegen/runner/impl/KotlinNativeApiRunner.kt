@@ -13,9 +13,8 @@ import io.github.kingg22.godot.codegen.utils.info
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
-import org.slf4j.Logger
 
-class KotlinNativeApiRunner(logger: Logger) : AbstractCodegenRunner(KOTLIN_NATIVE, API, logger) {
+class KotlinNativeApiRunner : AbstractCodegenRunner(KOTLIN_NATIVE, API) {
 
     @OptIn(ExperimentalSerializationApi::class)
     override fun execute(config: CodegenConfig): Sequence<FileSpec> {
