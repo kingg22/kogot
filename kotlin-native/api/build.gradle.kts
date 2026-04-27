@@ -1,5 +1,5 @@
-import io.github.kingg22.godot.codegen.models.config.GeneratorBackend
-import io.github.kingg22.godot.codegen.models.config.GeneratorKind
+import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Backend
+import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Kind
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
@@ -43,7 +43,7 @@ fun KotlinNativeTarget.configureGodotInterop() {
 }
 
 godotCodegen {
-    backend = GeneratorBackend.KOTLIN_NATIVE
-    outputKind = GeneratorKind.API
+    backend = Backend.KOTLIN_NATIVE
+    outputKind = Kind.API
     packageName = "io.github.kingg22.godot"
 }

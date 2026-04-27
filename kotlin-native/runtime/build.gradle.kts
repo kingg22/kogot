@@ -1,5 +1,5 @@
-import io.github.kingg22.godot.codegen.models.config.GeneratorBackend
-import io.github.kingg22.godot.codegen.models.config.GeneratorKind
+import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Backend
+import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Kind
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 plugins {
@@ -32,7 +32,7 @@ kotlin {
 }
 
 godotCodegen {
-    backend = GeneratorBackend.KOTLIN_NATIVE
-    outputKind = GeneratorKind.RUNTIME
+    backend = Backend.KOTLIN_NATIVE
+    outputKind = Kind.RUNTIME
     packageName = "io.github.kingg22.godot"
 }
