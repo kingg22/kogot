@@ -1,7 +1,5 @@
 package io.github.kingg22.buildlogic.godot.conventions
 
-import io.github.kingg22.godot.codegen.models.config.GeneratorBackend
-import io.github.kingg22.godot.codegen.models.config.GeneratorKind
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 
@@ -17,19 +15,22 @@ import org.gradle.api.provider.Property
  * Note: The backend and output kind values must match the expected string representations.
  */
 abstract class GodotCodegenExtension {
+    enum class Backend { KOTLIN_NATIVE, JAVA_FFM }
+    enum class Kind { API, RUNTIME }
+
     /**
      * Target backend for code generation.
      * Values: "KOTLIN_NATIVE", "JAVA_FFM"
      * Default: "KOTLIN_NATIVE"
      */
-    abstract val backend: Property<GeneratorBackend>
+    abstract val backend: Property<Backend>
 
     /**
      * Output kind - API signatures with implementation bodies, or RUNTIME FFI signatures.
      * Values: "API", "RUNTIME"
      * Default: "API"
      */
-    abstract val outputKind: Property<GeneratorKind>
+    abstract val outputKind: Property<Kind>
 
     /**
      * Skip platform-specific APIs not common across all native targets.
