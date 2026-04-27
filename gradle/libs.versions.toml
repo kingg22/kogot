@@ -45,6 +45,8 @@ nullaway = "0.13.4"
 # https://github.com/tbroyer/gradle-nullaway-plugin/releases
 nullaway-gradle = "3.0.0"
 
+slf4j = "2.0.17"
+
 # https://github.com/diffplug/spotless/blob/main/plugin-gradle/CHANGES.md
 # https://github.com/diffplug/spotless/releases
 spotless = "8.4.0"
@@ -57,14 +59,20 @@ undercouch-download = "5.7.0"
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
 kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
 
+# KotlinX
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+
 # Kotest test DSL
 kotest-assertions-core = { group = "io.kotest", name = "kotest-assertions-core", version.ref = "kotest" }
 
 jetbrains-annotations = { group = "org.jetbrains", name = "annotations", version.ref = "jetbrains-jvm-annotations" }
 
+# kotlinpoet
 kotlinpoet = { group = "com.squareup", name = "kotlinpoet", version.ref = "kotlinpoet" }
 kotlinpoet-ksp = { group = "com.squareup", name = "kotlinpoet-ksp", version.ref = "kotlinpoet" }
-kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+
+# logger
+slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
 
 # Processor
 ksp-api = { group = "com.google.devtools.ksp", name = "symbol-processing-api", version.ref = "ksp-api" }
@@ -119,5 +127,6 @@ jvm-toolchain-conventions = { id = "buildlogic.jvm-toolchain-conventions" }
 testing-jvm-conventions = { id = "buildlogic.testing-jvm-conventions" }
 common-styles-conventions = { id = "buildlogic.common-styles-conventions" }
 godot-export-conventions = { id = "buildlogic.godot-export-conventions" }
-godot-codegen = { id = "buildlogic.godot-codegen" }
+godot-codegen-simple = { id = "buildlogic.godot-codegen" }
+godot-codegen-chore = { id = "buildlogic.godot-codegen-chore" }
 jextract = { id = "buildlogic.jextract" }

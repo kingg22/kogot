@@ -90,17 +90,13 @@ gradlePlugin {
             displayName = "Common Styles Conventions"
             description = "Shared spotless configuration for both Kotlin and Java"
         }
-        create("godotExportConventionsPlugin") {
-            id = libs.plugins.godot.export.conventions.get().pluginId
-            implementationClass = "io.github.kingg22.buildlogic.godot.GodotExportConventionsPlugin"
-            displayName = "Godot Export Conventions"
-            description = "Runtime dependency and JAR copying for Godot export"
-        }
         create("godotCodegenConventionsPlugin") {
-            id = libs.plugins.godot.codegen.get().pluginId
+            id = "buildlogic.godot-codegen"
             implementationClass = "io.github.kingg22.buildlogic.godot.GodotCodegenConventionsPlugin"
-            displayName = "Godot Codegen Conventions"
-            description = "Godot API code generation from extension_api.json"
+        }
+        create("godotCodegenChorePlugin") {
+            id = "buildlogic.godot-codegen-chore"
+            implementationClass = "io.github.kingg22.buildlogic.godot.chore.GodotCodegenChorePlugin"
         }
     }
 }

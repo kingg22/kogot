@@ -11,4 +11,5 @@ kotlin {
 
 dependencies {
     api(libs.kotlinpoet)
+    api(libs.slf4j.api)
 }

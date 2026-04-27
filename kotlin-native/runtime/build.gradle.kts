@@ -1,9 +1,11 @@
+import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Backend
+import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Kind
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform.conventions)
     alias(libs.plugins.kotlin.styles.conventions)
-    alias(libs.plugins.godot.codegen)
+    alias(libs.plugins.godot.codegen.simple)
 }
 
 kotlin {
@@ -29,7 +31,8 @@ kotlin {
     // mingwX64()
 }
 
-tasks.generateGodotExtensionApi.configure {
-    backendName.set("kotlin_native")
-    outputKindName.set("runtime")
+godotCodegen {
+    backend = Backend.KOTLIN_NATIVE
+    outputKind = Kind.RUNTIME
+    packageName = "io.github.kingg22.godot"
 }

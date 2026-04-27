@@ -6,4 +6,5 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.nullaway) apply false
     alias(libs.plugins.spotless) apply false
+    alias(libs.plugins.godot.codegen.chore)
 }

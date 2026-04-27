@@ -14,12 +14,15 @@ import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngineClass
 import io.github.kingg22.godot.codegen.types.PRIMITIVE_NUMERIC_TYPES
+import io.github.kingg22.godot.codegen.utils.atTrace
+import io.github.kingg22.godot.codegen.utils.logger
 import io.github.kingg22.godot.codegen.utils.withExceptionContext
 
 // ===============================
 // Unified Property Generation (Accessor-level Strategy)
 // ===============================
 class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val body: EngineMethodImplGen) {
+    private val logger = logger()
 
     /**
      * 🔥 NUEVO ENFOQUE:
@@ -84,32 +87,26 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
                 if (resolved.getter.kind == AccessorKind.MISSING &&
                     (resolved.setter == null || resolved.setter.kind == AccessorKind.MISSING)
                 ) {
-                    /* MISSING
-                    // FIXME Enable with logger debug
-                    println(
-                        buildString {
-                            append("WARNING: Fallback generation for property ")
-                            append(cls.name)
-                            append(".")
-                            append(property.name)
-                            append(", ")
-                            append("getter (expected: ")
-                            append(property.getter)
-                            append("): ")
-                            append(resolved.getter.method?.name)
-                            append(", strategy: ")
-                            append(resolved.getter.kind)
-                            if (property.setter != null) {
-                                append(", setter (expected: ")
-                                append(property.setter)
-                                append("): ")
-                                append(resolved.setter?.method?.name)
-                                append(", strategy: ")
-                                append(resolved.setter?.kind)
-                            }
-                        },
-                    )
-                     */
+                    logger.atTrace(false) {
+                        log(
+                            "Unable to synthesize getter {}.{}, expected: {}, strategy: {}, resolved: {}",
+                            cls.name,
+                            property.name,
+                            property.getter,
+                            resolved.getter.kind,
+                            resolved.getter.method?.name,
+                        )
+
+                        if (property.setter != null) {
+                            log(
+                                "setter (expected: {}, strategy: {}): {}",
+                                property.setter,
+                                resolved.setter?.kind,
+                                resolved.setter?.method?.name,
+                            )
+                        }
+                    }
+
                     return@withExceptionContext
                 }
 

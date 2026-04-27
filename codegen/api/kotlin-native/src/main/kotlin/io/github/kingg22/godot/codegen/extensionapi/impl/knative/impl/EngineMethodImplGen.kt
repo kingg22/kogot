@@ -9,6 +9,8 @@ import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngineClass
 import io.github.kingg22.godot.codegen.types.*
+import io.github.kingg22.godot.codegen.utils.logger
+import io.github.kingg22.godot.codegen.utils.warning
 
 /**
  * Generates lazy-loaded method bind properties and ptrcall bodies for engine class methods/properties.
@@ -51,6 +53,7 @@ import io.github.kingg22.godot.codegen.types.*
  * `requireNotNull(retPtr.value) { "…" }.let { T(it) }`.
  */
 class EngineMethodImplGen(private val typeResolver: TypeResolver) {
+    private val logger = logger()
     private lateinit var implPackageRegistry: ImplementationPackageRegistry
 
     fun initialize(implRegistry: ImplementationPackageRegistry) {
@@ -128,13 +131,13 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
 
     context(_: Context)
     fun buildPropertyGetterBody(getter: EngineClass.ClassMethod, cls: ResolvedEngineClass): CodeBlock {
-        if (getter.isVirtual) println("WARNING: Found virtual getter: $getter in $cls")
+        if (getter.isVirtual) logger.warning { "Found virtual getter: $getter in $cls" }
         return buildPtrcallBody(getter, cls.name)
     }
 
     context(_: Context)
     fun buildPropertySetterBody(setter: EngineClass.ClassMethod, cls: ResolvedEngineClass): CodeBlock {
-        if (setter.isVirtual) println("WARNING: Found virtual setter: $setter in $cls")
+        if (setter.isVirtual) logger.warning { "Found virtual setter: $setter in $cls" }
         return buildPtrcallBody(setter, cls.name, true)
     }
 

@@ -3,6 +3,8 @@ package io.github.kingg22.godot.codegen.extensionapi
 import com.squareup.kotlinpoet.TypeName
 import io.github.kingg22.godot.codegen.models.extensionapi.TypeMetaHolder
 import io.github.kingg22.godot.codegen.services.SimpleTypeResolver
+import io.github.kingg22.godot.codegen.utils.currentClassLogger
+import io.github.kingg22.godot.codegen.utils.error
 
 interface TypeResolver : SimpleTypeResolver {
     @Deprecated("Use resolve(godotType, metaType) instead", level = DeprecationLevel.HIDDEN)
@@ -27,10 +29,8 @@ interface TypeResolver : SimpleTypeResolver {
     fun resolve(holder: TypeMetaHolder): TypeName {
         if (holder.meta == null || holder.isRequired()) return resolve(holder.type, null)
         return runCatching { resolve(holder.meta!!) }
-            .onFailure {
-                println(
-                    "ERROR: failed to resolve type with meta: ${holder.type} (${holder.meta}).\n${it.stackTraceToString()}",
-                )
+            .onFailure { t ->
+                currentClassLogger().error(t) { "Failed to resolve type with meta: ${holder.type} (${holder.meta})." }
             }
             .getOrDefault(resolve(holder.type))
     }

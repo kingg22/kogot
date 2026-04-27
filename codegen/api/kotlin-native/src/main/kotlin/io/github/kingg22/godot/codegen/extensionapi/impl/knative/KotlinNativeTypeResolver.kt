@@ -8,6 +8,9 @@ import io.github.kingg22.godot.codegen.impl.checkAndNormalizeTypeName
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.sanitizeTypeName
 import io.github.kingg22.godot.codegen.types.*
+import io.github.kingg22.godot.codegen.utils.error
+import io.github.kingg22.godot.codegen.utils.logger
+import io.github.kingg22.godot.codegen.utils.trace
 
 private val PRIMITIVE_TYPES = PRIMITIVE_NUMERIC_TYPES + setOf(
     "char", "int8_t", "int8",
@@ -54,15 +57,14 @@ private val PRIMITIVE_TYPES = PRIMITIVE_NUMERIC_TYPES + setOf(
  * | uintptr_t                 | ULong                                     |
  */
 class KotlinNativeTypeResolver : TypeResolver {
+    private val logger = logger()
 
     context(ctx: Context)
     override fun resolve(godotType: String, metaType: String?): TypeName {
         if (metaType != null && metaType != "required") {
             runCatching { resolveWithMeta(godotType, metaType) }
-                .onFailure {
-                    println(
-                        "ERROR: failed to resolve type with meta: $godotType ($metaType).\n${it.stackTraceToString()}",
-                    )
+                .onFailure { t ->
+                    logger.error(t) { "Failed to resolve type with meta: $godotType ($metaType)." }
                 }
                 .onSuccess { return it }
         }
@@ -293,8 +295,9 @@ class KotlinNativeTypeResolver : TypeResolver {
 
         else -> {
             // unknown meta → fall back
-            // FIXME: enable with logger.debug/verbose
-            // println("WARNING: Unknown meta type: '$meta', fallback to type: '$baseType'")
+            logger.trace {
+                "Unknown meta type: '$meta', fallback to type: '$baseType'"
+            }
             resolve(baseType)
         }
     }

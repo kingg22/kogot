@@ -86,13 +86,11 @@ include(
 
 // codegen
 include(
-    // "codegen",
     "codegen:api:common",
     "codegen:api:java-ffm",
     "codegen:api:kotlin-native",
     "codegen:common",
     "codegen:common:kotlin-native",
-    "codegen:cli",
     "codegen:runtime:common",
     "codegen:runtime:kotlin-native",
 )

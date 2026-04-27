@@ -6,6 +6,8 @@ import io.github.kingg22.godot.codegen.extensionapi.PackageRegistryFactory
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.NativeBuiltinClassGenerator
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.services.PackageRegistry
+import io.github.kingg22.godot.codegen.utils.currentClassLogger
+import io.github.kingg22.godot.codegen.utils.info
 
 /**
  * Maps every Godot type name to the Kotlin package where it will be generated.
@@ -22,7 +24,7 @@ class NativePackageRegistry private constructor(private val typeToPackage: Map<S
     override val rootPackage = if (rootPackage.endsWith(".api")) rootPackage else "$rootPackage.api"
 
     init {
-        println("INFO: Native Package Registry created with ${typeToPackage.size} entries")
+        currentClassLogger().info { "INFO: Native Package Registry created with ${typeToPackage.size} entries" }
     }
 
     override fun packageFor(godotName: String): String? = typeToPackage[godotName]

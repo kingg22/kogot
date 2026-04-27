@@ -1,21 +1,36 @@
 package io.github.kingg22.buildlogic.godot.task
 
+import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Backend
+import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Kind
+import org.gradle.api.Action
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask
+import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.options.Option
-import org.gradle.process.CommandLineArgumentProvider
+import org.gradle.kotlin.dsl.submit
+import org.gradle.workers.WorkerExecutor
+import javax.inject.Inject
 
 @CacheableTask
-abstract class GenerateGodotTask : JavaExec() {
+abstract class GenerateGodotTask : DefaultTask() {
+
+    @get:Inject
+    abstract val workerExecutor: WorkerExecutor
+
+    @get:Classpath
+    abstract val runnerClasspath: ConfigurableFileCollection
 
     @get:[
     InputFile
@@ -38,10 +53,10 @@ abstract class GenerateGodotTask : JavaExec() {
     abstract val packageName: Property<String>
 
     @get:[Input Option(option = "backend", description = "Target backend")]
-    abstract val backendName: Property<String>
+    abstract val backendName: Property<Backend>
 
     @get:[Input Optional Option(option = "kind", description = "Target kind")]
-    abstract val outputKindName: Property<String>
+    abstract val outputKindName: Property<Kind>
 
     @get:[Input Optional Option(option = "generate-docs", description = "Generate docs")]
     abstract val generateDocs: Property<Boolean>
@@ -49,34 +64,43 @@ abstract class GenerateGodotTask : JavaExec() {
     @get:[Input Optional Option(option = "skip-platform-specific-apis", description = "Skip platform-specific APIs")]
     abstract val skipPlatformSpecificApis: Property<Boolean>
 
+    @get:[Input Optional Option(option = "filter-only-enums", description = "Generate only enums")]
+    abstract val filterOnlyEnums: Property<Boolean>
+
+    @get:[Input Optional Option(option = "filter-only-builtin-classes", description = "Generate only builtin classes")]
+    abstract val filterOnlyBuiltinClasses: Property<Boolean>
+
+    @get:[Input Optional Option(option = "filter-only-engine-classes", description = "Generate only engine classes")]
+    abstract val filterOnlyEngineClasses: Property<Boolean>
+
+    @get:[Input Optional Option(option = "filter-exclude-types", description = "Comma-separated types to exclude")]
+    abstract val filterExcludeTypes: ListProperty<String>
+
     init {
         group = "codegen"
-        description = "Generate Godot Extension API wrappers"
-        mainClass.set("io.github.kingg22.godot.codegen.GenerateGodotApiKt")
-        argumentProviders += CommandLineArgumentProvider {
-            buildList {
-                add("--input-interface")
-                add(inputInterface.get().asFile.absolutePath)
-                add("--input-extension")
-                add(inputExtension.get().asFile.absolutePath)
-                add("--output")
-                add(outputDir.get().asFile.absolutePath)
-                add("--package")
-                add(packageName.get())
-                add("--backend")
-                add(backendName.get())
+        description = "Generate Godot API bindings"
+    }
 
-                if (outputKindName.isPresent) {
-                    add("--kind")
-                    add(outputKindName.get())
-                }
-                if (generateDocs.isPresent) {
-                    add("--generate-docs")
-                }
-                if (skipPlatformSpecificApis.isPresent) {
-                    add("--skip-platform-specific-apis=${skipPlatformSpecificApis.get()}")
-                }
-            }
+    @TaskAction
+    fun run() {
+        val executor = workerExecutor.noIsolation()
+        val t = this
+        val parameters = Action<CodegenRunnerWorkParameters> {
+            val p = this
+            p.classpath.setFrom(t.runnerClasspath)
+            p.inputInterface.set(t.inputInterface)
+            p.inputExtension.set(t.inputExtension)
+            p.outputDir.set(t.outputDir)
+            p.packageName.set(t.packageName)
+            p.backendName.set(t.backendName)
+            p.kindName.set(t.outputKindName)
+            p.generateDocs.set(t.generateDocs)
+            p.skipPlatformSpecificApis.set(t.skipPlatformSpecificApis)
+            p.filterOnlyEnums.set(t.filterOnlyEnums)
+            p.filterOnlyBuiltinClasses.set(t.filterOnlyBuiltinClasses)
+            p.filterOnlyEngineClasses.set(t.filterOnlyEngineClasses)
+            p.filterExcludeTypes.set(t.filterExcludeTypes)
         }
+        executor.submit(CodegenRunnerWorkAction::class, parameters)
     }
 }

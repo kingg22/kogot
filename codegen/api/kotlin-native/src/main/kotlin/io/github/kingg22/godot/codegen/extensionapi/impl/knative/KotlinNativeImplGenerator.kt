@@ -16,9 +16,12 @@ import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.UtilityFun
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.VariantImplGen
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
 import io.github.kingg22.godot.codegen.models.extensioninterface.GDExtensionInterface
+import io.github.kingg22.godot.codegen.utils.logger
+import io.github.kingg22.godot.codegen.utils.warning
 
 /** Generates Kotlin Native implementation bodies (cinterop / GDExtension bindings). */
 class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeImplGenerator {
+    private val logger = logger()
     private lateinit var implPackageRegistry: ImplementationPackageRegistry
     private val bodyGenerator = BodyGenerator
     private val builtinClassImplGen = BuiltinClassImplGen(typeResolver, BuiltinMethodImplGen(typeResolver))
@@ -96,18 +99,18 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
         yieldAll(globalEnumsPaths)
 
         if (nestedEnums.size > 2) {
-            println(
-                "WARNING: Nested enums (${nestedEnums.size}) [${nestedEnums.joinToString(postfix = "]") { it.name }}",
-            )
+            logger.warning {
+                "Nested enums (${nestedEnums.size}) [${nestedEnums.joinToString(postfix = "]") { it.name }}"
+            }
         }
 
         // Builtin missing: Variant
         yield(variant.generateFile(nestedEnums))
 
         if (api.globalConstants.isNotEmpty()) {
-            System.err.println(
-                "WARNING: Global constants not supported yet. Found: [${api.globalConstants.joinToString()}]",
-            )
+            logger.warning {
+                "Global constants not supported yet. Found: [${api.globalConstants.joinToString()}]"
+            }
         }
     }
 }

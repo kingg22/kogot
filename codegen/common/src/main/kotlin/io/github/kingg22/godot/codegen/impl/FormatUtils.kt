@@ -1,5 +1,10 @@
 package io.github.kingg22.godot.codegen.impl
 
+import io.github.kingg22.godot.codegen.utils.fileLogger
+import io.github.kingg22.godot.codegen.utils.warning
+
+private val logger = fileLogger()
+
 /**
  * Produces a safe Kotlin identifier for a **method/property/parameter** name.
  *
@@ -13,7 +18,7 @@ fun safeIdentifier(name: String): String {
     if (trimmed.isBlank()) return "_"
     val sanitized = trimmed.replace(NAME_REGEX, "_")
     val fixed = if (sanitized.first().isDigit()) {
-        println("WARNING: Sanitizing identifier: $name, start with digit: $sanitized")
+        logger.warning { "Sanitizing identifier: $name, start with digit: $sanitized" }
         "_$sanitized"
     } else {
         sanitized
@@ -32,13 +37,13 @@ fun sanitizeTypeName(name: String): String {
     check(trimmed.isNotBlank()) { "Type name cannot be blank, '$name' given" }
     val sanitized = trimmed.replace(NAME_REGEX, "_")
     val fixed = if (sanitized.first().isDigit()) {
-        println("WARNING: Sanitizing type name: $name, start with digit: $sanitized")
+        logger.warning { "Sanitizing type name: $name, start with digit: $sanitized" }
         "_$sanitized"
     } else {
         sanitized
     }
     return if (isKotlinKeyword(fixed)) {
-        println("WARNING: Sanitizing type name: $name, is Kotlin keyword: $fixed")
+        logger.warning { "Sanitizing type name: $name, is Kotlin keyword: $fixed" }
         "${fixed}_"
     } else {
         fixed
