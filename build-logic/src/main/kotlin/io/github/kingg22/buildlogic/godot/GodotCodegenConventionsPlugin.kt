@@ -8,7 +8,6 @@ import io.github.kingg22.godot.codegen.models.config.GeneratorKind
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.SourceSet
-import org.gradle.internal.classloader.FilteringClassLoader.DEFAULT_PACKAGE
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.getByType

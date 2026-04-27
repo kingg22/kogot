@@ -12,5 +12,5 @@ kotlin {
 
 dependencies {
     api(projects.codegen.common)
-    implementation(libs.kotlinx.serialization.json)
+    api(libs.kotlinx.serialization.json)
 }

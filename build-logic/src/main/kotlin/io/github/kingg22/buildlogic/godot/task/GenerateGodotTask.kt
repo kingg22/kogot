@@ -74,7 +74,6 @@ abstract class GenerateGodotTask : DefaultTask() {
 
     @TaskAction
     fun run() {
-        CodegenRegistry.registerDefaultRunners(logger)
         val onlyEnums = filterOnlyEnums.isPresent && filterOnlyEnums.get()
         val onlyBuiltinClasses = filterOnlyBuiltinClasses.isPresent && filterOnlyBuiltinClasses.get()
         val onlyEngineClasses = filterOnlyEngineClasses.isPresent && filterOnlyEngineClasses.get()
@@ -90,16 +89,17 @@ abstract class GenerateGodotTask : DefaultTask() {
             skipPlatformSpecificApis = skipPlatformSpecificApis.getOrElse(false),
             filters = when {
                 onlyEnums -> ApiFilters.ALL.onlyEnums()
+
                 onlyBuiltinClasses -> ApiFilters.ALL.onlyBuiltinClasses()
+
                 onlyEngineClasses -> ApiFilters.ALL.onlyEngineClasses()
+
                 filterExcludeTypes.get().isNotEmpty() -> ApiFilters.ALL.excludingTypes(
                     filterExcludeTypes.get().map { it.trim() }.filter { it.isNotEmpty() }.toSet(),
                 )
+
                 else -> ApiFilters.ALL
             },
         )
-
-        val runner = CodegenRegistry.find(config.backend, config.kind)
-        runner.run(config)
     }
 }

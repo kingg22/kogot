@@ -7,9 +7,6 @@ import io.github.kingg22.godot.codegen.models.extensioninterface.GDExtensionInte
 import io.github.kingg22.godot.codegen.runner.AbstractCodegenRunner
 import io.github.kingg22.godot.codegen.runtime.impl.RuntimeFFIGenerator
 import io.github.kingg22.godot.codegen.utils.info
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromStream
 import org.slf4j.Logger
 
 class KotlinNativeRuntimeRunner(logger: Logger) : AbstractCodegenRunner(KOTLIN_NATIVE, RUNTIME, logger) {

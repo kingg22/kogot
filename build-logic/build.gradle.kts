@@ -96,5 +96,13 @@ gradlePlugin {
             displayName = "Godot Export Conventions"
             description = "Runtime dependency and JAR copying for Godot export"
         }
+        create("godotCodegenConventionsPlugin") {
+            id = "buildlogic.godot-codegen"
+            implementationClass = "io.github.kingg22.buildlogic.godot.GodotCodegenConventionsPlugin"
+        }
+        create("godotCodegenChorePlugin") {
+            id = "buildlogic.godot-codegen-chore"
+            implementationClass = "io.github.kingg22.buildlogic.godot.chore.GodotCodegenChorePlugin"
+        }
     }
 }

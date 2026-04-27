@@ -1,7 +1,9 @@
 package io.github.kingg22.godot.codegen.runner.impl
 
 import com.squareup.kotlinpoet.FileSpec
-import io.github.kingg22.godot.codegen.impl.KotlinPoetGenerator
+import io.github.kingg22.godot.codegen.extensionapi.Context
+import io.github.kingg22.godot.codegen.extensionapi.impl.knative.KotlinNativeBackend
+import io.github.kingg22.godot.codegen.extensionapi.impl.knative.NativePackageRegistry
 import io.github.kingg22.godot.codegen.models.config.CodegenConfig
 import io.github.kingg22.godot.codegen.models.config.CodegenOptions
 import io.github.kingg22.godot.codegen.models.extensionapi.ExtensionApi
@@ -17,15 +19,27 @@ class KotlinNativeApiRunner(logger: Logger) : AbstractCodegenRunner(KOTLIN_NATIV
 
     @OptIn(ExperimentalSerializationApi::class)
     override fun execute(config: CodegenConfig): Sequence<FileSpec> {
-        val json = Json
+        val json = Json.Default
         logger.info { "---Generating API files---" }
         val extensionInterface = json.decodeFromStream<GDExtensionInterface>(config.inputInterfaceAsInputStream)
         val extensionApi = json.decodeFromStream<ExtensionApi>(config.inputExtensionAsInputStream)
-        val generator = KotlinPoetGenerator(config.packageName, backend)
-        return generator.generate(
+        return generate(
             extensionApi,
             extensionInterface,
             CodegenOptions(filters = config.filters),
+            config.packageName,
         )
+    }
+
+    private fun generate(
+        api: ExtensionApi,
+        extensionInterface: GDExtensionInterface?,
+        options: CodegenOptions,
+        packageName: String,
+    ): Sequence<FileSpec> = context(
+        Context.buildFromApi(api, packageName, NativePackageRegistry.factory, options),
+        extensionInterface,
+    ) {
+        KotlinNativeBackend().generateAll(api)
     }
 }
