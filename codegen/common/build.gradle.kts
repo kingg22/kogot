@@ -12,4 +12,8 @@ kotlin {
 dependencies {
     api(libs.kotlinpoet)
     api(libs.slf4j.api)
+    implementation(libs.clikt) {
+        exclude(group = libs.ajalt.mordant.get().group)
+    }
+    implementation(libs.ajalt.mordant)
 }

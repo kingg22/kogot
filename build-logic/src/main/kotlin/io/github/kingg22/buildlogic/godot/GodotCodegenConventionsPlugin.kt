@@ -71,8 +71,7 @@ class GodotCodegenConventionsPlugin : Plugin<Project> {
         }
 
         val generateGodotTask = target.tasks.register<GenerateGodotTask>("generateGodotExtensionApi") {
-            runnerClasspath.setFrom(codegenConfig)
-            runnerClasspath.disallowChanges()
+            classpath(codegenConfig)
             backendName.set(conventionsExtension.backend)
             backendName.disallowChanges()
             outputKindName.convention(conventionsExtension.outputKind)
@@ -97,6 +96,7 @@ class GodotCodegenConventionsPlugin : Plugin<Project> {
             filterOnlyEnums.convention(conventionsExtension.onlyEnums)
             filterOnlyBuiltinClasses.convention(conventionsExtension.onlyBuiltinClasses)
             filterOnlyEngineClasses.convention(conventionsExtension.onlyEngineClasses)
+            filterOnlyNativeStruct.convention(conventionsExtension.onlyNativeStructures)
             filterExcludeTypes.convention(conventionsExtension.excludeTypes)
         }
 

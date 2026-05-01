@@ -71,6 +71,12 @@ jetbrains-annotations = { group = "org.jetbrains", name = "annotations", version
 kotlinpoet = { group = "com.squareup", name = "kotlinpoet", version.ref = "kotlinpoet" }
 kotlinpoet-ksp = { group = "com.squareup", name = "kotlinpoet-ksp", version.ref = "kotlinpoet" }
 
+# cli
+# https://github.com/ajalt/clikt/releases
+clikt = "com.github.ajalt.clikt:clikt:5.1.0"
+# https://github.com/ajalt/mordant/releases
+ajalt-mordant = "com.github.ajalt.mordant:mordant-core:3.0.2"
+
 # logger
 slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
 
@@ -126,7 +132,6 @@ java-styles-conventions = { id = "buildlogic.java-styles-conventions" }
 jvm-toolchain-conventions = { id = "buildlogic.jvm-toolchain-conventions" }
 testing-jvm-conventions = { id = "buildlogic.testing-jvm-conventions" }
 common-styles-conventions = { id = "buildlogic.common-styles-conventions" }
-godot-export-conventions = { id = "buildlogic.godot-export-conventions" }
 godot-codegen-simple = { id = "buildlogic.godot-codegen" }
 godot-codegen-chore = { id = "buildlogic.godot-codegen-chore" }
 jextract = { id = "buildlogic.jextract" }

@@ -57,6 +57,12 @@ abstract class GodotCodegenExtension {
     abstract val onlyEngineClasses: Property<Boolean>
 
     /**
+     * Generate only native structures.
+     * Default: false
+     */
+    abstract val onlyNativeStructures: Property<Boolean>
+
+    /**
      * Comma-separated list of type names to exclude.
      * Default: ""
      */
