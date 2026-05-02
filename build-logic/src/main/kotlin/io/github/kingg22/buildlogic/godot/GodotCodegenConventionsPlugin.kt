@@ -62,6 +62,8 @@ class GodotCodegenConventionsPlugin : Plugin<Project> {
 
                         Backend.KOTLIN_NATIVE to Kind.RUNTIME -> target.project(":codegen:runtime:kotlin-native")
 
+                        Backend.KOTLIN_NATIVE to Kind.CALLABLE -> target.project(":codegen:api:kotlin-native-callable")
+
                         else -> error(
                             "Unsupported backend/output kind combination: $combination",
                         )

@@ -16,7 +16,7 @@ import org.gradle.api.provider.Property
  */
 abstract class GodotCodegenExtension {
     enum class Backend { KOTLIN_NATIVE, JAVA_FFM }
-    enum class Kind { API, RUNTIME }
+    enum class Kind { API, RUNTIME, CALLABLE, SIGNAL }
 
     /**
      * Target backend for code generation.
