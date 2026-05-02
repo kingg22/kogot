@@ -106,7 +106,10 @@ private class CodegenCommand : CliktCommand("Generador de Extension API para God
         val runner = serviceLoader
             .firstOrNull { it.backend == backend && it.kind == kind }
             ?.createRunner()
-            ?: error("No runner found for backend=$backend kind=$kind")
+            ?: error(
+                "No runner found for backend=$backend kind=$kind. Found: [" +
+                    serviceLoader.joinToString(postfix = "]") { "$it(backend=${it.backend}, kind=${it.kind}" },
+            )
 
         val config = CodegenConfig(
             inputInterface = inputInterface,
