@@ -98,6 +98,7 @@ include(
     "codegen:api:common",
     "codegen:api:java-ffm",
     "codegen:api:kotlin-native",
+    "codegen:api:kotlin-native-callable",
     "codegen:common",
     "codegen:common:kotlin-native",
     "codegen:runtime:common",
