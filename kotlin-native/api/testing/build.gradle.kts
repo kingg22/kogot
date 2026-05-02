@@ -6,11 +6,20 @@ plugins {
 }
 
 kotlin {
+    compilerOptions {
+        optIn.addAll(
+            "kotlinx.cinterop.ExperimentalForeignApi",
+            "kotlin.experimental.ExperimentalNativeApi",
+            "io.github.kingg22.godot.api.ExperimentalGodotApi",
+            "io.github.kingg22.godot.api.ExperimentalGodotKotlin",
+        )
+    }
+
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
     dependencies {
         api(projects.kotlinNative.api.generated)
-        api(projects.kotlinNative.api.utils)
-        api(projects.kotlinNative.api.signal)
+        api(libs.kotlin.test)
+        api(libs.kotest.assertions.core)
     }
 
     applyDefaultHierarchyTemplate()
