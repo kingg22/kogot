@@ -2,6 +2,8 @@ pluginManagement {
     repositories {
         mavenCentral()
         gradlePluginPortal()
+        maven("https://redirector.kotlinlang.org/maven/bootstrap")
+        maven("https://redirector.kotlinlang.org/maven/dev")
     }
 }
 
@@ -19,6 +21,8 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
         gradlePluginPortal()
+        maven("https://redirector.kotlinlang.org/maven/bootstrap")
+        maven("https://redirector.kotlinlang.org/maven/dev")
     }
 }
 
