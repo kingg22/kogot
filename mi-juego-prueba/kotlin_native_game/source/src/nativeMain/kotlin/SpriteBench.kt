@@ -4,6 +4,8 @@ import io.github.kingg22.godot.api.annotations.Godot
 import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.builtin.Vector2i
 import io.github.kingg22.godot.api.builtin.asGodotString
+import io.github.kingg22.godot.api.builtin.asVariant
+import io.github.kingg22.godot.api.builtin.toKStringFromUtf8
 import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.api.core.SceneTree
 import io.github.kingg22.godot.api.core.node.Node2D
@@ -32,8 +34,15 @@ private const val SPRITE_COUNT = 5
     private var windowSize: Vector2 = Vector2.ZERO
 
     @OptIn(InternalBinding::class)
+    @Suppress("FORMAT", "ktlint")
     private val callable = CallableFactory.create {
         println("Hello from Kotlin inside a Callable!")
+    }
+
+    @OptIn(InternalBinding::class)
+    private val callable2 = CallableFactory.create { id: Long ->
+        println("Hello from Kotlin inside a Callable with id: $id")
+        id
     }
 
     init {
@@ -85,9 +94,14 @@ private const val SPRITE_COUNT = 5
             println("[SpriteBench] All $SPRITE_COUNT sprites added successfully")
 
             println("[SpriteBench] _ready finished, going to call deferred callable")
-            val returnVariant = callable.call()
+            var returnVariant = callable.call()
             println(
-                "[SpriteBench] Callable returned: ${returnVariant.stringify().rawPtr}, is nil: ${returnVariant.isNil()}",
+                "[SpriteBench] Callable returned: ${returnVariant.stringify().toKStringFromUtf8()}, is nil: ${returnVariant.isNil()}",
+            )
+            println("[SpriteBench] calling callable2 with 15 as args")
+            returnVariant = callable2.call(15L.asVariant())
+            println(
+                "[SpriteBench] Callable2 returned: ${returnVariant.stringify().toKStringFromUtf8()}, is nil: ${returnVariant.isNil()}, value: ${returnVariant.asIntOrNull()}",
             )
         } catch (e: Throwable) {
             println("[SpriteBench] === _ready failed ===")
