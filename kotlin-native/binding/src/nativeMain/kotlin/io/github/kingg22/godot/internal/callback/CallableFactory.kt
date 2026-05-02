@@ -15,6 +15,7 @@ import io.github.kingg22.godot.internal.binding.CallableBinding
 import io.github.kingg22.godot.internal.binding.InternalBinding
 import io.github.kingg22.godot.internal.binding.VariantBinding
 import io.github.kingg22.godot.internal.binding.getInstance
+import io.github.kingg22.godot.internal.ffi.GDExtensionCallErrorType
 import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomCall
 import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomInfo2
 import io.github.kingg22.godot.internal.ffi.GDExtensionConstVariantPtr
@@ -26,6 +27,7 @@ import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.cValue
 import kotlinx.cinterop.get
 import kotlinx.cinterop.memScoped
+import kotlinx.cinterop.pointed
 import kotlinx.cinterop.staticCFunction
 
 /**
@@ -52,7 +54,7 @@ public object CallableFactory {
         // Create the GDExtensionCallableCustomInfo2 struct using cValue
         val callableCustomInfo2 = createCallableCustomInfo2(
             // Create a KotlinCallable wrapper and store it in a StableRef on userdata
-            storeKallable(wrapLambda(lambda)),
+            storeKotlinCallable(lambda),
             staticCFunction {
                     userdata,
                     arguments: CArrayPointer<GDExtensionConstVariantPtrVar>?,
@@ -69,19 +71,24 @@ public object CallableFactory {
                     return@staticCFunction
                 }
 
-                val callError = rError[0]
+                fun fillCallError(error: GDExtensionCallErrorType) {
+                    val callError = rError.pointed
+                    callError.error = error
+                    callError.expected = callable.arity().toInt()
+                    callError.argument = argumentCount.toInt()
+                }
 
                 if (argumentCount != callable.arity()) {
                     GD.pushError(
                         "[kogot]: Error: callable called with $argumentCount arguments, expected ${callable.arity()}",
                     )
-                    callError.error = if (argumentCount < callable.arity()) {
-                        GDEXTENSION_CALL_ERROR_TOO_FEW_ARGUMENTS
-                    } else {
-                        GDEXTENSION_CALL_ERROR_TOO_MANY_ARGUMENTS
-                    }
-                    callError.expected = callable.arity().toInt()
-                    callError.argument = argumentCount.toInt()
+                    fillCallError(
+                        if (argumentCount < callable.arity()) {
+                            GDEXTENSION_CALL_ERROR_TOO_FEW_ARGUMENTS
+                        } else {
+                            GDEXTENSION_CALL_ERROR_TOO_MANY_ARGUMENTS
+                        },
+                    )
                     return@staticCFunction
                 }
 
@@ -89,37 +96,32 @@ public object CallableFactory {
                     GD.pushError(
                         "[kogot]: Error: callable called with null array of arguments, expected $argumentCount",
                     )
-                    callError.error = GDEXTENSION_CALL_ERROR_INVALID_ARGUMENT
-                    callError.expected = callable.arity().toInt()
-                    callError.argument = argumentCount.toInt()
+                    fillCallError(GDEXTENSION_CALL_ERROR_INVALID_ARGUMENT)
                     return@staticCFunction
                 }
 
+                // FIXME validate arguments order is preserved
                 val arguments = (0 until argumentCount).map { i ->
                     // FIXME requires apropiate conversion to Kotlin types. Requires supports downcast, Variant, KString
                     reinterpretedVariantToKotlin(arguments?.get(i))
-                }.toTypedArray()
+                }
 
-                // TODO: properly convert arguments to Kotlin types using Variant
-                // (aka if the user request T, the argument must preserve the type T, not unbox or box unrequested)
-                val result = runCatching { callable.call(*arguments) }.getOrElse { exception ->
+                val result = runCatching { callable(arguments) }.getOrElse { exception ->
                     GD.pushError(
                         "[kogot]: Error calling callable ${callable.arity()} args, fallback to null: $exception",
                     )
-                    null
+                    fillCallError(GDEXTENSION_CALL_ERROR_INVALID_METHOD)
+                    return@staticCFunction
                 }
 
-                val resultVariant = when (result) {
-                    null, is Unit -> Variant()
-
-                    is Variant -> result
-
-                    else -> runCatching { result.asVariant() }.getOrElse {
-                        GD.pushError(
-                            "[kogot]: Error converting callable result ($result) to Variant, fallback to null: $it",
-                        )
-                        Variant()
-                    }
+                // TODO: properly convert return types to Kotlin types
+                // (aka if the user request T, the argument must preserve the type T, not unbox or box unrequested)
+                val resultVariant = runCatching { result.asVariant() }.getOrElse { exception ->
+                    GD.pushError(
+                        "[kogot]: Error converting callable result ($result) to Variant, fallback to null: $exception",
+                    )
+                    fillCallError(GDEXTENSION_CALL_ERROR_INVALID_METHOD)
+                    return@staticCFunction
                 }
 
                 VariantBinding.instance.newCopyRaw(rReturn, resultVariant.rawPtr)
@@ -140,17 +142,22 @@ public object CallableFactory {
         return callable
     }
 
-    public fun storeKallable(callable: KotlinCallable): COpaquePointer = StableRef.create(callable).asCPointer()
+    public fun storeKotlinCallable(lambda: Function<*>): COpaquePointer =
+        StableRef.create(wrapLambda(lambda)).asCPointer()
+
+    /** **SAFETY:** Assumes the arguments are compatible with the callable's arity. */
+    public operator fun KotlinCallable.invoke(args: List<Any?>): Any? {
+        check(args.size.toLong() == arity()) { "Expected ${arity()} arguments, got ${args.size}" }
+        return when (this) {
+            is Callable0 -> this()
+            is Callable1 -> this(args[0])
+        }
+    }
 
     @Suppress("UNCHECKED_CAST")
     public fun wrapLambda(lambda: Function<*>): KotlinCallable = when (lambda) {
         is Function0<*> -> Callable0(lambda)
-
-        is Function1<*, *> -> {
-            val lambda = lambda as Function1<Any?, *>
-            Callable1(lambda)
-        }
-
+        is Function1<*, *> -> Callable1(lambda as Function1<Any?, *>)
         else -> error("Unsupported lambda type: ${lambda::class}")
     }
 

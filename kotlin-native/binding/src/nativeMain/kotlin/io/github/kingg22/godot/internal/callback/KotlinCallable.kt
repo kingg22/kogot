@@ -8,17 +8,15 @@ import io.github.kingg22.godot.internal.binding.InternalBinding
  * This interface represents a Kotlin function that can be invoked by Godot's
  * custom callable system. Each implementation holds a lambda and provides
  * the necessary metadata (arity, hash, equality) for the callable infrastructure.
+ *
+ * This is similar to the [Function] interface in the Kotlin standard library.
+ *
+ * @see CallableFactory
+ * @see CallableTrampolines
+ * @see Function
  */
 @InternalBinding
-public interface KotlinCallable {
-    /**
-     * Invokes this callable with the given arguments.
-     *
-     * @param args The arguments as Kotlin Any? array
-     * @return The result of the invocation, or null if no result
-     */
-    public fun call(vararg args: Any?): Any?
-
+public sealed interface KotlinCallable : Function<Any?> {
     /**
      * Returns the number of arguments this callable expects.
      */
