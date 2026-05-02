@@ -7,7 +7,7 @@ import io.github.kingg22.godot.codegen.models.config.GeneratorKind
  * Provider factory for CodegenRunner instances.
  * Discovered via Java ServiceLoader (META-INF/services).
  */
-interface CodegenRunnerProvider {
+sealed interface CodegenRunnerProvider {
     val backend: GeneratorBackend
     val kind: GeneratorKind
 

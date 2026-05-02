@@ -21,8 +21,11 @@ import kotlin.time.measureTime
 abstract class AbstractCodegenRunner(
     final override val backend: GeneratorBackend,
     final override val kind: GeneratorKind,
-) : CodegenRunner {
+) : CodegenRunner,
+    CodegenRunnerProvider {
     protected val logger get() = currentClassLogger()
+
+    final override fun createRunner(): CodegenRunner = this
 
     final override fun run(config: CodegenConfig) {
         var generatedFilesCount = 0
