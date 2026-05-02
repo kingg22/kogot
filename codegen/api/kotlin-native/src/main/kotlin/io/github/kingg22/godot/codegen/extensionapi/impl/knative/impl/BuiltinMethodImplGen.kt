@@ -505,7 +505,7 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
                     addStatement("%L,", rReturn)
                 }
 
-                addStatement("%L,", method.arguments.size)
+                addStatement("%L%L,", method.arguments.size, if (method.isVararg) " + args.size" else "")
             }
             addStatement(")")
         }
