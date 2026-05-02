@@ -3,7 +3,10 @@ package io.github.kingg22.buildlogic.kotlin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
+import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.tasks.BaseKotlinCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 @Suppress("unused")
 class KotlinMultiplatformConventionsPlugin : Plugin<Project> {
@@ -16,6 +19,12 @@ class KotlinMultiplatformConventionsPlugin : Plugin<Project> {
 
         target.extensions.configure<KotlinMultiplatformExtension> {
             commonConfiguration(kotlinVersion)
+        }
+
+        target.tasks.register("compileKotlin") {
+            group = "build"
+            description = "Compiles the Kotlin source code in all targets."
+            dependsOn(target.tasks.withType<BaseKotlinCompile>(), target.tasks.withType<KotlinCompilationTask<*>>())
         }
 
         target.afterEvaluate {
