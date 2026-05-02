@@ -71,7 +71,7 @@ class GodotCodegenConventionsPlugin : Plugin<Project> {
         }
 
         val generateGodotTask = target.tasks.register<GenerateGodotTask>("generateGodotExtensionApi") {
-            classpath(codegenConfig)
+            classpath.from(codegenConfig)
             backendName.set(conventionsExtension.backend)
             backendName.disallowChanges()
             outputKindName.convention(conventionsExtension.outputKind)

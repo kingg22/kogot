@@ -1,23 +1,19 @@
 package io.github.kingg22.buildlogic.godot.task
 
 import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.tasks.CacheableTask
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.JavaExec
-import org.gradle.api.tasks.Optional
-import org.gradle.api.tasks.OutputDirectory
-import org.gradle.api.tasks.PathSensitive
-import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.*
 import org.gradle.api.tasks.options.Option
-import org.gradle.process.CommandLineArgumentProvider
+import java.lang.reflect.InvocationTargetException
+import java.net.URLClassLoader
 
 @CacheableTask
-abstract class GenerateGodotTask : JavaExec() {
+abstract class GenerateGodotTask : DefaultTask() {
 
     @get:[
     InputFile
@@ -66,12 +62,17 @@ abstract class GenerateGodotTask : JavaExec() {
     @get:[Input Optional Option(option = "filter-exclude-types", description = "Comma-separated types to exclude")]
     abstract val filterExcludeTypes: ListProperty<String>
 
+    @get:[InputFiles Classpath]
+    abstract val classpath: ConfigurableFileCollection
+
     init {
         group = "codegen"
         description = "Generate Godot Extension API wrappers"
-        mainClass.set("io.github.kingg22.godot.codegen.GenerateGodotApiKt")
-        enableAssertions = true
-        argumentProviders += CommandLineArgumentProvider {
+    }
+
+    @TaskAction
+    fun run() {
+        val argsList =
             buildList {
                 add("--input-interface")
                 add(inputInterface.get().asFile.absolutePath)
@@ -115,10 +116,33 @@ abstract class GenerateGodotTask : JavaExec() {
                     add("--include-native-structs=${filterOnlyNativeStruct.get()}")
                 }
 
-                val excludedTypes = filterExcludeTypes.get().joinToString().trim()
+                val excludedTypes = filterExcludeTypes.orNull?.joinToString(",")?.trim().orEmpty()
                 if (excludedTypes.isNotBlank()) {
                     add("--exclude-types=$excludedTypes")
                 }
+            }
+
+        val classpathFiles = classpath.files.map { it.toURI().toURL() }
+
+        val originalContextClassLoader = Thread.currentThread().contextClassLoader
+
+        val classLoader = URLClassLoader(
+            classpathFiles.toTypedArray(),
+            this::class.java.classLoader,
+        )
+
+        Thread.currentThread().contextClassLoader = classLoader
+
+        try {
+            val mainClass = classLoader.loadClass("io.github.kingg22.godot.codegen.GenerateGodotApiKt")
+            val mainMethod = mainClass.getMethod("main", Array<String>::class.java)
+
+            mainMethod.invoke(null, argsList.toTypedArray())
+        } catch (e: InvocationTargetException) {
+            throw e.targetException
+        } finally {
+            classLoader.use {
+                Thread.currentThread().contextClassLoader = originalContextClassLoader
             }
         }
     }
