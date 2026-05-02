@@ -32,9 +32,7 @@ public object CallableTrampolines {
      * Cleans up the userdata from the map.
      */
     public val freeFunc: GDExtensionCallableCustomFree = staticCFunction { userdata ->
-        val ref = requireNotNull(userdata).asStableRef<Long>()
-        val id = ref.get()
-        CallableUserdataMap.remove(id)
+        val ref = requireNotNull(userdata).asStableRef<KotlinCallable>()
         ref.dispose()
     }
 
@@ -42,15 +40,14 @@ public object CallableTrampolines {
      * Hash trampoline - returns hash of the callable.
      */
     public val hashFunc: GDExtensionCallableCustomHash = staticCFunction { userdata ->
-        CallableUserdataMap.get(userdata.getInstance())?.hashCode()?.toUInt() ?: 0u
+        userdata?.getInstance<KotlinCallable>()?.hashCode()?.toUInt() ?: 0u
     }
 
     /**
      * Is valid trampoline - checks if callable is still valid.
      */
     public val isValidFunc: GDExtensionCallableCustomIsValid = staticCFunction { userdata ->
-        val id = userdata.getInstance<Long>()
-        val callable = CallableUserdataMap.get(id)
+        val callable = userdata?.getInstance<KotlinCallable>()
         if (callable != null && callable.isValid()) GDExtensionBool.TRUE else GDExtensionBool.FALSE
     }
 
@@ -58,11 +55,9 @@ public object CallableTrampolines {
      * Equal trampoline - checks equality with another callable.
      */
     public val equalFunc: GDExtensionCallableCustomEqual = staticCFunction { userdataA, userdataB ->
-        val callableA = CallableUserdataMap.get(userdataA.getInstance())
-        val callableB = CallableUserdataMap.get(userdataB.getInstance())
-        if (callableA != null && callableB != null &&
-            callableA == callableB
-        ) {
+        val callableA = userdataA?.getInstance<KotlinCallable>()
+        val callableB = userdataB?.getInstance<KotlinCallable>()
+        if (callableA != null && callableB != null && callableA == callableB) {
             GDExtensionBool.TRUE
         } else {
             GDExtensionBool.FALSE
@@ -73,11 +68,9 @@ public object CallableTrampolines {
      * Less than trampoline - comparison for sorting.
      */
     public val lessThanFunc: GDExtensionCallableCustomLessThan = staticCFunction { userdataA, userdataB ->
-        val callableA = CallableUserdataMap.get(userdataA.getInstance())
-        val callableB = CallableUserdataMap.get(userdataB.getInstance())
-        if (callableA != null && callableB != null &&
-            callableA.lessThan(callableB)
-        ) {
+        val callableA = userdataA?.getInstance<KotlinCallable>()
+        val callableB = userdataB?.getInstance<KotlinCallable>()
+        if (callableA != null && callableB != null && callableA.lessThan(callableB)) {
             GDExtensionBool.TRUE
         } else {
             GDExtensionBool.FALSE
@@ -88,8 +81,8 @@ public object CallableTrampolines {
      * Argument count trampoline - returns the number of arguments.
      */
     public val getArgumentCountFunc: GDExtensionCallableCustomGetArgumentCount = staticCFunction { userdata, rIsValid ->
-        val callable = CallableUserdataMap.get(userdata.getInstance())
-        val arity = callable?.arity()?.toLong() ?: 0L
+        val callable = userdata?.getInstance<KotlinCallable>()
+        val arity = callable?.arity() ?: 0L
         if (rIsValid != null) {
             val validFlag = if (callable != null && callable.isValid()) GDExtensionBool.TRUE else GDExtensionBool.FALSE
             rIsValid[0] = validFlag
@@ -101,7 +94,7 @@ public object CallableTrampolines {
      * To string trampoline - returns string representation for debugging.
      */
     public val toStringFunc: GDExtensionCallableCustomToString = staticCFunction { userdata, rIsValid, rReturnPtr ->
-        val callable = CallableUserdataMap.get(userdata.getInstance())
+        val callable = userdata?.getInstance<KotlinCallable>()
         if (rIsValid != null) {
             val validFlag = if (callable != null && callable.isValid()) GDExtensionBool.TRUE else GDExtensionBool.FALSE
             rIsValid[0] = validFlag

@@ -1,5 +1,7 @@
 package io.github.kingg22.godot.internal.callback
 
+import io.github.kingg22.godot.internal.binding.InternalBinding
+
 /**
  * Interface for Kotlin lambdas stored as callable userdata.
  *
@@ -7,6 +9,7 @@ package io.github.kingg22.godot.internal.callback
  * custom callable system. Each implementation holds a lambda and provides
  * the necessary metadata (arity, hash, equality) for the callable infrastructure.
  */
+@InternalBinding
 public interface KotlinCallable {
     /**
      * Invokes this callable with the given arguments.
@@ -14,12 +17,12 @@ public interface KotlinCallable {
      * @param args The arguments as Kotlin Any? array
      * @return The result of the invocation, or null if no result
      */
-    public fun call(args: Array<Any?>): Any?
+    public fun call(vararg args: Any?): Any?
 
     /**
      * Returns the number of arguments this callable expects.
      */
-    public fun arity(): Int
+    public fun arity(): Long
 
     /**
      * Returns a hash value for this callable.
