@@ -15,15 +15,6 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
 /**
- * Inline function to get an instance from a [GDExtensionClassInstancePtr] ([COpaquePointer]) that is assumed to be a [StableRef].
- */
-@InternalBinding
-public inline fun <reified T : Any> GDExtensionClassInstancePtr?.getInstance(): T {
-    contract { returns() implies (this@getInstance != null) }
-    return requireNotNull(this).asStableRef<T>().get()
-}
-
-/**
  * Notification function that calls [Node._ready] when [Node.NOTIFICATION_READY] is received.
  *
  * Godot sends `NOTIFICATION_READY` (value 13) when a node enters the scene tree and is ready.
