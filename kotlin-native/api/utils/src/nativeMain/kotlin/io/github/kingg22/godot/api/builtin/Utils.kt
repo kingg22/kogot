@@ -1,7 +1,10 @@
+// TODO Rename all references `toX` instead of `asX`
+
 package io.github.kingg22.godot.api.builtin
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.builtin.internal.anyToVariant
+import io.github.kingg22.godot.api.builtin.internal.getValue
 import kotlin.reflect.KProperty
 
 public fun String.asGodotString(): GodotString = GodotString(this)
@@ -35,7 +38,17 @@ public inline fun <reified T> T?.asVariant(): Variant = anyToVariant(this)
 public inline fun <reified T> Variant.Companion.from(element: @MustBeVariant T): Variant = anyToVariant(this)
 
 /**
- * Syntactic sugar for [Variant.getValue] with type checking and inferred return type.
+ * Syntactic sugar for [getValue]
+ * Must prefer explicit convert methods over this operator.
+ */
+@ExperimentalGodotKotlin
+public inline val Variant.value: @MustBeVariant Any? get() {
+    val value: Any? by this
+    return value
+}
+
+/**
+ * Syntactic sugar for [Variant.value] with type checking and inferred return type.
  *
  * Must prefer explicit convert methods over this operator.
  *
