@@ -32,7 +32,7 @@ How to debug Kotlin Native + Godot GDExtension issues.
 
 **Stack traces** - Kotlin/Native stack traces can be cryptic, use `konan.lldb` for native debugging
 
-**Debug build** - `./gradlew :kotlin-native:binding:linkDebug` then check build/logs for symbols
+**Debug build** - `./gradlew :kotlin-native:binding:linkDebugShared*` then check build/logs for symbols
 
 ## Attaching Debugger
 
@@ -57,8 +57,8 @@ lldb godot
 
 ```bash
 # Generate API dump
-./gradlew :codegen:generateGodotApi
-# Check kotlin-native/api/build/generated/sources/
+./gradlew generateGodotExtensionApi
+# Check kotlin-native/api/generated/build/generated/sources/
 
 # Compare with godot binary
 godot --version

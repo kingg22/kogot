@@ -45,3 +45,58 @@ If no type-checker is configured, state that explicitly instead of claiming succ
     Do not assume a single grep caught everything.
 
     To avoid bad renaming, use the "rename_refactoring" tool of JetBrains IDE MCP; this is a real AST-based refactoring tool.
+
+## Agent Orchestration
+
+### When to swarm (mandatory)
+Tasks touching >5 independent files, or tasks that require simultaneously knowing:
+- What the JSON says
+- What the current generator produces
+- What godot-rust does as reference
+- What kogot runtime does
+- How kogot binding registers to godot works
+
+Sequential processing of these guarantees stale context on the third axis.
+
+### Kogot agent decomposition patterns
+
+**Codegen feature (new generator or fix):**
+- Agent A: Read extension_api.json section for the affected type + extract all relevant fields
+- Agent B: Read current generator source (NativeXxxGenerator, BodyGenerator, TypeResolver)
+- Agent C: Read godot-rust equivalent in /home/kingg22/IdeaProjects/godot-rust for semantic reference
+- Root: Synthesize findings → implement → verify with gradlew assemble
+
+**Binding registration fix:**
+- Agent A: Read kotlin-native/binding/ ClassRegistrationHelpers + ffi files
+- Agent B: Run godot --headless and capture stdout/stderr
+- Agent C: Read the .gdextension file + entry symbol in the C init
+- Root: Correlate → patch → re-run Godot
+
+**KSP processor change:**
+- Agent A: Read processor/KogotProcessor.kt + relevant validator
+- Agent B: Read analysis/ models (ClassInfo, FunctionInfo) affected by the change
+- Agent C: Read generated output in processor/build/generated/ for a sample class
+- Root: Implement → run :processor:test
+
+**Cross-cutting refactor (rename, interface change):**
+- Agent A: AST search via mcp__idea__search_symbol for all references
+- Agent B: Read all files in the affected call chain (max 5 per agent)
+- Agent C: Read test files and mocks
+- Root: Apply changes phase by phase, verify after each
+
+### How to invoke
+State "swarm: [pattern name]" at the start of a task.
+If I don't decompose into agents for a task matching the above patterns, call me out.
+
+### Agent context rules
+Each agent gets: the specific files it needs + the task framing.
+Agents do NOT share context windows.
+Root agent receives: agent outputs as summaries, not raw file contents.
+
+## Reference Files (load when relevant)
+- @docs/reference/kogot-repo-map.md — module locations and code flows
+- @docs/reference/binding-roadmap.md — current status, what's done vs pending
+- @docs/reference/external-bindings-reference.md — Obtain reference to external bindings in other languages
+
+Load these at the start of any task that involves exploring unfamiliar modules
+or planning new features. Do not load for targeted bug fixes.
