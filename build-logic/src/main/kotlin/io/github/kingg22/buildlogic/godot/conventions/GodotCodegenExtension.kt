@@ -1,76 +1,47 @@
 package io.github.kingg22.buildlogic.godot.conventions
 
-import org.gradle.api.provider.ListProperty
-import org.gradle.api.provider.Property
+import org.gradle.api.Named
+import org.gradle.api.NamedDomainObjectContainer
+import org.gradle.api.model.ObjectFactory
+import org.gradle.kotlin.dsl.domainObjectContainer
+import org.gradle.kotlin.dsl.newInstance
+import javax.inject.Inject
 
 /**
  * DSL extension for configuring Godot codegen conventions.
  *
- * This extension provides:
- * - Backend target (kotlin_native, java_ffm)
- * - Output kind (API or RUNTIME)
- * - Filter options for generated types
- * - Package name for generated code
+ * Usage:
+ *   godotCodegen {
+ *       // Top-level defaults (used when no combinations defined)
+ *       backend.set(CodegenBackend.KOTLIN_NATIVE)
+ *       kind.set(CodegenKind.API)
  *
- * Note: The backend and output kind values must match the expected string representations.
+ *       // Define named combinations:
+ *       combinations {
+ *           "callable" {
+ *               backend.set(CodegenBackend.KOTLIN_NATIVE)
+ *               kind.set(CodegenKind.CALLABLE)
+ *           }
+ *       }
+ *   }
  */
-abstract class GodotCodegenExtension {
-    enum class Backend { KOTLIN_NATIVE, JAVA_FFM }
-    enum class Kind { API, RUNTIME, CALLABLE, SIGNAL }
+abstract class GodotCodegenExtension @Inject constructor(objectFactory: ObjectFactory) : GodotCodegenDsl {
+    val combinations: NamedDomainObjectContainer<CombinationSpec> = objectFactory.domainObjectContainer(
+        CombinationSpec::class,
+    ) { name ->
+        val conventionsExtension = this@GodotCodegenExtension
+        objectFactory.newInstance<CombinationSpec>(name).apply {
+            this.backend.convention(conventionsExtension.backend)
+            this.kind.convention(conventionsExtension.kind)
+            this.packageName.convention(conventionsExtension.packageName)
+            this.skipPlatformSpecificApis.convention(conventionsExtension.skipPlatformSpecificApis)
+            this.excludeTypes.convention(conventionsExtension.excludeTypes)
+        }
+    }
 
-    /**
-     * Target backend for code generation.
-     * Values: "KOTLIN_NATIVE", "JAVA_FFM"
-     * Default: "KOTLIN_NATIVE"
-     */
-    abstract val backend: Property<Backend>
-
-    /**
-     * Output kind - API signatures with implementation bodies, or RUNTIME FFI signatures.
-     * Values: "API", "RUNTIME"
-     * Default: "API"
-     */
-    abstract val outputKind: Property<Kind>
-
-    /**
-     * Skip platform-specific APIs not common across all native targets.
-     * Default: true
-     */
-    abstract val skipPlatformSpecificApis: Property<Boolean>
-
-    /**
-     * Generate only enums.
-     * Default: false
-     */
-    abstract val onlyEnums: Property<Boolean>
-
-    /**
-     * Generate only builtin classes.
-     * Default: false
-     */
-    abstract val onlyBuiltinClasses: Property<Boolean>
-
-    /**
-     * Generate only engine classes.
-     * Default: false
-     */
-    abstract val onlyEngineClasses: Property<Boolean>
-
-    /**
-     * Generate only native structures.
-     * Default: false
-     */
-    abstract val onlyNativeStructures: Property<Boolean>
-
-    /**
-     * Comma-separated list of type names to exclude.
-     * Default: ""
-     */
-    abstract val excludeTypes: ListProperty<String>
-
-    /**
-     * Base package name for generated code.
-     * Default: "io.github.kingg22.godot"
-     */
-    abstract val packageName: Property<String>
+    abstract class CombinationSpec @Inject constructor(private val receiverName: String) :
+        GodotCodegenDsl,
+        Named {
+        override fun getName(): String = receiverName
+    }
 }

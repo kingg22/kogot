@@ -1,6 +1,7 @@
 package io.github.kingg22.buildlogic.godot.task
 
-import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension
+import io.github.kingg22.buildlogic.godot.conventions.CodegenBackend
+import io.github.kingg22.buildlogic.godot.conventions.CodegenKind
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
@@ -36,10 +37,10 @@ abstract class GenerateGodotTask : DefaultTask() {
     abstract val packageName: Property<String>
 
     @get:[Input Option(option = "backend", description = "Target backend")]
-    abstract val backendName: Property<GodotCodegenExtension.Backend>
+    abstract val backendName: Property<CodegenBackend>
 
     @get:[Input Option(option = "kind", description = "Target kind")]
-    abstract val outputKindName: Property<GodotCodegenExtension.Kind>
+    abstract val outputKindName: Property<CodegenKind>
 
     @get:[Input Optional Option(option = "generate-docs", description = "Generate docs")]
     abstract val generateDocs: Property<Boolean>

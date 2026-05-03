@@ -1,13 +1,19 @@
 package io.github.kingg22.buildlogic.godot
 
 import io.github.kingg22.buildlogic.godot.chore.GodotCodegenChoreExtension
+import io.github.kingg22.buildlogic.godot.conventions.CodegenBackend
+import io.github.kingg22.buildlogic.godot.conventions.CodegenBackend.*
+import io.github.kingg22.buildlogic.godot.conventions.CodegenKind
+import io.github.kingg22.buildlogic.godot.conventions.CodegenKind.*
+import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenDsl
 import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension
-import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Backend
-import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Kind
 import io.github.kingg22.buildlogic.godot.task.GenerateGodotTask
+import org.gradle.api.NamedDomainObjectProvider
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.tasks.SourceSet
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.dependencies
@@ -20,9 +26,6 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 private const val EXTENSION_NAME = "godotCodegen"
-private val DEFAULT_BACKEND = Backend.KOTLIN_NATIVE
-private val DEFAULT_OUTPUT_KIND = Kind.API
-private const val DEFAULT_PACKAGE = "io.github.kingg22.godot"
 private const val CODEGEN_CONFIG = "codegenConfig"
 
 @Suppress("unused")
@@ -41,67 +44,104 @@ class GodotCodegenConventionsPlugin : Plugin<Project> {
         // Get the chore extension from the root project (single source of truth)
         val choreExtension: GodotCodegenChoreExtension = target.rootProject.extensions.getByType()
 
-        // Create conventions extension with defaults
-        val conventionsExtension: GodotCodegenExtension = target.extensions.create(EXTENSION_NAME)
+        // Create conventions extension
+        val conventionsExtension = target.extensions.create<GodotCodegenExtension>(EXTENSION_NAME)
 
-        // Apply default values from extension companion object
-        conventionsExtension.backend.convention(DEFAULT_BACKEND)
-        conventionsExtension.outputKind.convention(DEFAULT_OUTPUT_KIND)
-        conventionsExtension.packageName.convention(DEFAULT_PACKAGE)
+        // Apply defaults for top-level options (used as fallback when combinations empty)
+        conventionsExtension.backend.convention(KOTLIN_NATIVE)
+        conventionsExtension.kind.convention(API)
+        conventionsExtension.packageName.convention("io.github.kingg22.godot")
         conventionsExtension.skipPlatformSpecificApis.convention(choreExtension.skipPlatformSpecificApis)
         conventionsExtension.excludeTypes.convention(emptyList())
 
-        target.dependencies {
-            codegenConfig(
-                target.provider {
-                    when (
-                        val combination =
-                            conventionsExtension.backend.get() to conventionsExtension.outputKind.get()
-                    ) {
-                        Backend.KOTLIN_NATIVE to Kind.API -> target.project(":codegen:api:kotlin-native")
-
-                        Backend.KOTLIN_NATIVE to Kind.RUNTIME -> target.project(":codegen:runtime:kotlin-native")
-
-                        Backend.KOTLIN_NATIVE to Kind.CALLABLE -> target.project(":codegen:api:kotlin-native-callable")
-
-                        else -> error(
-                            "Unsupported backend/output kind combination: $combination",
-                        )
-                    }
-                },
-            )
+        target.afterEvaluate {
+            val combinations = conventionsExtension.combinations.toList() + conventionsExtension
+            createTasksForCombinations(target, conventionsExtension, choreExtension, combinations, codegenConfig)
         }
+    }
 
-        val generateGodotTask = target.tasks.register<GenerateGodotTask>("generateGodotExtensionApi") {
-            classpath.from(codegenConfig)
-            backendName.set(conventionsExtension.backend)
-            backendName.disallowChanges()
-            outputKindName.convention(conventionsExtension.outputKind)
-            outputKindName.disallowChanges()
-            inputExtension.set(choreExtension.extensionApiFile)
-            inputExtension.disallowChanges()
-            inputInterface.set(choreExtension.extensionInterfaceFile)
-            inputInterface.disallowChanges()
+    private fun createTasksForCombinations(
+        target: Project,
+        conventionsExtension: GodotCodegenExtension,
+        choreExtension: GodotCodegenChoreExtension,
+        combinations: List<GodotCodegenDsl>,
+        codegenConfig: NamedDomainObjectProvider<Configuration>,
+    ) {
+        val combinationTasks = combinations.map { combination ->
+            val backend = combination.backend.get()
+            val kind = combination.kind.get()
+            val taskName = "generateGodot" +
+                backend.name
+                    .lowercase()
+                    .replaceFirstChar(Char::uppercase)
+                    .replace(Regex("_(\\w)")) { matchResult ->
+                        matchResult.groupValues[1].uppercase()
+                    } + kind.name.lowercase().replaceFirstChar(Char::uppercase)
 
-            outputDir.convention(
-                target.layout.buildDirectory.dir(
-                    target.provider {
+            resolveDependency(target, codegenConfig, backend, kind)
+
+            val task = target.tasks.register<GenerateGodotTask>(taskName) {
+                classpath.from(codegenConfig)
+                backendName.set(backend)
+                backendName.disallowChanges()
+                outputKindName.set(kind)
+                outputKindName.disallowChanges()
+                inputExtension.set(choreExtension.extensionApiFile)
+                inputInterface.set(choreExtension.extensionInterfaceFile)
+
+                outputDir.set(
+                    target.layout.buildDirectory.dir(
                         "generated/sources/godot/" +
-                            conventionsExtension.backend.get().name.lowercase() + "/" +
-                            conventionsExtension.outputKind.get().name.lowercase()
-                    },
-                ),
-            )
+                            backend.name.lowercase() + "/" +
+                            kind.name.lowercase(),
+                    ),
+                )
 
-            packageName.convention(conventionsExtension.packageName)
+                packageName.set(combination.packageName)
 
-            filterOnlyEnums.convention(conventionsExtension.onlyEnums)
-            filterOnlyBuiltinClasses.convention(conventionsExtension.onlyBuiltinClasses)
-            filterOnlyEngineClasses.convention(conventionsExtension.onlyEngineClasses)
-            filterOnlyNativeStruct.convention(conventionsExtension.onlyNativeStructures)
-            filterExcludeTypes.convention(conventionsExtension.excludeTypes)
+                filterOnlyEnums.set(combination.onlyEnums)
+                filterOnlyBuiltinClasses.set(combination.onlyBuiltinClasses)
+                filterOnlyEngineClasses.set(combination.onlyEngineClasses)
+                filterOnlyNativeStruct.set(combination.onlyNativeStructures)
+                filterExcludeTypes.set(combination.excludeTypes)
+                skipPlatformSpecificApis.set(combination.skipPlatformSpecificApis)
+            }
+
+            configureSourceSets(target, task, conventionsExtension)
+
+            task
         }
 
+        target.tasks.register("generateGodot") {
+            group = "codegen"
+            description = "Generates Godot bindings for the current project."
+            dependsOn(combinationTasks)
+        }
+    }
+
+    private fun resolveDependency(
+        target: Project,
+        codegenConfig: NamedDomainObjectProvider<Configuration>,
+        backend: CodegenBackend,
+        kind: CodegenKind,
+    ) {
+        val dependencyProject = when (backend to kind) {
+            KOTLIN_NATIVE to API -> target.project(":codegen:api:kotlin-native")
+            KOTLIN_NATIVE to RUNTIME -> target.project(":codegen:runtime:kotlin-native")
+            KOTLIN_NATIVE to CALLABLE -> target.project(":codegen:api:kotlin-native-callable")
+            else -> error("Unsupported backend/output kind combination: $backend to $kind")
+        }
+
+        target.dependencies {
+            codegenConfig(dependencyProject)
+        }
+    }
+
+    private fun configureSourceSets(
+        target: Project,
+        generateGodotTask: TaskProvider<GenerateGodotTask>,
+        conventionsExtension: GodotCodegenExtension,
+    ) {
         target.plugins.withId("org.jetbrains.kotlin.jvm") {
             target.extensions.configure<KotlinJvmProjectExtension> {
                 generateGodotTask {
