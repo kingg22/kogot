@@ -1,7 +1,8 @@
-package io.github.kingg22.godot.api.builtin
+package io.github.kingg22.godot.api.builtin.internal
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
-import io.github.kingg22.godot.api.builtin.Variant.Type
+import io.github.kingg22.godot.api.builtin.MustBeVariant
+import io.github.kingg22.godot.api.builtin.Variant
 
 /**
  * Returns the value of this [Variant].
@@ -32,12 +33,12 @@ public fun Variant.getValue(): @MustBeVariant Any? = when (getType()) {
     VECTOR4I -> asVector4i()
     PLANE -> asPlane()
     QUATERNION -> asQuaternion()
-    Variant.Type.AABB -> asAabb()
+    AABB -> asAabb()
     BASIS -> asBasis()
     TRANSFORM3D -> asTransform3D()
     PROJECTION -> asProjection()
     COLOR -> asColor()
-    Variant.Type.RID -> asRid()
+    RID -> asRid()
     OBJECT -> asObject()
     CALLABLE -> asCallable()
     SIGNAL -> asSignal()

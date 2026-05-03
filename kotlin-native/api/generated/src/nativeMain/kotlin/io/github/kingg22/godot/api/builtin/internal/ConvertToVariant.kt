@@ -18,7 +18,7 @@ import org.jetbrains.annotations.ApiStatus
  *
  * @param element The element to convert, [must be a variant type compatible][MustBeVariant].
  * @see Variant
- * @see GodotObject.asVariant
+ * @see asVariant
  */
 @ExperimentalGodotKotlin
 @ApiStatus.Internal
@@ -34,7 +34,7 @@ public fun <T> anyToVariant(element: @MustBeVariant T?): Variant {
         is Long -> element.asVariant()
         is Float -> element.asVariant()
         is Double -> element.asVariant()
-        is String -> element.asVariantString()
+        is String -> GodotString(element).use { it.asVariant() }
         is GodotString -> element.asVariant()
         is StringName -> element.asVariant()
         is NodePath -> element.asVariant()

@@ -39,10 +39,6 @@ public inline fun GD.printVerbose(arg1: String, vararg args: String) {
     printVerbose(arg1.asVariantString(), *args.map { it.asVariantString() }.toTypedArray())
 }
 
-public inline fun GD.pushError(arg1: String, vararg args: String) {
-    pushError(arg1.asVariantString(), *args.map { it.asVariantString() }.toTypedArray())
-}
-
 public inline fun GD.pushWarning(arg1: String, vararg args: String) {
     pushWarning(arg1.asVariantString(), *args.map { it.asVariantString() }.toTypedArray())
 }
