@@ -1,5 +1,5 @@
-import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Backend
-import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Kind
+import io.github.kingg22.buildlogic.godot.conventions.CodegenBackend
+import io.github.kingg22.buildlogic.godot.conventions.CodegenKind
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 plugins {
@@ -32,7 +32,7 @@ kotlin {
 }
 
 godotCodegen {
-    backend = Backend.KOTLIN_NATIVE
-    outputKind = Kind.RUNTIME
+    backend = CodegenBackend.KOTLIN_NATIVE
+    kind = CodegenKind.RUNTIME
     packageName = "io.github.kingg22.godot"
 }

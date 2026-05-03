@@ -1,5 +1,5 @@
-import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Backend
-import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Kind
+import io.github.kingg22.buildlogic.godot.conventions.CodegenBackend
+import io.github.kingg22.buildlogic.godot.conventions.CodegenKind
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 plugins {
@@ -33,7 +33,7 @@ kotlin {
 }
 
 godotCodegen {
-    outputKind = Kind.CALLABLE
-    backend = Backend.KOTLIN_NATIVE
+    kind = CodegenKind.CALLABLE
+    backend = CodegenBackend.KOTLIN_NATIVE
     packageName = "io.github.kingg22.godot.internal.callback"
 }

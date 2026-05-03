@@ -1,5 +1,5 @@
-import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Backend
-import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension.Kind
+import io.github.kingg22.buildlogic.godot.conventions.CodegenBackend
+import io.github.kingg22.buildlogic.godot.conventions.CodegenKind
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
@@ -41,7 +41,15 @@ fun KotlinNativeTarget.configureGodotInterop() {
 }
 
 godotCodegen {
-    backend = Backend.KOTLIN_NATIVE
-    outputKind = Kind.API
+    backend = CodegenBackend.KOTLIN_NATIVE
+    kind = CodegenKind.API
     packageName = "io.github.kingg22.godot"
+
+    combinations {
+        register("callable") {
+            backend = CodegenBackend.KOTLIN_NATIVE
+            kind = CodegenKind.CALLABLE
+            packageName = "io.github.kingg22.godot.api.internal.callable"
+        }
+    }
 }
