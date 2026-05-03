@@ -1,6 +1,7 @@
 @file:OptIn(ExperimentalForeignApi::class)
 
 import io.github.kingg22.godot.api.annotations.Godot
+import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.builtin.Vector2i
 import io.github.kingg22.godot.api.builtin.asGodotString
@@ -18,8 +19,6 @@ import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.print
 import io.github.kingg22.godot.binding.instantiate
 import io.github.kingg22.godot.castTo
-import io.github.kingg22.godot.internal.binding.InternalBinding
-import io.github.kingg22.godot.internal.callback.CallableFactory
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
 
@@ -33,14 +32,11 @@ private const val SPRITE_COUNT = 5
     private var frameIndex = 0
     private var windowSize: Vector2 = Vector2.ZERO
 
-    @OptIn(InternalBinding::class)
-    @Suppress("FORMAT", "ktlint")
-    private val callable = CallableFactory.create {
+    private val callable = Callable {
         println("Hello from Kotlin inside a Callable!")
     }
 
-    @OptIn(InternalBinding::class)
-    private val callable2 = CallableFactory.create { id: Long ->
+    private val callable2 = Callable { id: Long ->
         println("Hello from Kotlin inside a Callable with id: $id")
         id
     }
