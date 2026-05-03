@@ -4,10 +4,10 @@ import io.github.kingg22.godot.codegen.services.PackageRegistry
 
 class NativeCallablePackageRegistry(override val rootPackage: String) : PackageRegistry {
     private val internalBindingPackage = run {
-        val godotPackage = rootPackage.substringBefore(".internal.")
-        "$godotPackage.internal.binding"
+        val godotPackage = rootPackage.substringBefore("godot.")
+        "$godotPackage.godot.internal.binding"
     }
-    private val internalCallablePackage = if (rootPackage.endsWith("internal.callback")) {
+    private val internalCallablePackage = if (rootPackage.endsWith("internal.callable")) {
         rootPackage
     } else {
         "$rootPackage.internal.callback"

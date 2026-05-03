@@ -47,6 +47,7 @@ class ImplementationPackageRegistry(packageStr: String, interfaceModel: GDExtens
         put("GDExtensionMethodBindPtr", ffiPackage)
         put("GDExtensionPtrOperatorEvaluator", ffiPackage)
         put("checkGodotError", apiInternalPackage)
+        put("CallableFactory", "$apiInternalPackage.callable")
     }
 
     override fun packageFor(godotName: String): String? = typeToPackage[godotName]
