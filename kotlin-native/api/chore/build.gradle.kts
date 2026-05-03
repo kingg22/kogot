@@ -13,6 +13,8 @@ kotlin {
             "kotlin.experimental.ExperimentalNativeApi",
             "io.github.kingg22.godot.api.ExperimentalGodotApi",
             "io.github.kingg22.godot.api.ExperimentalGodotKotlin",
+            "io.github.kingg22.godot.api.ExperimentalForInheritanceGodotApi",
+            "io.github.kingg22.godot.api.InternalForInheritanceGodotApi",
         )
     }
 
