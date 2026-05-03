@@ -2,6 +2,8 @@
 
 package io.github.kingg22.godot.api
 
+import io.github.kingg22.godot.api.internal.UsedFromCodegenGeneratedCode
+
 /**
  * Value class for bitfield masks.
  * Allows bitwise operations on enum flags.
@@ -10,6 +12,7 @@ package io.github.kingg22.godot.api
  * @property flags The bitfield value.
  * @constructor Creates a new EnumMask instance. Prefers extension and companion methods.
  */
+@UsedFromCodegenGeneratedCode
 public value class EnumMask<T> @ExperimentalGodotKotlin constructor(public val flags: Long) :
     GodotEnum
     where T : GodotEnum, T : Enum<T> {

@@ -1,5 +1,6 @@
 package io.github.kingg22.godot.api
 
+import io.github.kingg22.godot.api.internal.UsedFromCodegenGeneratedCode
 import org.jetbrains.annotations.ApiStatus
 import kotlin.enums.EnumEntries
 import kotlin.enums.enumEntries
@@ -10,11 +11,15 @@ import kotlin.enums.enumEntries
  * @see EnumMask
  */
 @ApiStatus.NonExtendable
+@UsedFromCodegenGeneratedCode
+@SubclassOptInRequired(InternalForInheritanceGodotApi::class)
 public interface GodotEnum {
+    @UsedFromCodegenGeneratedCode
     public val value: Long
 
     public companion object {
         /** Returns the **first enum entry** with the given [value], or throws an exception if not found. */
+        @UsedFromCodegenGeneratedCode
         public inline fun <reified T> fromValue(value: Long): T where T : GodotEnum, T : Enum<T> =
             fromValueOrNull(value)
                 ?: error("Enum entry with value '$value' not found for type '${T::class.simpleName}'")
