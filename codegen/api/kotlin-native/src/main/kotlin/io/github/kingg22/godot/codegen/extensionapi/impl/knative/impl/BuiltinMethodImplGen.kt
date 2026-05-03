@@ -1,10 +1,14 @@
 package io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl
 
 import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.STAR
+import com.squareup.kotlinpoet.STRING
+import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.joinToCode
 import com.squareup.kotlinpoet.withIndent
@@ -432,6 +436,115 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
 
         // DRY: Delegate to hash() method which is generated separately
         return CodeBlock.of("return %L.hash().toInt()", if (hashMethod) "this" else "Variant(this)")
+    }
+
+    fun buildToStringConverters(): List<FunSpec> {
+        fun factory(
+            name: String,
+            methodName: String,
+            nativeBuffer: TypeName,
+            toKStrMethod: MemberName,
+            kdoc: CodeBlock,
+            helperConvert: CodeBlock = CodeBlock.builder().build(),
+        ) = FunSpec
+            .builder(name)
+            .returns(STRING)
+            .addKdoc(kdoc)
+            .addStatement(
+                "// First call with null rText to get the actual byte length needed (excluding null terminator)",
+            )
+            .addStatement(
+                "val length = %T.instance.%L(rawPtr, null, 0)",
+                implPackageRegistry.classNameForOrDefault("StringBinding"),
+                methodName,
+            )
+            .beginControlFlow("%M", memScoped)
+            .addStatement("// Allocate buffer with extra space for null terminator")
+            .addStatement("val buffer = %M<%T>(length + 1)", cinteropAllocArray, nativeBuffer)
+            .addStatement("// Write the chars to the buffer")
+            .addStatement(
+                "val _ = %T.instance.%L(rawPtr, buffer, length + 1)",
+                implPackageRegistry.classNameForOrDefault("StringBinding"),
+                methodName,
+            )
+            .addStatement("// Convert to Kotlin String (toKString expects null-terminated string)")
+            .addStatement("return buffer%L.%M()", helperConvert, toKStrMethod)
+            .endControlFlow()
+            .build()
+
+        return listOf(
+            factory(
+                "toKStringUtf8",
+                "toUtf8CharsRaw",
+                BYTE_VAR,
+                cinteropToKStrFromUtf8,
+                CodeBlock.of("Convert to [GodotString.toUtf8Buffer] and [%M]", cinteropToKStrFromUtf8),
+            ),
+            factory(
+                "toKStringUtf16",
+                "toUtf16CharsRaw",
+                U_SHORT_VAR,
+                cinteropToKStrFromUtf16,
+                CodeBlock.of("Convert to [GodotString.toUtf16Buffer] and [%M]", cinteropToKStrFromUtf16),
+            ),
+            factory(
+                "toKStringUtf32",
+                "toUtf32CharsRaw",
+                U_INT_VAR,
+                cinteropToKStrFromUtf32,
+                CodeBlock.of("Convert to [GodotString.toUtf32Buffer] and [%M]", cinteropToKStrFromUtf32),
+                CodeBlock.of(".%M<%T>()", cinteropReinterpret, INT_VAR),
+            ),
+            FunSpec
+                .builder("toKString")
+                .returns(STRING)
+                .addKdoc("See [toKStringUtf16]\n\n")
+                .addKdoc("@return The [%T] from UTF-16", STRING)
+                .addCode("return this.toKStringUtf16()")
+                .build(),
+        )
+    }
+
+    context(ctx: Context)
+    fun buildStaticFromString(): List<FunSpec> = buildList {
+        val fromUtf8 = FunSpec
+            .builder("fromUtf8")
+            .addParameter("value", STRING)
+            .returns(ctx.classNameForOrDefault("String"))
+            .beginControlFlow("return %T(null).also", ctx.classNameForOrDefault("String"))
+            .addStatement(
+                "%T.instance.newWithUtf8Chars(it.rawPtr, value)",
+                implPackageRegistry.classNameForOrDefault("StringBinding"),
+            )
+            .endControlFlow()
+            .build()
+        add(fromUtf8)
+
+        val fromUtf16 = FunSpec
+            .builder("fromUtf16")
+            .addParameter("value", STRING)
+            .returns(ctx.classNameForOrDefault("String"))
+            .addCode("return %T(value)", ctx.classNameForOrDefault("String"))
+            .build()
+        add(fromUtf16)
+
+        val fromUtf32 = FunSpec
+            .builder("fromUtf32")
+            .addParameter("value", STRING)
+            .returns(ctx.classNameForOrDefault("String"))
+            .beginControlFlow("return %T(null).also", ctx.classNameForOrDefault("String"))
+            .beginControlFlow("%M", memScoped)
+            .addStatement(
+                "%T.instance.newWithUtf32CharsRaw(it.rawPtr, value.%M.%M.%M())",
+                implPackageRegistry.classNameForOrDefault("StringBinding"),
+                cinteropStrUtf32,
+                cinteropPtr,
+                cinteropReinterpret,
+            )
+            .endControlFlow()
+            .endControlFlow()
+            .build()
+        add(fromUtf32)
     }
 
     context(ctx: Context)

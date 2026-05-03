@@ -245,6 +245,10 @@ class NativeBuiltinClassGenerator(
         }
         classBuilder.addFunctions(methodSpecs)
 
+        if (builtinClass.name == "String") {
+            classBuilder.addFunctions(body.buildToKStringConverters())
+        }
+
         // ── Companion object (constants + static methods + layout offsets) ─────
         val companionBuilder = TypeSpec.companionObjectBuilder()
 
@@ -273,9 +277,11 @@ class NativeBuiltinClassGenerator(
         }
         companionBuilder.addFunctions(staticMethodSpecs)
 
-        val companionHasContent = builtinClass.layout?.memberOffsets?.isNotEmpty() == true ||
-            raw.constants.isNotEmpty() ||
-            staticMethods.isNotEmpty()
+        if (builtinClass.name == "String") {
+            companionBuilder.addFunctions(body.buildStaticStringConverters())
+        }
+
+        val companionHasContent = companionBuilder.funSpecs.isNotEmpty() || companionBuilder.propertySpecs.isNotEmpty()
 
         if (companionHasContent) {
             classBuilder.addType(companionBuilder.build())

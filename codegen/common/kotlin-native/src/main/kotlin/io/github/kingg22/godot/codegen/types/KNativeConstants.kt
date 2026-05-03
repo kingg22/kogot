@@ -46,10 +46,16 @@ val memScoped = MemberName("kotlinx.cinterop", "memScoped")
 val cinteropCstr = MemberName("kotlinx.cinterop", "cstr", true)
 val cinteropPtr = MemberName("kotlinx.cinterop", "ptr", true)
 val cinteropAlloc = MemberName("kotlinx.cinterop", "alloc", true)
+val cinteropAllocArray = MemberName("kotlinx.cinterop", "allocArray", true)
 val cinteropReinterpret = MemberName("kotlinx.cinterop", "reinterpret", true)
 val cinteropInvoke = MemberName("kotlinx.cinterop", "invoke", true)
 val cinteropValue = MemberName("kotlinx.cinterop", "value", true)
 val cinteropNativeHeap = ClassName("kotlinx.cinterop", "nativeHeap")
+val cinteropStrUtf16 = MemberName("kotlinx.cinterop", "utf16", true)
+val cinteropStrUtf32 = MemberName("kotlinx.cinterop", "utf32", true)
+val cinteropToKStrFromUtf8 = MemberName("kotlinx.cinterop", "toKStringFromUtf8", true)
+val cinteropToKStrFromUtf16 = MemberName("kotlinx.cinterop", "toKStringFromUtf16", true)
+val cinteropToKStrFromUtf32 = MemberName("kotlinx.cinterop", "toKStringFromUtf32", true)
 
 val PRIMITIVE_NUMERIC_TYPES = setOf(
     "int8_t", "int8",

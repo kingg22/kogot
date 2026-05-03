@@ -228,7 +228,7 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
                     .addStatement(
                         "%T.instance.newWithUtf16CharsRaw(rawPtr, value.%M.%M)",
                         stringBinding,
-                        MemberName("kotlinx.cinterop", "utf16", true),
+                        cinteropStrUtf16,
                         cinteropPtr,
                     )
                     .endControlFlow()
@@ -540,6 +540,11 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
 
     fun buildHashCodeBody(resolvedClass: ResolvedBuiltinClass): CodeBlock =
         methodImplGen.buildHashCodeBody(resolvedClass)
+
+    fun buildToKStringConverters() = methodImplGen.buildToStringConverters()
+
+    context(_: Context)
+    fun buildStaticStringConverters() = methodImplGen.buildStaticFromString()
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
