@@ -101,12 +101,12 @@ public object CallableFactory {
                 }
 
                 // FIXME validate arguments order is preserved
-                val arguments = (0 until argumentCount).map { i ->
+                val arguments = Array(argumentCount.toInt()) { i ->
                     // FIXME requires apropiate conversion to Kotlin types. Requires supports downcast, Variant, KString
                     reinterpretedVariantToKotlin(arguments?.get(i))
                 }
 
-                val result = runCatching { callable(arguments) }.getOrElse { exception ->
+                val result = runCatching { callable.invoke(arguments) }.getOrElse { exception ->
                     GD.pushError(
                         "[kogot]: Error calling callable ${callable.arity()} args, fallback to null: $exception",
                     )
@@ -144,22 +144,6 @@ public object CallableFactory {
 
     public fun storeKotlinCallable(lambda: Function<*>): COpaquePointer =
         StableRef.create(wrapLambda(lambda)).asCPointer()
-
-    /** **SAFETY:** Assumes the arguments are compatible with the callable's arity. */
-    public operator fun KotlinCallable.invoke(args: List<Any?>): Any? {
-        check(args.size.toLong() == arity()) { "Expected ${arity()} arguments, got ${args.size}" }
-        return when (this) {
-            is Callable0 -> this()
-            is Callable1 -> this(args[0])
-        }
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    public fun wrapLambda(lambda: Function<*>): KotlinCallable = when (lambda) {
-        is Function0<*> -> Callable0(lambda)
-        is Function1<*, *> -> Callable1(lambda as Function1<Any?, *>)
-        else -> error("Unsupported lambda type: ${lambda::class}")
-    }
 
     public fun reinterpretedVariantToKotlin(argument: GDExtensionConstVariantPtr?): Any? =
         if (argument == null) null else Variant(argument).getValue()
