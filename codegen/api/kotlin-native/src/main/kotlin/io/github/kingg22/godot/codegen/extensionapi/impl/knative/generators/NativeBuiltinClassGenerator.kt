@@ -413,6 +413,16 @@ class NativeBuiltinClassGenerator(
                                     addKdoc("Refers to [%T.hash] method", targetClass)
                                 }
                                 .build(),
+                            FunSpec
+                                .builder("toString")
+                                .addModifiers(KModifier.OVERRIDE)
+                                .returns(STRING)
+                                .addCode(body.buildToStringBody(resolvedClass))
+                                .addKdoc(
+                                    "Returns the Godot string representation via [%T.stringify]]",
+                                    ctx.classNameForOrDefault("Variant"),
+                                )
+                                .build(),
                         )
                     } else {
                         opFun

@@ -438,6 +438,15 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
         return CodeBlock.of("return %L.hash().toInt()", if (hashMethod) "this" else "Variant(this)")
     }
 
+    /**
+     * Builds the `toString(): String` body for a builtin class.
+     *
+     * Delegates to `Variant.stringify().toKString()` which returns the Godot string representation.
+     */
+    context(ctx: Context)
+    fun buildToStringBody(resolvedClass: ResolvedBuiltinClass): CodeBlock =
+        CodeBlock.of("return %T(this).stringify().toKString()", ctx.classNameForOrDefault("Variant"))
+
     fun buildToStringConverters(): List<FunSpec> {
         fun factory(
             name: String,
