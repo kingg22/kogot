@@ -6,7 +6,6 @@ import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.builtin.Vector2i
 import io.github.kingg22.godot.api.builtin.asGodotString
 import io.github.kingg22.godot.api.builtin.asVariant
-import io.github.kingg22.godot.api.builtin.toKStringFromUtf8
 import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.api.core.SceneTree
 import io.github.kingg22.godot.api.core.node.Node2D
@@ -92,12 +91,12 @@ private const val SPRITE_COUNT = 5
             println("[SpriteBench] _ready finished, going to call deferred callable")
             var returnVariant = callable.call()
             println(
-                "[SpriteBench] Callable returned: ${returnVariant.stringify().toKStringFromUtf8()}, is nil: ${returnVariant.isNil()}",
+                "[SpriteBench] Callable returned: ${returnVariant.stringify().toKString()}, is nil: ${returnVariant.isNil()}",
             )
             println("[SpriteBench] calling callable2 with 15 as args")
             returnVariant = callable2.call(15L.asVariant())
             println(
-                "[SpriteBench] Callable2 returned: ${returnVariant.stringify().toKStringFromUtf8()}, is nil: ${returnVariant.isNil()}, value: ${returnVariant.asIntOrNull()}",
+                "[SpriteBench] Callable2 returned: ${returnVariant.stringify().toKString()}, is nil: ${returnVariant.isNil()}, value: ${returnVariant.asIntOrNull()}",
             )
         } catch (e: Throwable) {
             println("[SpriteBench] === _ready failed ===")

@@ -68,7 +68,7 @@ public inline operator fun <@MustBeVariant reified T> Variant.getValue(thisRef: 
     if (value is T) return value
 
     // String case
-    if (T::class == String::class && value is GodotString) return value.toKStringFromUtf16() as T
+    if (T::class == String::class && value is GodotString) return value.toKString() as T
 
     // Downcast
     if (T::class == Int::class && value is Number) return value.toInt() as T

@@ -1,9 +1,6 @@
 package io.github.kingg22.godot.sample
 
 import io.github.kingg22.godot.api.builtin.GodotString
-import io.github.kingg22.godot.api.builtin.toKStringFromUtf16
-import io.github.kingg22.godot.api.builtin.toKStringFromUtf32
-import io.github.kingg22.godot.api.builtin.toKStringFromUtf8
 import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.print
 import io.github.kingg22.godot.api.utils.pushError
@@ -57,9 +54,9 @@ private fun initialize(
             // Test GodotString to Kotlin String conversion
             try {
                 GodotString("Hello from Kotlin!").use { godotString ->
-                    val kotlinString = godotString.toKStringFromUtf8()
-                    val kotlin2String = godotString.toKStringFromUtf16()
-                    val kotlin3String = godotString.toKStringFromUtf32()
+                    val kotlinString = godotString.toKStringUtf8()
+                    val kotlin2String = godotString.toKStringUtf16()
+                    val kotlin3String = godotString.toKStringUtf32()
                     GD.print("GodotString.toKString() result: utf-8= '$kotlinString', utf-16= '$kotlin2String', utf-32= '$kotlin3String'")
                 }
             } catch (error: Throwable) {
