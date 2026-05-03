@@ -219,8 +219,18 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
         val stringBinding = implPackageRegistry.classNameForOrDefault("StringBinding")
 
         return when (builtinClass.name) {
-            "String" -> CodeBlock.builder().addStatement("%T.instance.newWithUtf8Chars(rawPtr, value)", stringBinding)
-                .build()
+            "String" ->
+                CodeBlock
+                    .builder()
+                    .beginControlFlow("%M", memScoped)
+                    .addStatement(
+                        "%T.instance.newWithUtf16CharsRaw(rawPtr, value.%M.%M)",
+                        stringBinding,
+                        MemberName("kotlinx.cinterop", "utf16", true),
+                        cinteropPtr,
+                    )
+                    .endControlFlow()
+                    .build()
 
             "StringName" -> CodeBlock.builder()
                 .addStatement("%T.instance.nameNewWithUtf8Chars(rawPtr, value)", stringBinding).build()
