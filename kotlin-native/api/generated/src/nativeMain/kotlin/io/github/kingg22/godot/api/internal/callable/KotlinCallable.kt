@@ -1,5 +1,6 @@
 package io.github.kingg22.godot.api.internal.callable
 
+import io.github.kingg22.godot.api.internal.UsedFromCodegenGeneratedCode
 import io.github.kingg22.godot.internal.binding.InternalBinding
 
 /**
@@ -15,6 +16,7 @@ import io.github.kingg22.godot.internal.binding.InternalBinding
  * @see CallableTrampolines
  * @see Function
  */
+@UsedFromCodegenGeneratedCode
 @InternalBinding
 public sealed interface KotlinCallable : Function<Any?> {
     /**

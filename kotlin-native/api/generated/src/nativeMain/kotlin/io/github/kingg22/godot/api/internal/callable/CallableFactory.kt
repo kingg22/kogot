@@ -4,6 +4,7 @@ import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.internal.anyToVariant
 import io.github.kingg22.godot.api.builtin.internal.getValue
+import io.github.kingg22.godot.api.internal.UsedFromCodegenGeneratedCode
 import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.pushError
 import io.github.kingg22.godot.internal.binding.BindingProcAddressHolder
@@ -35,9 +36,11 @@ import kotlinx.cinterop.staticCFunction
  * callable.callDeferred(node, StringName("my_method"))
  * ```
  */
+@UsedFromCodegenGeneratedCode
 @InternalBinding
 public object CallableFactory {
     /** See [Callable] class and factory function */
+    @UsedFromCodegenGeneratedCode
     public fun create(lambda: Function<*>, callable: Callable) {
         check(callable.isNull()) { "Callable must be null to create a custom callable" }
         val callableCustomInfo2 = createImpl(lambda)

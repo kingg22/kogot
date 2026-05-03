@@ -1,6 +1,7 @@
 package io.github.kingg22.godot.api.builtin.internal
 
 import io.github.kingg22.godot.api.builtin.Variant
+import io.github.kingg22.godot.api.internal.UsedFromCodegenGeneratedCode
 import io.github.kingg22.godot.internal.ffi.GDExtensionVariantOperator
 import io.github.kingg22.godot.internal.ffi.GDExtensionVariantType
 import org.jetbrains.annotations.ApiStatus
@@ -9,6 +10,7 @@ import org.jetbrains.annotations.ApiStatus
  * Performs conversion from [Variant.Operator] to [GDExtensionVariantOperator].
  * Both enums are equals, so only change the package and types
  */
+@UsedFromCodegenGeneratedCode
 @ApiStatus.Internal
 public fun Variant.Operator.toGDE(): GDExtensionVariantOperator = when (this) {
     EQUAL -> GDEXTENSION_VARIANT_OP_EQUAL
@@ -43,6 +45,7 @@ public fun Variant.Operator.toGDE(): GDExtensionVariantOperator = when (this) {
  * Performs conversion from [Variant.Type] to [GDExtensionVariantType].
  * Both enums are equals, so only change the package and types
  */
+@UsedFromCodegenGeneratedCode
 @ApiStatus.Internal
 public fun Variant.Type.toGDE(): GDExtensionVariantType = when (this) {
     NIL -> GDEXTENSION_VARIANT_TYPE_NIL
