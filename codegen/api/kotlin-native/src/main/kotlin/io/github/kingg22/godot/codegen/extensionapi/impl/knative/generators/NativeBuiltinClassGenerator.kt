@@ -220,6 +220,8 @@ class NativeBuiltinClassGenerator(
                         .build(),
                 )
             }
+
+            "Callable" -> classBuilder.addFunction(body.callableCustomConstructorFor())
         }
 
         // ── Operators ────────────────────────────────────────────────────────

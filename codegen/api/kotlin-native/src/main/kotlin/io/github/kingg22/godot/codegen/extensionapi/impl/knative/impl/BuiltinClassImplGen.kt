@@ -82,6 +82,8 @@ private fun variantTypeConst(godotName: String?): String? = when (godotName) {
     else -> null
 }
 
+private val K_FUNCTION = ClassName("kotlin", "Function")
+
 /**
  * Generates implementation bodies for Godot builtin classes.
  *
@@ -247,6 +249,36 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
             else -> error("Synthetic String constructor not supported for: $builtinClass")
         }
     }
+
+    fun callableCustomConstructorFor() = FunSpec
+        .constructorBuilder()
+        .callThisConstructor("null")
+        .addKdoc(
+            """
+            Creates a Godot Callable from a Kotlin lambda with arguments [variant type compatible][MustBeVariant].
+
+            The return type of the lambda must be a [Variant type compatible][MustBeVariant].
+
+            Usage:
+            ```
+            val callable = Callable { println("Hello!") }
+            val result: Variant = callable.call() // sync
+            callable.callDeferred() // async
+            ```
+
+            **Safety**:
+            - The lambda must not be more than ≈ 22 arguments, otherwise throws [IllegalStateException].
+            - Currently, not all Kotlin types are supported as parameters.
+            - Currently methods of an instance are supported, but the Callable still register as [custom][Callable.isCustom]
+
+            @param lambda The Kotlin lambda to wrap
+            @return A [Callable] that wraps the Kotlin lambda
+            """.trimIndent(),
+        )
+        .addParameter("lambda", K_FUNCTION.parameterizedBy(STAR))
+        .addStatement("@%T(%T::class)", K_OPT_IN, implPackageRegistry.classNameForOrDefault("InternalBinding"))
+        .addStatement("%T.create(lambda, this)", implPackageRegistry.classNameForOrDefault("CallableFactory"))
+        .build()
 
     // ── Top-level fptr lazy properties ────────────────────────────────────────
 
