@@ -1,6 +1,7 @@
 package io.github.kingg22.godot.api.signal
 
 import io.github.kingg22.godot.api.EnumMask
+import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.GodotString
 import io.github.kingg22.godot.api.builtin.MustBeVariant
 import io.github.kingg22.godot.api.builtin.StringName
@@ -59,28 +60,23 @@ public class Signal1<@MustBeVariant P1>(
      *
      * @param callback The callback to invoke when the signal is emitted
      * @param flags Connection flags (see [GodotObject.connect])
+     * @return The [Callable] that was connected, to be used for disconnecting
      */
-    public inline fun connect(flags: EnumMask<GodotObject.ConnectFlags> = EnumMask(0), callback: (P1) -> Unit) {
-        val callable = createCallable { args ->
-            @Suppress("UNCHECKED_CAST")
-            callback(args[0] as P1)
-        }
+    public fun connect(flags: EnumMask<GodotObject.ConnectFlags> = EnumMask(0), callback: (P1) -> Unit): Callable {
+        val callable = Callable(callback)
         checkGodotError(
             "connect signal: $nameKString",
             StringName(name).use { signalName ->
                 owner.connect(signalName, callable, flags.value.toUInt())
             },
         )
+        return callable
     }
 
     /**
      * Disconnects a callback from this signal.
      */
-    public inline fun disconnect(callback: (P1) -> Unit) {
-        val callable = createCallable { args ->
-            @Suppress("UNCHECKED_CAST")
-            callback(args[0] as P1)
-        }
+    public fun disconnect(callable: Callable) {
         StringName(name).use { signalName ->
             owner.disconnect(signalName, callable)
         }
