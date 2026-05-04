@@ -3,10 +3,12 @@ package io.github.kingg22.godot.api.builtin.internal
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.builtin.*
 import io.github.kingg22.godot.api.core.GodotObject
+import io.github.kingg22.godot.api.internal.UsedFromCodegenGeneratedCode
 import org.jetbrains.annotations.ApiStatus
 import kotlin.contracts.contract
 
 /** See [anyToVariant] */
+@UsedFromCodegenGeneratedCode
 @ExperimentalGodotKotlin
 @ApiStatus.Internal
 public fun anyToVariantOrNull(element: @MustBeVariant Any?): Variant? {
