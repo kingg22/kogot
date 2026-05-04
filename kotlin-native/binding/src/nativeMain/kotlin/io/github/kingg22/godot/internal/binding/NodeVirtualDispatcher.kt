@@ -1,7 +1,6 @@
 package io.github.kingg22.godot.internal.binding
 
 import io.github.kingg22.godot.api.builtin.StringName
-import io.github.kingg22.godot.api.builtin.asStringName
 import io.github.kingg22.godot.internal.ffi.GDExtensionClassGetVirtual2
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.staticCFunction
@@ -15,13 +14,12 @@ public object NodeVirtualDispatcher {
         if (funcNamePtr == null) return@staticCFunction null
 
         StringName(funcNamePtr).use { funcName ->
-            "_ready".asStringName().use { readyName ->
-                if (funcName == readyName) return@staticCFunction NodeVirtualCalls.ready
+            // TODO investigate why cast is needed and why it's not working with == directly
+            return@staticCFunction when (funcName) {
+                "_ready" as Any -> NodeVirtualCalls.ready
+                "_process" as Any -> NodeVirtualCalls.process
+                else -> null
             }
-            "_process".asStringName().use { processName ->
-                if (funcName == processName) return@staticCFunction NodeVirtualCalls.process
-            }
-            null
         }
     }
 }
