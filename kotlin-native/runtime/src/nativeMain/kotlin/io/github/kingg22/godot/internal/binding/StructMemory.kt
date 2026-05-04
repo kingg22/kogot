@@ -26,12 +26,11 @@ public inline fun setBoolean(base: CPointer<ByteVar>, offsetBytes: Int, value: B
 }
 
 @ApiStatus.Internal
-public inline fun getByte(base: CPointer<ByteVar>, offsetBytes: Int): Byte =
-    base.at(offsetBytes).reinterpret<ByteVar>()[0]
+public inline fun getByte(base: CPointer<ByteVar>, offsetBytes: Int): Byte = base.at(offsetBytes)[0]
 
 @ApiStatus.Internal
 public inline fun setByte(base: CPointer<ByteVar>, offsetBytes: Int, value: Byte) {
-    base.at(offsetBytes).reinterpret<ByteVar>()[0] = value
+    base.at(offsetBytes)[0] = value
 }
 
 @ApiStatus.Internal
