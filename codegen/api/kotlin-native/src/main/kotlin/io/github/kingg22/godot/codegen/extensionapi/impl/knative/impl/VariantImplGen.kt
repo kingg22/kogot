@@ -675,14 +675,50 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                 .build(),
         )
 
+        // ── toString() ───────────────────────────────────────────────────────
+        classBuilder.addFunction(
+            FunSpec
+                .builder("toString")
+                .addModifiers(KModifier.OVERRIDE)
+                .returns(STRING)
+                .addCode("return this.stringify().toKString()")
+                .build(),
+        )
+
         // ── hashVariant() ─────────────────────────────────────────────────────
         classBuilder.addFunction(
             FunSpec
                 .builder("hash")
                 .returns(LONG)
                 .addKdoc("Gets the hash of a Variant\n")
-                .addKdoc("Named `hash` to avoid collision with [Any.hashCode].")
                 .addStatement("return %T.instance.hashRaw(rawPtr)", variantBinding)
+                .build(),
+        )
+
+        classBuilder.addFunction(
+            FunSpec
+                .builder("hashCode")
+                .addModifiers(KModifier.OVERRIDE)
+                .returns(INT)
+                .addCode("return this.hash().toInt()")
+                .build(),
+        )
+
+        classBuilder.addFunction(
+            FunSpec
+                .builder("equals")
+                .addModifiers(KModifier.OVERRIDE)
+                .addParameter("other", ANY.copy(nullable = true))
+                .returns(BOOLEAN)
+                .addStatement("// Fast paths")
+                .addStatement("if (other === this) return true")
+                .addStatement("if (other == null) return false")
+                .addStatement(
+                    "val rh = %M(other) ?: return false",
+                    implPackageRegistry.memberNameForOrDefault("anyToVariantOrNull"),
+                )
+                .addStatement("val result = this.evaluate(rh, %T.EQUAL) ?: return false", variantOperatorClass)
+                .addStatement("return result.asBoolOrNull() ?: false")
                 .build(),
         )
 
