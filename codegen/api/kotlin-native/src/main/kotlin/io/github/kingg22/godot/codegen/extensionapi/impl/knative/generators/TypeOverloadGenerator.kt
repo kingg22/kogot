@@ -46,6 +46,9 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
                     ?.takeIf { it.startsWith('"') && it.endsWith('"') }
                     ?.let { CodeBlock.of("%S", it.removeSurrounding("\"")) }
             },
+            configureConstructor = { _, args ->
+                callThisConstructor(args)
+            },
         )
     }
 
@@ -75,21 +78,13 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         val unwrapSuffix: context(Context) () -> CodeBlock,
         val transformDefaultValue: context(Context) (arg: MethodArg, targetType: TypeName) -> CodeBlock? =
             { _, _ -> null },
+        val configureConstructor: context(Context) FunSpec.Builder.(
+            mappedIndices: List<Int>,
+            wrappedArgs: List<CodeBlock>,
+        ) -> Unit = { _, _ -> },
     )
 
     // ── Public API ────────────────────────────────────────────────────────────────
-
-    /**
-     * Returns which parameter indices and whether the return type of [method] match [mapping].
-     */
-    context(_: Context)
-    fun detectMapping(method: MethodDescriptor, mapping: TypeMapping): Pair<List<Int>, Boolean> {
-        val mappedIndices = method.arguments.mapIndexedNotNull { i, arg ->
-            i.takeIf { mapping.matches(typeResolver.resolve(arg)) }
-        }
-        val hasReturnMapping = resolveReturnType(method)?.let { mapping.matches(it) } ?: false
-        return mappedIndices to hasReturnMapping
-    }
 
     /**
      * Builds all overload [FunSpec]s for [method]/[original] using [mapping].
@@ -97,12 +92,13 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
      */
     context(_: Context)
     fun buildOverloadsForMethod(method: MethodDescriptor, original: FunSpec, mapping: TypeMapping): List<FunSpec> {
-        val (mappedIndices, hasReturnMapping) = detectMapping(method, mapping)
+        val mappedIndices = detectMapping(method.arguments, mapping)
+        val hasReturnMapping = detectReturnTypeMapping(method, mapping)
         return buildOverloads(original, mappedIndices, hasReturnMapping, mapping, method.arguments)
     }
 
     /**
-     * Builds a constructor overload for [method]/[original] using [mapping], or an empty list if no
+     * Builds a constructor overload for [constructor]/[original] using [mapping], or an empty list if no
      * parameters match.
      *
      * The [configure] lambda receives a [FunSpec.Builder] already populated with target-typed parameters
@@ -110,7 +106,7 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
      * delegation and/or the constructor body.
      *
      * ```kotlin
-     * generator.buildConstructorOverloadsForMethod(method, original, GodotStringMapping) { _, wrappedArgs ->
+     * generator.buildOverloadsForConstructor(method, original, GodotStringMapping) { _, wrappedArgs ->
      *     callThisConstructor(CodeBlock.of("null"))
      *     addCode(buildCodeBlock {
      *         beginControlFlow("memScoped")
@@ -121,22 +117,40 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
      * ```
      */
     context(_: Context)
-    fun buildConstructorOverloadsForMethod(
-        method: MethodDescriptor,
+    fun buildOverloadsForConstructor(
+        constructor: BuiltinClass.Constructor,
         original: FunSpec,
         mapping: TypeMapping,
-        configure: context(Context) FunSpec.Builder.(mappedIndices: List<Int>, wrappedArgs: List<CodeBlock>) -> Unit,
-    ): List<FunSpec> {
-        val (mappedIndices, _) = detectMapping(method, mapping)
-        if (mappedIndices.isEmpty()) return emptyList()
+    ): FunSpec? {
+        val mappedIndices = detectMapping(constructor.arguments, mapping)
+        if (mappedIndices.isEmpty()) return null
 
         val wrappedArgs = buildWrappedArgs(original.parameters, mappedIndices, mapping)
-        val builder = constructorWithMappedParams(original, mappedIndices, mapping, method.arguments)
-        builder.configure(mappedIndices, wrappedArgs)
-        return listOf(builder.build())
+        val builder = constructorWithMappedParams(original, mappedIndices, mapping, constructor.arguments)
+
+        with(mapping) {
+            builder.configureConstructor(mappedIndices, wrappedArgs)
+        }
+
+        return builder.build()
     }
 
     // ── Core dispatch ─────────────────────────────────────────────────────────────
+
+    /**
+     * Returns which parameter indices match [mapping].
+     */
+    context(_: Context)
+    private fun detectMapping(arguments: List<MethodArg>, mapping: TypeMapping): List<Int> {
+        val mappedIndices = arguments.mapIndexedNotNull { i, arg ->
+            i.takeIf { mapping.matches(typeResolver.resolve(arg)) }
+        }
+        return mappedIndices
+    }
+
+    context(_: Context)
+    private fun detectReturnTypeMapping(method: MethodDescriptor, mapping: TypeMapping): Boolean =
+        resolveReturnType(method)?.let { mapping.matches(it) } ?: false
 
     context(_: Context)
     private fun resolveReturnType(method: MethodDescriptor): TypeName? = when (method) {
@@ -295,8 +309,10 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         mappedIndices: List<Int>,
         mapping: TypeMapping,
         methodArgs: List<MethodArg>,
-    ): FunSpec.Builder = FunSpec.constructorBuilder().apply {
-        addModifiers(original.modifiers - KModifier.INLINE)
+    ): FunSpec.Builder = original.toBuilder().apply {
+        clearBody()
+        parameters.clear()
+        makeFinal()
         original.parameters.forEachIndexed { i, param ->
             addParameter(
                 if (i in mappedIndices) {
@@ -328,7 +344,7 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
 
     /**
      * Pre-builds the argument [CodeBlock]s for a delegate call, wrapping mapped params via [TypeMapping.wrap]
-     * and spreading varargs. Shared between [delegateCall] and [buildConstructorOverloadsForMethod].
+     * and spreading varargs. Shared between [delegateCall] and [buildOverloadsForConstructor].
      */
     context(_: Context)
     private fun buildWrappedArgs(
@@ -369,6 +385,7 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         this
     }
 
+    @IgnorableReturnValue
     private fun FunSpec.restoreOperatorIfNeeded(hadOperator: Boolean): FunSpec =
         if (hadOperator && (name == "get" || name == "set")) {
             toBuilder().addModifiers(KModifier.OPERATOR).build()
@@ -376,10 +393,12 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
             this
         }
 
+    @IgnorableReturnValue
     private fun FunSpec.Builder.makeInlineIfPossible() = apply {
         if (KModifier.INLINE !in modifiers && KModifier.OPEN !in modifiers) addModifiers(KModifier.INLINE)
     }
 
+    @IgnorableReturnValue
     private fun FunSpec.Builder.makeFinal() = apply {
         modifiers.remove(KModifier.OPEN)
     }
