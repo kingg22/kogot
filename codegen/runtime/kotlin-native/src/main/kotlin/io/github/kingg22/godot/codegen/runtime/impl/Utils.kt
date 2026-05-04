@@ -76,11 +76,7 @@ fun deprecatedAnnotation(deprecated: Deprecated): AnnotationSpec {
         .addMember("message = %S", message)
         .apply {
             if (!deprecated.replaceWith.isNullOrBlank()) {
-                addMember(
-                    "replaceWith = %T(%S)",
-                    K_REPLACE_WITH,
-                    deprecated.replaceWith!!.snakeCaseToCamelCase(),
-                )
+                addMember("replaceWith = %T(%S)", K_REPLACE_WITH, deprecated.replaceWith!!)
             }
         }
         .build()
@@ -99,7 +95,11 @@ fun functionPointerPropertyName(iface: Interface): String {
 
 fun prefixOf(iface: Interface): String = prefixOf(iface.name)
 
-fun prefixOf(symbolName: String): String = symbolName.substringBefore('_')
+fun prefixOf(symbolName: String): String = if (symbolName.startsWith("worker_thread_pool_")) {
+    "worker_thread_pool"
+} else {
+    symbolName.substringBefore('_')
+}
 
 fun implementationNameForPrefix(prefix: String): String {
     val canonical = when (prefix) {
