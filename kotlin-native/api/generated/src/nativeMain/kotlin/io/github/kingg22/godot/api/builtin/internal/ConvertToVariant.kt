@@ -4,25 +4,13 @@ import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.builtin.*
 import io.github.kingg22.godot.api.core.GodotObject
 import org.jetbrains.annotations.ApiStatus
+import kotlin.contracts.contract
 
-/**
- * Converts an arbitrary type to a [Variant].
- *
- * Equivalent to call `asVariant()` on the type.
- *
- * **Safety**:
- * - `null` is converted to [Variant.Type.NIL]
- * - [Variant] is returned the same Variant, not a copy
- * - [Unit] is converted to [Variant.Type.NIL]
- * - [Throwable] is not supported, throws [IllegalStateException]
- *
- * @param element The element to convert, [must be a variant type compatible][MustBeVariant].
- * @see Variant
- * @see asVariant
- */
+/** See [anyToVariant] */
 @ExperimentalGodotKotlin
 @ApiStatus.Internal
-public fun <T> anyToVariant(element: @MustBeVariant T?): Variant {
+public fun anyToVariantOrNull(element: @MustBeVariant Any?): Variant? {
+    contract { returns() implies (element != null) }
     // Manejo explícito de null → Variant NIL
     if (element == null) return Variant()
 
@@ -71,6 +59,26 @@ public fun <T> anyToVariant(element: @MustBeVariant T?): Variant {
         is PackedVector4Array -> element.asVariant()
         is PackedColorArray -> element.asVariant()
         is Throwable -> throw IllegalStateException("Cannot convert Throwable to Variant", element)
-        else -> error("Unsupported type for Variant: $element (${element::class})")
+        else -> null
     }
 }
+
+/**
+ * Converts an arbitrary type to a [Variant].
+ *
+ * Equivalent to call `asVariant()` on the type.
+ *
+ * **Safety**:
+ * - `null` is converted to [Variant.Type.NIL]
+ * - [Variant] is returned the same Variant, not a copy
+ * - [Unit] is converted to [Variant.Type.NIL]
+ * - [Throwable] is not supported, throws [IllegalStateException]
+ *
+ * @param element The element to convert, [must be a variant type compatible][MustBeVariant].
+ * @see Variant
+ * @see asVariant
+ */
+@ExperimentalGodotKotlin
+@ApiStatus.Internal
+public fun anyToVariant(element: @MustBeVariant Any?): Variant =
+    anyToVariantOrNull(element) ?: error("Unsupported type for Variant: $element (${element::class})")
