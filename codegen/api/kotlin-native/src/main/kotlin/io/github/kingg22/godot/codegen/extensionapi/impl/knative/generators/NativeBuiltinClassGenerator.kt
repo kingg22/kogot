@@ -188,29 +188,38 @@ class NativeBuiltinClassGenerator(
 
             classBuilder.addProperty(propBuilder.build())
         }
+        val isString = builtinClass.name == "String"
+        val haveStringConstructor = isString || builtinClass.name == "StringName" || builtinClass.name == "NodePath"
 
         // ── Constructors ─────────────────────────────────────────────────────
         // Godot constructors become secondary constructors (or companion factory funs if static-style).
         // No primary constructor is ever generated for builtins.
         // Index 0 is always the no-arg constructor.
-        val constructorsSpecs = builtinClass.constructors.filter { it.raw != null }.map { ctor ->
+        val constructorsSpecs = builtinClass.constructors.filter { it.raw != null }.flatMap { ctor ->
             val ctorBuilder = FunSpec
                 .constructorBuilder()
                 .addKdocIfPresent(ctor.raw!!)
                 .let { body.configureStorageBackedSecondaryCtor(builtinClass, it) }
+                .addParameters(ctor.arguments.map { arg -> methodGen.buildParameter(arg) })
+                .addCode(body.constructorBodyFor(builtinClass, ctor))
+                .build()
 
-            val argumentSpecs = ctor.arguments.map { arg -> methodGen.buildParameter(arg) }
-
-            ctorBuilder.addParameters(argumentSpecs)
-            ctorBuilder.addCode(body.constructorBodyFor(builtinClass, ctor))
-
-            ctorBuilder.build()
+            buildList {
+                add(ctorBuilder)
+                if (!haveStringConstructor) {
+                    overloadGen.buildOverloadsForConstructor(
+                        ctor.raw!!,
+                        ctorBuilder,
+                        TypeOverloadGenerator.GodotStringMapping,
+                    )?.let(::add)
+                }
+            }
         }
         classBuilder.addFunctions(constructorsSpecs)
 
         // ── Special constructors for String types ─────────────────────────────
-        when (builtinClass.name) {
-            "String", "StringName", "NodePath" -> {
+        when {
+            haveStringConstructor -> {
                 classBuilder.addFunction(
                     FunSpec
                         .constructorBuilder()
@@ -222,7 +231,7 @@ class NativeBuiltinClassGenerator(
                 )
             }
 
-            "Callable" -> classBuilder.addFunction(body.callableCustomConstructorFor())
+            builtinClass.name == "Callable" -> classBuilder.addFunction(body.callableCustomConstructorFor())
         }
 
         // ── Operators ────────────────────────────────────────────────────────
@@ -246,9 +255,7 @@ class NativeBuiltinClassGenerator(
         }
         classBuilder.addFunctions(methodSpecs)
 
-        if (builtinClass.name == "String") {
-            classBuilder.addFunctions(body.buildToKStringConverters())
-        }
+        if (isString) classBuilder.addFunctions(body.buildToKStringConverters())
 
         // ── Companion object (constants + static methods + layout offsets) ─────
         val companionBuilder = TypeSpec.companionObjectBuilder()
@@ -287,9 +294,7 @@ class NativeBuiltinClassGenerator(
         }
         companionBuilder.addFunctions(staticMethodSpecs)
 
-        if (builtinClass.name == "String") {
-            companionBuilder.addFunctions(body.buildStaticStringConverters())
-        }
+        if (isString) companionBuilder.addFunctions(body.buildStaticStringConverters())
 
         val companionHasContent = companionBuilder.funSpecs.isNotEmpty() || companionBuilder.propertySpecs.isNotEmpty()
 
