@@ -538,12 +538,12 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
     fun buildMethodBody(method: BuiltinClass.BuiltinMethod, className: String): CodeBlock =
         methodImplGen.buildMethodBody(method, className)
 
+    context(_: Context)
     fun buildHashCodeBody(resolvedClass: ResolvedBuiltinClass): CodeBlock =
         methodImplGen.buildHashCodeBody(resolvedClass)
 
-    context(ctx: Context)
-    fun buildToStringBody(resolvedClass: ResolvedBuiltinClass): CodeBlock =
-        methodImplGen.buildToStringBody(resolvedClass)
+    context(_: Context)
+    fun buildToStringBody(): CodeBlock = methodImplGen.buildToStringBody()
 
     fun buildToKStringConverters() = methodImplGen.buildToStringConverters()
 

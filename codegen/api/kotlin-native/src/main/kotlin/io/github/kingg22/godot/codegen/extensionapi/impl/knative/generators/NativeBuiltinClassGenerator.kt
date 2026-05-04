@@ -417,9 +417,9 @@ class NativeBuiltinClassGenerator(
                                 .builder("toString")
                                 .addModifiers(KModifier.OVERRIDE)
                                 .returns(STRING)
-                                .addCode(body.buildToStringBody(resolvedClass))
+                                .addCode(body.buildToStringBody())
                                 .addKdoc(
-                                    "Returns the Godot string representation via [%T.stringify]]",
+                                    "Returns the Godot string representation via [%T.stringify]",
                                     ctx.classNameForOrDefault("Variant"),
                                 )
                                 .build(),
