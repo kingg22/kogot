@@ -13,7 +13,6 @@ import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.models.config.CodegenOptions
 import io.github.kingg22.godot.codegen.models.extensioninterface.GDExtensionInterface
 import io.github.kingg22.godot.codegen.models.extensioninterface.Interface
-import io.github.kingg22.godot.codegen.types.K_OPT_IN
 import io.github.kingg22.godot.codegen.types.K_SUPPRESS
 import io.github.kingg22.godot.codegen.types.cinteropCstr
 import io.github.kingg22.godot.codegen.types.cinteropInvoke
@@ -38,7 +37,6 @@ class RuntimeFFIGenerator(private val packageName: String) {
 
         return interfaceModel.interfaces
             .groupBy { prefixOf(it) }
-            .toSortedMap()
             .asSequence()
             .map { (prefix, interfaces) ->
                 context(packageRegistry, resolver) {
@@ -71,7 +69,8 @@ class RuntimeFFIGenerator(private val packageName: String) {
                     .build(),
             )
             .addKdoc(
-                "Runtime bindings for `%L_*` symbols loaded through `getProcAddress`.\n\nGenerated from Godot 4.6.1 `gdextension_interface.json`.",
+                "Runtime bindings for `%L_*` symbols loaded through `getProcAddress`.\n\n" +
+                    "Generated from `gdextension_interface.json`.",
                 prefix,
             )
             .addAnnotation(
@@ -79,13 +78,6 @@ class RuntimeFFIGenerator(private val packageName: String) {
                     .builder(K_SUPPRESS)
                     .addMember("%S", "DEPRECATION")
                     .addMember("%S", "DEPRECATION_ERROR")
-                    .addMember("%S", "NOTHING_TO_INLINE")
-                    .build(),
-            )
-            .addAnnotation(
-                AnnotationSpec
-                    .builder(K_OPT_IN)
-                    .addMember("%T::class", packageRegistry.classNameForOrDefault("InternalBinding"))
                     .build(),
             )
             .addType(buildCompanionObject(className))
@@ -124,18 +116,17 @@ class RuntimeFFIGenerator(private val packageName: String) {
         )
         .build()
 
-    context(packageRegistry: RuntimePackageRegistry, resolver: RuntimeTypeResolver)
+    context(resolver: RuntimeTypeResolver)
     private fun buildFunctionPointerProperty(iface: Interface): PropertySpec {
         val aliasType = resolver.resolveInterfaceAlias(iface)
         val propertyName = functionPointerPropertyName(iface)
 
         return PropertySpec
             .builder(propertyName, aliasType)
+            .addModifiers(KModifier.PRIVATE)
             .apply {
-                addKdoc("Low-level pointer for `%S`.", iface.name)
                 iface.deprecated?.let { addAnnotation(deprecatedAnnotation(it)) }
             }
-            .addAnnotation(packageRegistry.classNameForOrDefault("InternalBinding"))
             .delegate(
                 CodeBlock
                     .builder()
@@ -168,7 +159,6 @@ class RuntimeFFIGenerator(private val packageName: String) {
 
         return FunSpec
             .builder(rawWrapperName(iface))
-            .addModifiers(KModifier.INLINE)
             .apply {
                 parameters.forEach(::addParameter)
                 if (hasReturn) {
