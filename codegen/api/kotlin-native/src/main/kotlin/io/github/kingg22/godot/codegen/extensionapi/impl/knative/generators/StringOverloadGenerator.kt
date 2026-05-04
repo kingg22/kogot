@@ -3,7 +3,6 @@ package io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.joinToCode
@@ -107,7 +106,7 @@ class StringOverloadGenerator(private val typeResolver: TypeResolver) {
             // Parameters: GodotString params become String, others unchanged
             original.parameters.forEachIndexed { index, param ->
                 val newType = if (index in godotStringIndices) kotlinStringClass else param.type
-                builder.addParameter(ParameterSpec.builder(param.name, newType).build())
+                builder.addParameter(param.toBuilder(type = newType).build())
             }
 
             // Body: delegate to original with GodotString wrapping
@@ -159,7 +158,7 @@ class StringOverloadGenerator(private val typeResolver: TypeResolver) {
 
             original.parameters.forEachIndexed { index, param ->
                 val newType = if (index in godotStringIndices) kotlinStringClass else param.type
-                nonSuffixBuilder.addParameter(ParameterSpec.builder(param.name, newType).build())
+                nonSuffixBuilder.addParameter(param.toBuilder(type = newType).build())
             }
 
             val nonSuffixArgs = original.parameters.mapIndexed { index, param ->
@@ -185,7 +184,7 @@ class StringOverloadGenerator(private val typeResolver: TypeResolver) {
 
             original.parameters.forEachIndexed { index, param ->
                 val newType = if (index in godotStringIndices) kotlinStringClass else param.type
-                asGdStrBuilder.addParameter(ParameterSpec.builder(param.name, newType).build())
+                asGdStrBuilder.addParameter(param.toBuilder(type = newType).build())
             }
 
             val asGdStrArgs = original.parameters.mapIndexed { index, param ->
@@ -204,6 +203,12 @@ class StringOverloadGenerator(private val typeResolver: TypeResolver) {
             overloads.add(original.toBuilder(name = originalName + "AsGdStr").build())
         }
 
-        return overloads
+        return overloads.map { funSpec ->
+            if (funSpec.name == "set" || funSpec.name == "get") {
+                funSpec.toBuilder().addModifiers(KModifier.OPERATOR).build()
+            } else {
+                funSpec
+            }
+        }
     }
 }
