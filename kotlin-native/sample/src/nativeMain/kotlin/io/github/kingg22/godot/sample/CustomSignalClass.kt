@@ -4,8 +4,6 @@ import io.github.kingg22.godot.api.builtin.StringName
 import io.github.kingg22.godot.api.builtin.asGodotString
 import io.github.kingg22.godot.api.builtin.asStringName
 import io.github.kingg22.godot.api.core.Node
-import io.github.kingg22.godot.api.signal.param
-import io.github.kingg22.godot.api.signal.signal
 import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.print
 import io.github.kingg22.godot.internal.binding.BindingProcAddressHolder
@@ -21,12 +19,7 @@ import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.cValue
 import kotlinx.cinterop.memScoped
 
-class CustomSignalClass(nativePtr: COpaquePointer) : Node(nativePtr) {
-    companion object {
-        val mySignal = signal("my_signal")
-        val mySignal1 = signal("my_signal", param<Int>("value"))
-    }
-}
+class CustomSignalClass(nativePtr: COpaquePointer) : Node(nativePtr)
 
 fun registerCustomSignalClass() {
     val info = cValue<GDExtensionClassCreationInfo5> {

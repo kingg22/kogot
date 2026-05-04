@@ -10,7 +10,7 @@ import kotlin.reflect.typeOf
 /**
  * Descriptor for a signal parameter, combining name and type information.
  *
- * This is used by [Signal] with parameters to capture the Godot-side parameter
+ * This is used by [io.github.kingg22.godot.api.builtin.Signal] with parameters to capture the Godot-side parameter
  * metadata required for signal registration.
  *
  * @param P The Kotlin type of this parameter
