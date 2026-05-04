@@ -22,7 +22,7 @@ class NativeEngineClassGenerator(
     private val body: EngineMethodImplGen,
     private val propertyGen: EnginePropertyImplGen,
     private val methodGen: NativeMethodGenerator,
-    private val stringOverloadGen: StringOverloadGenerator,
+    private val overloadGen: TypeOverloadGenerator,
     private val enumGenerator: NativeEnumGenerator,
     private val engineClassImplGen: EngineClassImplGen,
 ) {
@@ -69,7 +69,11 @@ class NativeEngineClassGenerator(
                 }
 
                 classBuilder.addFunctions(
-                    stringOverloadGen.buildStringOverloadsForMethod(method, original).ifEmpty {
+                    overloadGen.buildOverloadsForMethod(
+                        method,
+                        original,
+                        TypeOverloadGenerator.GodotStringMapping,
+                    ).ifEmpty {
                         listOf(original)
                     },
                 )
@@ -96,7 +100,11 @@ class NativeEngineClassGenerator(
                 )
 
                 companionBuilder.addFunctions(
-                    stringOverloadGen.buildStringOverloadsForMethod(method, original).ifEmpty {
+                    overloadGen.buildOverloadsForMethod(
+                        method,
+                        original,
+                        TypeOverloadGenerator.GodotStringMapping,
+                    ).ifEmpty {
                         listOf(original)
                     },
                 )

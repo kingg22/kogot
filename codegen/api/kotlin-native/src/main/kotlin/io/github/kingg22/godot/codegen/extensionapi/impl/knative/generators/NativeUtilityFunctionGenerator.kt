@@ -23,7 +23,7 @@ import io.github.kingg22.godot.codegen.utils.withExceptionContext
  */
 class NativeUtilityFunctionGenerator(
     private val methodGen: NativeMethodGenerator,
-    private val stringOverloadGen: StringOverloadGenerator,
+    private val overloadGen: TypeOverloadGenerator,
     private val implGen: UtilityFunctionImplGen,
 ) {
     context(context: Context)
@@ -60,7 +60,13 @@ class NativeUtilityFunctionGenerator(
                         }
                     }
 
-                    stringOverloadGen.buildStringOverloadsForMethod(fn, original).ifEmpty { listOf(original) }
+                    overloadGen.buildOverloadsForMethod(
+                        fn,
+                        original,
+                        TypeOverloadGenerator.GodotStringMapping,
+                    ).ifEmpty {
+                        listOf(original)
+                    }
                 }
             }
 

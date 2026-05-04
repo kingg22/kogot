@@ -43,7 +43,7 @@ class NativeBuiltinClassGenerator(
     private val body: BuiltinClassImplGen,
     private val defaultValueGenerator: DefaultValueGenerator,
     private val methodGen: NativeMethodGenerator,
-    private val stringOverloadGen: StringOverloadGenerator,
+    private val overloadGen: TypeOverloadGenerator,
     private val enumGenerator: NativeEnumGenerator,
     private val genericInterceptor: GenericBuiltinInterceptor,
     private val typeAliasGenerator: TypeAliasGenerator,
@@ -279,8 +279,11 @@ class NativeBuiltinClassGenerator(
                 builtinClass.name,
                 codeBody = body.buildMethodBody(method, builtinClass.name),
             )
-            val overloads = stringOverloadGen.buildStringOverloadsForMethod(method, original)
-            overloads.ifEmpty { listOf(original) }
+            overloadGen.buildOverloadsForMethod(
+                method,
+                original,
+                TypeOverloadGenerator.GodotStringMapping,
+            ).ifEmpty { listOf(original) }
         }
         companionBuilder.addFunctions(staticMethodSpecs)
 
@@ -347,7 +350,9 @@ class NativeBuiltinClassGenerator(
         }
 
         // String overloads if needed
-        return stringOverloadGen.buildStringOverloadsForMethod(method, original).ifEmpty { listOf(original) }
+        return overloadGen.buildOverloadsForMethod(method, original, TypeOverloadGenerator.GodotStringMapping).ifEmpty {
+            listOf(original)
+        }
     }
 
     // ── Operator generation ───────────────────────────────────────────────────
