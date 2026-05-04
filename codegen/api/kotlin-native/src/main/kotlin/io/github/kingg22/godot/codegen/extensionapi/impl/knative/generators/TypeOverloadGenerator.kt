@@ -12,11 +12,12 @@ import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
 import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
+import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodDescriptor
 import io.github.kingg22.godot.codegen.models.extensionapi.UtilityFunction
 
 /**
- * Generates Kotlin-friendly overload variants for methods whose parameters or return type
+ * Generates Kotlin-friendly overload variants for methods/constructors whose parameters or return type
  * use a Godot type that has a Kotlin equivalent (e.g. `GodotString`↔`String`,
  * `StringName`↔`String`, `Variant`↔`Any?`).
  *
@@ -24,7 +25,6 @@ import io.github.kingg22.godot.codegen.models.extensionapi.UtilityFunction
  */
 class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
     companion object {
-        // GodotString ↔ kotlin.String
         @JvmField
         val GodotStringMapping = TypeMapping(
             matches = { type ->
@@ -39,45 +39,32 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
                 CodeBlock.of("%T(%N)", contextOf<Context>().classNameForOrDefault("String"), name)
             },
             unwrapSuffix = { CodeBlock.of(".toKString()") },
-        )
-
-        /* StringName ↔ kotlin.String
-        val stringNameMapping = TypeOverloadGenerator.TypeMapping(
-            matches = { it == ctx.classNameForOrDefault("StringName") },
-            sourceType = ctx.classNameForOrDefault("StringName"),
-            targetType = STRING,
-            rawSuffix = "AsSN",
-            wrap = { name, isVararg ->
-                require(!isVararg) { "Doesn't support vararg for StringName yet" }
-                CodeBlock.of("%T(%N)", ctx.classNameForOrDefault("StringName"), name)
+            transformDefaultValue = { arg, _ ->
+                // Godot string defaults arrive quoted: "{_}" → we want the Kotlin literal "{_}".
+                // Strip the surrounding Godot quotes and re-emit as a Kotlin string literal via %S.
+                arg.defaultValue
+                    ?.takeIf { it.startsWith('"') && it.endsWith('"') }
+                    ?.let { CodeBlock.of("%S", it.removeSurrounding("\"")) }
             },
-            unwrapSuffix = ".let { GodotString(it).toKString() }",
         )
-
-        // Variant ↔ kotlin.Any?
-        val variantMapping = TypeOverloadGenerator.TypeMapping(
-            matches = { it == ctx.classNameForOrDefault("Variant") },
-            sourceType = ctx.classNameForOrDefault("Variant"),
-            targetType = ANY.copy(nullable = true),
-            rawSuffix = "AsVariant",
-            wrap = { name, isVararg -> CodeBlock.of("%T.from(%N)", ctx.classNameForOrDefault("Variant"), name) },
-            unwrapSuffix = ".toAny()",
-        )
-         */
     }
 
     /**
      * Describes a bidirectional substitution between a Godot type and a Kotlin type.
      *
-     * @property matches      Predicate that identifies the Godot (source) type from a resolved [TypeName].
-     * @property sourceType   The Godot [TypeName] used in wrap-expressions within generated code.
-     * @property targetType   The Kotlin [TypeName] that replaces the source in overload signatures.
-     * @property rawSuffix    Appended to the method name in the "raw" (Godot-typed) variant, e.g. `"AsGdStr"`.
-     * @property wrap         Produces a [CodeBlock] that converts a target-typed argument back to source,
-     *                        e.g., `GodotString(paramName)`.
-     *                        Can't contain statements, only expressions.
-     * @property unwrapSuffix Expression appended to a call site to convert a source return value to target,
-     *                        e.g., `".toKString()"`. Must include the leading `.` if needed.
+     * @property matches               Predicate that identifies the Godot (source) type from a resolved [TypeName].
+     * @property sourceType            The Godot [TypeName] used in wrap-expressions within generated code.
+     * @property targetType            The Kotlin [TypeName] that replaces the source in overload signatures.
+     * @property rawSuffix             Appended to the method name in the "raw" (Godot-typed) variant, e.g. `"AsGdStr"`.
+     * @property wrap                  Produces a [CodeBlock] converting a target-typed argument back to source.
+     *                                 Cannot contain statements, only expressions.
+     * @property unwrapSuffix          Expression appended to a call site to convert a source return value to target,
+     *                                 e.g. `".toKString()"`. Must include the leading `.` if needed.
+     * @property transformDefaultValue Adapts the default value of a mapped parameter for the target type.
+     *                                 Receives the original [MethodArg] (with raw Godot default string) and the
+     *                                 resolved target [TypeName]. Return `null` to drop the default — never return
+     *                                 the source-typed CodeBlock from the original [ParameterSpec], as that would
+     *                                 reproduce the bug this field exists to fix.
      */
     data class TypeMapping(
         val matches: context(Context) (type: TypeName) -> Boolean,
@@ -86,6 +73,8 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         val rawSuffix: String,
         val wrap: context(Context) (paramName: String, isVararg: Boolean) -> CodeBlock,
         val unwrapSuffix: context(Context) () -> CodeBlock,
+        val transformDefaultValue: context(Context) (arg: MethodArg, targetType: TypeName) -> CodeBlock? =
+            { _, _ -> null },
     )
 
     // ── Public API ────────────────────────────────────────────────────────────────
@@ -109,8 +98,45 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
     context(_: Context)
     fun buildOverloadsForMethod(method: MethodDescriptor, original: FunSpec, mapping: TypeMapping): List<FunSpec> {
         val (mappedIndices, hasReturnMapping) = detectMapping(method, mapping)
-        return buildOverloads(original, mappedIndices, hasReturnMapping, mapping)
+        return buildOverloads(original, mappedIndices, hasReturnMapping, mapping, method.arguments)
     }
+
+    /**
+     * Builds a constructor overload for [method]/[original] using [mapping], or an empty list if no
+     * parameters match.
+     *
+     * The [configure] lambda receives a [FunSpec.Builder] already populated with target-typed parameters
+     * (with adapted defaults) and the pre-built `wrappedArgs` per mapped param. Use them to set up
+     * delegation and/or the constructor body.
+     *
+     * ```kotlin
+     * generator.buildConstructorOverloadsForMethod(method, original, GodotStringMapping) { _, wrappedArgs ->
+     *     callThisConstructor(CodeBlock.of("null"))
+     *     addCode(buildCodeBlock {
+     *         beginControlFlow("memScoped")
+     *         addStatement("fptr.invoke(rawPtr, allocConstTypePtrArray(%L))", wrappedArgs.joinToCode(", "))
+     *         endControlFlow()
+     *     })
+     * }
+     * ```
+     */
+    context(_: Context)
+    fun buildConstructorOverloadsForMethod(
+        method: MethodDescriptor,
+        original: FunSpec,
+        mapping: TypeMapping,
+        configure: context(Context) FunSpec.Builder.(mappedIndices: List<Int>, wrappedArgs: List<CodeBlock>) -> Unit,
+    ): List<FunSpec> {
+        val (mappedIndices, _) = detectMapping(method, mapping)
+        if (mappedIndices.isEmpty()) return emptyList()
+
+        val wrappedArgs = buildWrappedArgs(original.parameters, mappedIndices, mapping)
+        val builder = constructorWithMappedParams(original, mappedIndices, mapping, method.arguments)
+        builder.configure(mappedIndices, wrappedArgs)
+        return listOf(builder.build())
+    }
+
+    // ── Core dispatch ─────────────────────────────────────────────────────────────
 
     context(_: Context)
     private fun resolveReturnType(method: MethodDescriptor): TypeName? = when (method) {
@@ -119,14 +145,13 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         is UtilityFunction -> method.returnType?.let { typeResolver.resolve(it) }
     }
 
-    // ── Core dispatch ─────────────────────────────────────────────────────────────
-
     context(_: Context)
     private fun buildOverloads(
         original: FunSpec,
         mappedIndices: List<Int>,
         hasReturnMapping: Boolean,
         mapping: TypeMapping,
+        methodArgs: List<MethodArg>,
     ): List<FunSpec> {
         if (mappedIndices.isEmpty() && !hasReturnMapping) return emptyList()
 
@@ -134,9 +159,16 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         val base = original.withoutOperator()
 
         val variants = when {
-            mappedIndices.isNotEmpty() && !hasReturnMapping -> paramOnlyVariants(base, mappedIndices, mapping)
+            mappedIndices.isNotEmpty() && !hasReturnMapping -> paramOnlyVariants(
+                base,
+                mappedIndices,
+                mapping,
+                methodArgs,
+            )
+
             mappedIndices.isEmpty() && hasReturnMapping -> returnOnlyVariants(base, mapping)
-            else -> bothVariants(base, mappedIndices, mapping)
+
+            else -> bothVariants(base, mappedIndices, mapping, methodArgs)
         }
 
         return variants.map { it.restoreOperatorIfNeeded(hadOperator) }
@@ -149,24 +181,29 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
      *
      * Emits:
      * 1. The original (source-typed params, source return)
-     * 2. `inline fun [name](targetParams): SourceReturn` → delegates to original wrapping each param
+     * 2. `inline fun [name](targetParams): SourceReturn` — delegates to original, wrapping each mapped param
      */
     context(_: Context)
-    private fun paramOnlyVariants(original: FunSpec, mappedIndices: List<Int>, mapping: TypeMapping): List<FunSpec> =
-        listOf(
-            original,
-            funWithMappedParams(original.name, original, mappedIndices, mapping)
-                .addModifiers(KModifier.INLINE)
-                .returns(original.returnType)
-                .addCode(delegateCall(original.name, original.parameters, mappedIndices, mapping, unwrap = false))
-                .build(),
-        )
+    private fun paramOnlyVariants(
+        original: FunSpec,
+        mappedIndices: List<Int>,
+        mapping: TypeMapping,
+        methodArgs: List<MethodArg>,
+    ): List<FunSpec> = listOf(
+        original,
+        funWithMappedParams(original.name, original, mappedIndices, mapping, methodArgs)
+            .makeInlineIfPossible()
+            .makeFinal()
+            .returns(original.returnType)
+            .addCode(delegateCall(original.name, original.parameters, mappedIndices, mapping, unwrap = false))
+            .build(),
+    )
 
     /**
-     * Only the return type is mapped; parameters are unchanged.
+     * Only the return type is mapped; parameters are unchanged — no default adaptation needed.
      *
      * Emits:
-     * 1. `inline fun [name](sourceParams): TargetReturn` → delegates to `[name][rawSuffix]().unwrap`
+     * 1. `inline fun [name](sourceParams): TargetReturn` — delegates to `[name][rawSuffix]().unwrap`
      * 2. The original renamed to `[name][rawSuffix]` (source return)
      */
     context(_: Context)
@@ -174,7 +211,8 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         val suffixName = original.name + mapping.rawSuffix
         return listOf(
             FunSpec.builder(original.name)
-                .addModifiers(KModifier.INLINE)
+                .makeInlineIfPossible()
+                .makeFinal()
                 .returns(mapping.targetType())
                 .addParameters(original.parameters)
                 .addCode(delegateCall(suffixName, original.parameters, emptyList(), mapping, unwrap = true))
@@ -187,21 +225,28 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
      * Both parameters and the return type are mapped.
      *
      * Emits:
-     * 1. `inline fun [name](targetParams): TargetReturn`     → wraps params, delegates to `[name][rawSuffix]`, unwraps
-     * 2. `inline fun [name][rawSuffix](targetParams): SourceReturn` → wraps params, delegates to `[name][rawSuffix]`
-     * 3. The original renamed to `[name][rawSuffix]` (source-typed params and return)
+     * 1. `inline fun [name](targetParams): TargetReturn`          — wraps params, unwraps result
+     * 2. `inline fun [name][rawSuffix](targetParams): SourceReturn` — wraps params only
+     * 3. The original renamed to `[name][rawSuffix]` (source-typed params and return, defaults preserved)
      */
     context(_: Context)
-    private fun bothVariants(original: FunSpec, mappedIndices: List<Int>, mapping: TypeMapping): List<FunSpec> {
+    private fun bothVariants(
+        original: FunSpec,
+        mappedIndices: List<Int>,
+        mapping: TypeMapping,
+        methodArgs: List<MethodArg>,
+    ): List<FunSpec> {
         val suffixName = original.name + mapping.rawSuffix
         return listOf(
-            funWithMappedParams(original.name, original, mappedIndices, mapping)
-                .addModifiers(KModifier.INLINE)
+            funWithMappedParams(original.name, original, mappedIndices, mapping, methodArgs)
+                .makeInlineIfPossible()
+                .makeFinal()
                 .returns(mapping.targetType())
                 .addCode(delegateCall(suffixName, original.parameters, mappedIndices, mapping, unwrap = true))
                 .build(),
-            funWithMappedParams(suffixName, original, mappedIndices, mapping)
-                .addModifiers(KModifier.INLINE)
+            funWithMappedParams(suffixName, original, mappedIndices, mapping, methodArgs)
+                .makeInlineIfPossible()
+                .makeFinal()
                 .returns(mapping.sourceType())
                 .addCode(delegateCall(suffixName, original.parameters, mappedIndices, mapping, unwrap = false))
                 .build(),
@@ -211,33 +256,93 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
 
     // ── Shared building blocks ────────────────────────────────────────────────────
 
-    /** Starts a [FunSpec.Builder] with [name] and parameters derived from [original], substituting mapped types. */
+    /**
+     * Starts a [FunSpec.Builder] with [name] and parameters from [original], substituting mapped types
+     * and adapting default values via [TypeMapping.transformDefaultValue].
+     *
+     * Unmapped parameters are copied as-is; mapped parameters are rebuilt from scratch (rather than via
+     * [ParameterSpec.toBuilder]) so we can control whether a default value is emitted — KotlinPoet
+     * always copies the existing default in [ParameterSpec.toBuilder] with no way to clear it.
+     */
     context(_: Context)
     private fun funWithMappedParams(
         name: String,
         original: FunSpec,
         mappedIndices: List<Int>,
         mapping: TypeMapping,
-    ): FunSpec.Builder = FunSpec.builder(name).apply {
+        methodArgs: List<MethodArg>,
+    ): FunSpec.Builder = original.toBuilder(name).apply {
+        clearBody() // we'll go to use all the original FunSpec, but we don't want to copy the body
+        parameters.clear()
         original.parameters.forEachIndexed { i, param ->
-            val parameterSpec = if (i in mappedIndices) {
-                param.toBuilder(type = mapping.targetType()).apply {
-                    defaultValue(null)
-                }.build()
-            } else {
-                param
-            }
-            addParameter(parameterSpec)
+            addParameter(
+                if (i in mappedIndices) {
+                    adaptParameter(param, mapping, methodArgs.getOrNull(i))
+                } else {
+                    param
+                },
+            )
         }
     }
 
-    private fun ParameterSpec.isVararg() = modifiers.contains(KModifier.VARARG)
+    /**
+     * Like [funWithMappedParams] but produces a constructor builder, copying modifiers from [original].
+     * `INLINE` is stripped — constructors do not support that modifier.
+     */
+    context(_: Context)
+    private fun constructorWithMappedParams(
+        original: FunSpec,
+        mappedIndices: List<Int>,
+        mapping: TypeMapping,
+        methodArgs: List<MethodArg>,
+    ): FunSpec.Builder = FunSpec.constructorBuilder().apply {
+        addModifiers(original.modifiers - KModifier.INLINE)
+        original.parameters.forEachIndexed { i, param ->
+            addParameter(
+                if (i in mappedIndices) {
+                    adaptParameter(param, mapping, methodArgs.getOrNull(i))
+                } else {
+                    param
+                },
+            )
+        }
+    }
 
     /**
-     * Builds a `return callee(args)` or `return callee(args).unwrapSuffix` [CodeBlock].
+     * Rebuilds [original] with [mapping]'s target type and an adapted default value.
      *
-     * Parameters at [mappedIndices] are wrapped via [TypeMapping.wrap]; others are passed as-is.
+     * We construct a fresh [ParameterSpec] instead of using [ParameterSpec.toBuilder] because
+     * [ParameterSpec.toBuilder] always copies [ParameterSpec.defaultValue] and KotlinPoet exposes no
+     * public API to clear it afterwards. Building fresh lets us apply [TypeMapping.transformDefaultValue]
+     * cleanly: if it returns `null` the overload parameter simply has no default, which is correct
+     * (the source-typed original still carries the default for callers that need it).
      */
+    context(_: Context)
+    private fun adaptParameter(original: ParameterSpec, mapping: TypeMapping, methodArg: MethodArg?): ParameterSpec {
+        val targetType = mapping.targetType()
+        val adaptedDefault = methodArg?.let { mapping.transformDefaultValue(it, targetType) }
+        return original.toBuilder(type = targetType)
+            .apply { adaptedDefault?.let { defaultValue(it) } }
+            .build()
+    }
+
+    /**
+     * Pre-builds the argument [CodeBlock]s for a delegate call, wrapping mapped params via [TypeMapping.wrap]
+     * and spreading varargs. Shared between [delegateCall] and [buildConstructorOverloadsForMethod].
+     */
+    context(_: Context)
+    private fun buildWrappedArgs(
+        params: List<ParameterSpec>,
+        mappedIndices: List<Int>,
+        mapping: TypeMapping,
+    ): List<CodeBlock> = params.mapIndexed { i, param ->
+        if (i in mappedIndices) {
+            mapping.wrap(param.name, param.isVararg())
+        } else {
+            CodeBlock.of("%L%N", if (param.isVararg()) "*" else "", param.name)
+        }
+    }
+
     context(_: Context)
     private fun delegateCall(
         callee: String,
@@ -246,14 +351,7 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         mapping: TypeMapping,
         unwrap: Boolean,
     ): CodeBlock {
-        val args = params.mapIndexed { i, param ->
-            val isVararg = param.isVararg()
-            if (i in mappedIndices) {
-                mapping.wrap(param.name, isVararg)
-            } else {
-                CodeBlock.of("%L%N", if (isVararg) "*" else "", param.name)
-            }
-        }.joinToCode(", ")
+        val args = buildWrappedArgs(params, mappedIndices, mapping).joinToCode(", ")
         return buildCodeBlock {
             if (unwrap) {
                 addStatement("return %N(%L)%L", callee, args, mapping.unwrapSuffix())
@@ -263,7 +361,7 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         }
     }
 
-    // ── FunSpec extensions ────────────────────────────────────────────────────────
+    // ── FunSpec / ParameterSpec extensions ────────────────────────────────────────
 
     private fun FunSpec.withoutOperator(): FunSpec = if (KModifier.OPERATOR in modifiers) {
         toBuilder().apply { modifiers.remove(KModifier.OPERATOR) }.build()
@@ -277,4 +375,14 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         } else {
             this
         }
+
+    private fun FunSpec.Builder.makeInlineIfPossible() = apply {
+        if (KModifier.INLINE !in modifiers && KModifier.OPEN !in modifiers) addModifiers(KModifier.INLINE)
+    }
+
+    private fun FunSpec.Builder.makeFinal() = apply {
+        modifiers.remove(KModifier.OPEN)
+    }
+
+    private fun ParameterSpec.isVararg() = KModifier.VARARG in modifiers
 }
