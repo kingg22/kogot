@@ -220,7 +220,13 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         mapping: TypeMapping,
     ): FunSpec.Builder = FunSpec.builder(name).apply {
         original.parameters.forEachIndexed { i, param ->
-            val parameterSpec = if (i in mappedIndices) param.toBuilder(type = mapping.targetType()).build() else param
+            val parameterSpec = if (i in mappedIndices) {
+                param.toBuilder(type = mapping.targetType()).apply {
+                    defaultValue(null)
+                }.build()
+            } else {
+                param
+            }
             addParameter(parameterSpec)
         }
     }
