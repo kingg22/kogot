@@ -14,7 +14,8 @@ public object NodeVirtualDispatcher {
         if (funcNamePtr == null) return@staticCFunction null
 
         StringName(funcNamePtr).use { funcName ->
-            // TODO investigate why cast is needed and why it's not working with == directly
+            // investigate why cast is needed and why it's not working with == directly
+            // RE: As designed, == must not allow different/non-inherited types to be compared https://youtrack.jetbrains.com/issue/KT-83683
             return@staticCFunction when (funcName) {
                 "_ready" as Any -> NodeVirtualCalls.ready
                 "_process" as Any -> NodeVirtualCalls.process
