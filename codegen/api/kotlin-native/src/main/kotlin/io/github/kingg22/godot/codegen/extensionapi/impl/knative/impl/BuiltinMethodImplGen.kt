@@ -36,7 +36,7 @@ import io.github.kingg22.godot.codegen.types.*
  * The fptr is loaded via `VariantBinding.instance.getPtrBuiltinMethodRaw(variantType, name, hash)`.
  * Properties are emitted as top-level `private val` lazy delegates in the class file.
  */
-class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
+class BuiltinMethodImplGen {
     private lateinit var implPackageRegistry: ImplementationPackageRegistry
 
     fun initialize(implRegistry: ImplementationPackageRegistry) {
@@ -338,6 +338,14 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
                 .addStatement("ftptr = %N", fptrName)
                 .addStatement("rhsPtr = other.rawPtr")
             endControlFlow()
+
+            // Allows compare with kotlin.String if it's already compared to GodotString
+            if (rightType == "String") {
+                beginControlFlow("is %T ->", STRING)
+                    .addStatement("ftptr = %N", fptrName)
+                    .addStatement("rhsPtr = %T(other).rawPtr", ctx.classNameForOrDefault("String"))
+                endControlFlow()
+            }
         }
 
         // ── Variant branch ───────────────────────────────────────────────────
@@ -431,11 +439,19 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
      * DRY: For types with a Godot `hash` method, we delegate to `hash().toInt()` instead of
      * duplicating the fptr invocation logic.
      */
+    context(ctx: Context)
     fun buildHashCodeBody(resolvedClass: ResolvedBuiltinClass): CodeBlock {
         val hashMethod = resolvedClass.raw.methods.any { it.name == "hash" }
+        val equalsWithString = resolvedClass.raw.operators.any { it.name == "==" && it.rightType == "String" }
 
         // DRY: Delegate to hash() method which is generated separately
-        return CodeBlock.of("return %L.hash().toInt()", if (hashMethod) "this" else "Variant(this)")
+        // Correctness: When equals() supports String, we can't use hash() directly, prefers to use toString().hashCode() instead
+        // maintain correctness between Kotlin assumptions (equals must be hashCode consistent)
+        return when {
+            equalsWithString -> CodeBlock.of("return this.toString().hashCode()")
+            hashMethod -> CodeBlock.of("return this.hash().toInt()")
+            else -> CodeBlock.of("return %T(this).hash().toInt()", ctx.classNameForOrDefault("Variant"))
+        }
     }
 
     /**
@@ -444,8 +460,8 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
      * Delegates to `Variant.stringify().toKString()` which returns the Godot string representation.
      */
     context(ctx: Context)
-    fun buildToStringBody(resolvedClass: ResolvedBuiltinClass): CodeBlock =
-        CodeBlock.of("return %T(this).stringify().toKString()", ctx.classNameForOrDefault("Variant"))
+    fun buildToStringBody(): CodeBlock = CodeBlock
+        .of("return %T(this).stringify().toKString()", ctx.classNameForOrDefault("Variant"))
 
     fun buildToStringConverters(): List<FunSpec> {
         fun factory(
