@@ -5,23 +5,17 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.STRING
-import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.joinToCode
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
+import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.isGodotString
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
 import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodDescriptor
 import io.github.kingg22.godot.codegen.models.extensionapi.UtilityFunction
 
 class StringOverloadGenerator(private val typeResolver: TypeResolver) {
-
-    /**
-     * Returns true if this [TypeName] refers to [GodotString][Context.classNameForOrDefault].
-     */
-    context(ctx: Context)
-    private fun TypeName.isGodotString(): Boolean = this == ctx.classNameForOrDefault("String")
 
     /**
      * Detects which parameters and the return type of a [MethodDescriptor] are [GodotString][Context.classNameForOrDefault].

@@ -1,6 +1,7 @@
 package io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl
 
 import com.squareup.kotlinpoet.*
+import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinLayout
 import io.github.kingg22.godot.codegen.types.*
 import kotlin.contracts.InvocationKind
@@ -114,3 +115,9 @@ inline fun buildLazyBlock(body: CodeBlock.Builder.() -> Unit): CodeBlock {
 }
 
 fun CodeBlock.Companion.ofStatement(format: String, vararg args: Any?) = builder().addStatement(format, *args).build()
+
+/**
+ * Returns true if this [TypeName] refers to [GodotString][Context.classNameForOrDefault].
+ */
+context(ctx: Context)
+fun TypeName.isGodotString(): Boolean = this == ctx.classNameForOrDefault("String")
