@@ -13,7 +13,6 @@ import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.joinToCode
 import com.squareup.kotlinpoet.withIndent
 import io.github.kingg22.godot.codegen.extensionapi.Context
-import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.NativeBuiltinClassGenerator
 import io.github.kingg22.godot.codegen.impl.renameAllUpperCaseToCamelCase
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
@@ -754,25 +753,24 @@ class BuiltinMethodImplGen {
     context(ctx: Context)
     private fun buildReturnRead(returnType: String): CodeBlock = when {
         returnType == "float" || returnType == "double" || returnType == "int" ->
-            CodeBlock.ofStatement("retPtr.%M", cinteropValue)
+            CodeBlock.ofStatement("return retPtr.%M", cinteropValue)
 
-        returnType == "bool" ->
-            CodeBlock.ofStatement(
-                "retPtr.%M()",
-                implPackageRegistry.memberNameForOrDefault("readGdBool"),
-            )
+        returnType == "bool" -> CodeBlock.ofStatement(
+            "return retPtr.%M()",
+            implPackageRegistry.memberNameForOrDefault("readGdBool"),
+        )
 
-        ctx.isBuiltin(returnType) -> CodeBlock.ofStatement("retPtr")
+        ctx.isBuiltin(returnType) -> CodeBlock.ofStatement("return retPtr")
 
         ctx.findEngineClass(returnType) != null -> CodeBlock.ofStatement(
-            "%T(%M(retPtr.%M)·{·%S·})",
+            "return %T(%M(retPtr.%M)·{·%S·})",
             ctx.classNameForOrDefault(returnType.renameGodotClass()),
             K_REQUIRE_NOT_NULL,
             cinteropValue,
             "Return pointer value of $returnType was null",
         )
 
-        else -> CodeBlock.ofStatement("retPtr")
+        else -> CodeBlock.ofStatement("return retPtr")
     }
 
     private fun isGodotPrimitive(type: String) = NativeBuiltinClassGenerator.SKIPPED_TYPES.contains(type)

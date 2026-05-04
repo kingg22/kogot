@@ -262,21 +262,37 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
             }
 
             AccessorKind.DELEGATED -> {
+                val methodName = safeIdentifier(method!!.name)
+                val returnType = method.returnValue?.type
+                // Use AsGdStr suffix when method returns GodotString (String type in JSON)
+                // and property type is GodotString (String -> GodotString via toKString())
+                val targetMethodName = if (returnType == "String") {
+                    "${methodName}AsGdStr"
+                } else {
+                    methodName
+                }
                 builder.getter(
                     FunSpec.getterBuilder()
                         .addModifiers(KModifier.INLINE)
-                        .addStatement("return %N()", safeIdentifier(method!!.name))
+                        .addStatement("return %N()", targetMethodName)
                         .build(),
                 )
             }
 
             AccessorKind.INDEXED -> {
                 val enumConstant = resolveIndexedPropertyConstant(method!!, property.index!!)
-
+                val methodName = safeIdentifier(method.name)
+                val returnType = method.returnValue?.type
+                // Same logic for INDEXED: use AsGdStr suffix when returning String
+                val targetMethodName = if (returnType == "String") {
+                    "${methodName}AsGdStr"
+                } else {
+                    methodName
+                }
                 builder.getter(
                     FunSpec.getterBuilder()
                         .addModifiers(KModifier.INLINE)
-                        .addStatement("return %N(%L)", safeIdentifier(method.name), enumConstant)
+                        .addStatement("return %N(%L)", targetMethodName, enumConstant)
                         .build(),
                 )
             }

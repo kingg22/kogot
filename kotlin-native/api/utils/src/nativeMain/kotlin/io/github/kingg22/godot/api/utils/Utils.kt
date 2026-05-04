@@ -7,9 +7,13 @@ import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.asVariantString
 import io.github.kingg22.godot.api.global.GodotError
 
-public inline fun GD.typeString(type: Variant.Type): GodotString = typeString(type.value)
+public inline fun GD.typeStringAsGdStr(type: Variant.Type): GodotString = typeStringAsGdStr(type.value)
 
-public inline fun GD.errorString(error: GodotError): GodotString = errorString(error.value)
+public inline fun GD.typeString(type: Variant.Type): String = typeString(type.value)
+
+public inline fun GD.errorStringAsGdStr(error: GodotError): GodotString = errorStringAsGdStr(error.value)
+
+public inline fun GD.errorString(error: GodotError): String = errorString(error.value)
 
 public inline fun GD.print(arg1: String, vararg args: String) {
     print(arg1.asVariantString(), *args.map { it.asVariantString() }.toTypedArray())

@@ -22,6 +22,7 @@ class NativeEngineClassGenerator(
     private val body: EngineMethodImplGen,
     private val propertyGen: EnginePropertyImplGen,
     private val methodGen: NativeMethodGenerator,
+    private val stringOverloadGen: StringOverloadGenerator,
     private val enumGenerator: NativeEnumGenerator,
     private val engineClassImplGen: EngineClassImplGen,
 ) {
@@ -57,7 +58,7 @@ class NativeEngineClassGenerator(
 
             // Métodos standalone (no forman parte de una property)
             standaloneMethods.forEach { method ->
-                val methodSpec = methodGen.buildMethod(
+                val original = methodGen.buildMethod(
                     method = method,
                     className = cls.name,
                     codeBody = body.buildMethodBody(method, cls.name),
@@ -67,7 +68,11 @@ class NativeEngineClassGenerator(
                     if (method.name == "get" || method.name == "set") addModifiers(KModifier.OPERATOR)
                 }
 
-                classBuilder.addFunction(methodSpec)
+                classBuilder.addFunctions(
+                    stringOverloadGen.buildStringOverloadsForMethod(method, original).ifEmpty {
+                        listOf(original)
+                    },
+                )
             }
 
             raw.constants.forEach { constant ->
@@ -84,8 +89,16 @@ class NativeEngineClassGenerator(
             }
 
             staticMethods.forEach { method ->
-                companionBuilder.addFunction(
-                    methodGen.buildMethod(method, cls.name, codeBody = body.buildMethodBody(method, cls.name)),
+                val original = methodGen.buildMethod(
+                    method,
+                    cls.name,
+                    codeBody = body.buildMethodBody(method, cls.name),
+                )
+
+                companionBuilder.addFunctions(
+                    stringOverloadGen.buildStringOverloadsForMethod(method, original).ifEmpty {
+                        listOf(original)
+                    },
                 )
             }
 

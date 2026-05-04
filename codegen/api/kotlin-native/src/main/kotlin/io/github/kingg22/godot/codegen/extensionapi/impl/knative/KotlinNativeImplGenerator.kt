@@ -30,11 +30,13 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
     private val genericInterceptor = GenericBuiltinInterceptor(typeResolver)
     private val enumGen = NativeEnumGenerator()
     private val typeAliasGen = TypeAliasGenerator(genericInterceptor)
+    private val stringOverloadGen = StringOverloadGenerator(typeResolver)
     private val builtinClass = NativeBuiltinClassGenerator(
         typeResolver,
         builtinClassImplGen,
         defaultValue,
         methodGenerator,
+        stringOverloadGen,
         enumGen,
         genericInterceptor,
         typeAliasGen,
@@ -46,6 +48,7 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
         engineMethodImplGen,
         EnginePropertyImplGen(typeResolver, engineMethodImplGen),
         methodGenerator,
+        stringOverloadGen,
         enumGen,
         engineClassImplGen,
     )
@@ -54,7 +57,7 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
     private val nativeStructureBodyImpl = KNativeImplGen(bodyGenerator)
     private val nativeStructure = KNativeStructureGenerator(typeResolver, nativeStructureBodyImpl)
     private val utilFuncImplGen = UtilityFunctionImplGen()
-    private val utils = NativeUtilityFunctionGenerator(methodGenerator, utilFuncImplGen)
+    private val utils = NativeUtilityFunctionGenerator(methodGenerator, stringOverloadGen, utilFuncImplGen)
 
     context(ctx: Context, gdeInterface: GDExtensionInterface?)
     override fun generate(api: ExtensionApi): Sequence<FileSpec> = sequence {

@@ -251,21 +251,19 @@ class UtilityFunctionImplGen {
 
     context(ctx: Context)
     private fun buildReturnRead(returnType: String): CodeBlock = when {
-        isGodotPrimitive(returnType) && returnType != "bool" ->
-            CodeBlock.builder().addStatement("retPtr.%M", cinteropValue).build()
+        isGodotPrimitive(returnType) && returnType != "bool" -> CodeBlock.ofStatement("return retPtr.%M", cinteropValue)
 
-        returnType == "bool" -> CodeBlock.builder().addStatement(
-            "retPtr.%M()",
+        returnType == "bool" -> CodeBlock.ofStatement(
+            "return retPtr.%M()",
             implPackageRegistry.memberNameForOrDefault("readGdBool"),
-        ).build()
+        )
 
-        ctx.findEngineClass(returnType) != null ->
-            CodeBlock
-                .builder()
-                .addStatement("retPtr.value?.let { %T(it) }", ctx.classNameForOrDefault(returnType.renameGodotClass()))
-                .build()
+        ctx.findEngineClass(returnType) != null -> CodeBlock.ofStatement(
+            "return retPtr.value?.let { %T(it) }",
+            ctx.classNameForOrDefault(returnType.renameGodotClass()),
+        )
 
-        else -> CodeBlock.builder().addStatement("retPtr").build()
+        else -> CodeBlock.ofStatement("return retPtr")
     }
 
     private fun functionPointerName(fn: UtilityFunction) = safeIdentifier(fn.name) + "Fn"

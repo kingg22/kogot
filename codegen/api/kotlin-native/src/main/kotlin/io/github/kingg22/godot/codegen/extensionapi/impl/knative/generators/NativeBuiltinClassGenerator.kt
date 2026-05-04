@@ -43,6 +43,7 @@ class NativeBuiltinClassGenerator(
     private val body: BuiltinClassImplGen,
     private val defaultValueGenerator: DefaultValueGenerator,
     private val methodGen: NativeMethodGenerator,
+    private val stringOverloadGen: StringOverloadGenerator,
     private val enumGenerator: NativeEnumGenerator,
     private val genericInterceptor: GenericBuiltinInterceptor,
     private val typeAliasGenerator: TypeAliasGenerator,
@@ -230,18 +231,18 @@ class NativeBuiltinClassGenerator(
         // ── Instance methods ──────────────────────────────────────────────────
         val (staticMethods, instanceMethods) = raw.methods.partition { it.isStatic }
 
-        val methodSpecs = instanceMethods.mapNotNull { method ->
-            val methodSpec = buildMethodWithGenericTransform(method, builtinClass.name, genericConfig)
+        val methodSpecs = instanceMethods.flatMap { method ->
+            val specs = buildMethodWithGenericTransform(method, builtinClass.name, genericConfig)
 
             if (raw.operators.any { compareMethodOperator(method, it) }) {
                 val existingOperator = raw.operators.first { compareMethodOperator(method, it) }
                 logger.debug {
                     "Skipping operator overload for ${builtinClass.name}.${method.name}(${existingOperator.rightType}): ${existingOperator.returnType} because it's already defined as operator"
                 }
-                return@mapNotNull null
+                emptyList()
+            } else {
+                specs
             }
-
-            methodSpec
         }
         classBuilder.addFunctions(methodSpecs)
 
@@ -272,8 +273,14 @@ class NativeBuiltinClassGenerator(
         }
 
         // Static methods
-        val staticMethodSpecs = staticMethods.map { method ->
-            methodGen.buildMethod(method, builtinClass.name, codeBody = body.buildMethodBody(method, builtinClass.name))
+        val staticMethodSpecs = staticMethods.flatMap { method ->
+            val original = methodGen.buildMethod(
+                method,
+                builtinClass.name,
+                codeBody = body.buildMethodBody(method, builtinClass.name),
+            )
+            val overloads = stringOverloadGen.buildStringOverloadsForMethod(method, original)
+            overloads.ifEmpty { listOf(original) }
         }
         companionBuilder.addFunctions(staticMethodSpecs)
 
@@ -297,46 +304,50 @@ class NativeBuiltinClassGenerator(
     }
 
     // ── Method generation with generic transformation ─────────────────────────
-    context(_: Context)
+    context(ctx: Context)
     private fun buildMethodWithGenericTransform(
         method: BuiltinClass.BuiltinMethod,
         className: String,
         genericConfig: GenericBuiltinInterceptor.GenericConfig?,
-    ): FunSpec {
+    ): List<FunSpec> {
         // Si no hay config genérica, usar generador normal
+        val original: FunSpec
         if (genericConfig == null) {
-            return methodGen.buildMethod(method, className, codeBody = body.buildMethodBody(method, className)) {
+            original = methodGen.buildMethod(method, className, codeBody = body.buildMethodBody(method, className)) {
                 if (method.name == "get" || method.name == "set") addModifiers(KModifier.OPERATOR)
             }
+        } else {
+            // Resolver tipo de retorno original
+            val originalReturnType = method.returnType?.let { typeResolver.resolve(it) }
+
+            // Transformar con config genérica
+            val transformedReturnType = genericConfig.transformReturnType(method, originalReturnType)
+
+            // Construir método con tipo transformado
+            original = methodGen.buildMethod(method, className, codeBody = body.buildMethodBody(method, className)) {
+                if (method.name == "get" || method.name == "set") addModifiers(KModifier.OPERATOR)
+
+                if (transformedReturnType != null && transformedReturnType != originalReturnType) {
+                    returns(transformedReturnType)
+                }
+
+                // Transformar parámetros
+                parameters.clear()
+                method.arguments.forEachIndexed { index, arg ->
+                    val originalType = typeResolver.resolve(arg)
+                    val transformedType = genericConfig.transformParameterType(method, index, originalType)
+                    addParameter(
+                        methodGen
+                            .buildParameter(arg)
+                            .toBuilder(type = transformedType)
+                            .build(),
+                    )
+                }
+            }
         }
 
-        // Resolver tipo de retorno original
-        val originalReturnType = method.returnType?.let { typeResolver.resolve(it) }
-
-        // Transformar con config genérica
-        val transformedReturnType = genericConfig.transformReturnType(method, originalReturnType)
-
-        // Construir método con tipo transformado
-        return methodGen.buildMethod(method, className, codeBody = body.buildMethodBody(method, className)) {
-            if (method.name == "get" || method.name == "set") addModifiers(KModifier.OPERATOR)
-
-            if (transformedReturnType != null && transformedReturnType != originalReturnType) {
-                returns(transformedReturnType)
-            }
-
-            // Transformar parámetros
-            parameters.clear()
-            method.arguments.forEachIndexed { index, arg ->
-                val originalType = typeResolver.resolve(arg)
-                val transformedType = genericConfig.transformParameterType(method, index, originalType)
-                addParameter(
-                    methodGen
-                        .buildParameter(arg)
-                        .toBuilder(type = transformedType)
-                        .build(),
-                )
-            }
-        }
+        // String overloads if needed
+        return stringOverloadGen.buildStringOverloadsForMethod(method, original).ifEmpty { listOf(original) }
     }
 
     // ── Operator generation ───────────────────────────────────────────────────

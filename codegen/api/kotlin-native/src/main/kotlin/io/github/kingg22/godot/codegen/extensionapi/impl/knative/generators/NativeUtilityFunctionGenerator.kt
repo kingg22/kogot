@@ -23,6 +23,7 @@ import io.github.kingg22.godot.codegen.utils.withExceptionContext
  */
 class NativeUtilityFunctionGenerator(
     private val methodGen: NativeMethodGenerator,
+    private val stringOverloadGen: StringOverloadGenerator,
     private val implGen: UtilityFunctionImplGen,
 ) {
     context(context: Context)
@@ -34,12 +35,12 @@ class NativeUtilityFunctionGenerator(
     context(context: Context)
     fun generateSpec(functions: List<UtilityFunction>): TypeSpec {
         withExceptionContext({ "Generating utility functions, count: ${functions.size}" }) {
-            val functionsSpec = functions.map { fn ->
+            val functionsSpec = functions.flatMap { fn ->
                 withExceptionContext({ "Error generating utility function '${fn.name}'" }) {
                     // Ask implGen for a real body; null → NativeMethodGenerator falls back to TODO().
                     val implBody = implGen.buildFunctionBody(fn)
 
-                    methodGen.buildMethod(
+                    val original = methodGen.buildMethod(
                         method = fn,
                         className = "GD",
                         codeBody = implBody,
@@ -50,13 +51,16 @@ class NativeUtilityFunctionGenerator(
                         // Patch return type to nullable for engine class returns
                         if (fn.name == "instance_from_id" && fn.returnType == "Object") {
                             val nonNullReturnType = methodSpec.returnType
-                            return@let methodSpec
+                            methodSpec
                                 .toBuilder()
                                 .returns(nonNullReturnType.copy(nullable = true))
                                 .build()
+                        } else {
+                            methodSpec
                         }
-                        methodSpec
                     }
+
+                    stringOverloadGen.buildStringOverloadsForMethod(fn, original).ifEmpty { listOf(original) }
                 }
             }
 
