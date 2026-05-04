@@ -110,7 +110,7 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
                     return@withExceptionContext
                 }
 
-                classBuilder.addProperty(
+                classBuilder.addProperties(
                     buildProperty(
                         property,
                         resolved,
@@ -205,7 +205,7 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
         property: EngineClass.ClassProperty,
         resolved: ResolvedProperty,
         engineClass: ResolvedEngineClass,
-    ): PropertySpec {
+    ): List<PropertySpec> {
         val className = engineClass.name
         val kotlinName = safeIdentifier(property.name)
 
@@ -227,7 +227,7 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
             buildSetter(property, resolved.setter, builder, engineClass)
         }
 
-        return builder.build()
+        return listOf(builder.build())
     }
 
     // ===============================
@@ -264,8 +264,8 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
             AccessorKind.DELEGATED -> {
                 val methodName = safeIdentifier(method!!.name)
                 val returnType = method.returnValue?.type
-                // Use AsGdStr suffix when method returns GodotString (String type in JSON)
-                // and property type is GodotString (String -> GodotString via toKString())
+                // Use AsGdStr suffix when method returns GodotString ONLY for DELEGATED methods
+                // (LOCAL methods are not processed by StringOverloadGenerator, so no AsGdStr variant exists)
                 val targetMethodName = if (returnType == "String") {
                     "${methodName}AsGdStr"
                 } else {
@@ -284,6 +284,7 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
                 val methodName = safeIdentifier(method.name)
                 val returnType = method.returnValue?.type
                 // Same logic for INDEXED: use AsGdStr suffix when returning String
+                // But INDEXED methods are not LOCAL, so they ARE processed by StringOverloadGenerator
                 val targetMethodName = if (returnType == "String") {
                     "${methodName}AsGdStr"
                 } else {
