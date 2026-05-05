@@ -63,7 +63,10 @@ public value class EnumMask<T> @ExperimentalGodotKotlin constructor(public val f
             EnumMask(first.value or second.value)
 
         /** Creates a mask from multiple enums */
-        public inline fun <T> of(vararg flags: T): EnumMask<T> where T : GodotEnum, T : Enum<T> =
+        public inline fun <T> of(vararg flags: T): EnumMask<T> where T : GodotEnum, T : Enum<T> = of(flags.toList())
+
+        /** Creates a mask from multiple enums */
+        public inline fun <T> of(flags: Iterable<T>): EnumMask<T> where T : GodotEnum, T : Enum<T> =
             EnumMask(flags.fold(0L) { acc, flag -> acc or flag.value })
     }
 }
@@ -86,3 +89,9 @@ public inline infix fun <T> T.or(other: T): EnumMask<T> where T : GodotEnum, T :
  */
 public inline infix fun <T> T.or(mask: EnumMask<T>): EnumMask<T> where T : GodotEnum, T : Enum<T> =
     EnumMask(this.value or mask.flags)
+
+/** Converts [Array] of [enums][GodotEnum] to an [EnumMask] of the same type */
+public inline fun <T> Array<T>.toEnumMask(): EnumMask<T> where T : GodotEnum, T : Enum<T> = EnumMask.of(this.toList())
+
+/** Converts [Iterable] of [enums][GodotEnum] to an [EnumMask] of the same type */
+public inline fun <T> Iterable<T>.toEnumMask(): EnumMask<T> where T : GodotEnum, T : Enum<T> = EnumMask.of(this)
