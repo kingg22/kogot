@@ -2,7 +2,7 @@ package io.github.kingg22.godot.api.internal.callable
 
 import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.Variant
-import io.github.kingg22.godot.api.builtin.internal.anyToVariant
+import io.github.kingg22.godot.api.builtin.internal.anyToVariantOrNull
 import io.github.kingg22.godot.api.builtin.internal.getValue
 import io.github.kingg22.godot.api.internal.UsedFromCodegenGeneratedCode
 import io.github.kingg22.godot.api.utils.GD
@@ -76,11 +76,15 @@ public object CallableFactory {
                 return@staticCFunction
             }
 
-            fun fillCallError(error: GDExtensionCallErrorType) {
+            fun fillCallError(
+                error: GDExtensionCallErrorType,
+                expected: Int = callable.arity().toInt(),
+                argument: Int = argumentCount.toInt(),
+            ) {
                 val callError = rError.pointed
                 callError.error = error
-                callError.expected = callable.arity().toInt()
-                callError.argument = argumentCount.toInt()
+                callError.expected = expected
+                callError.argument = argument
             }
 
             if (argumentCount != callable.arity()) {
@@ -121,14 +125,13 @@ public object CallableFactory {
 
             // TODO: properly convert return types to Kotlin types
             // (aka if the user request T, the argument must preserve the type T, not unbox or box unrequested)
-            val resultVariant = runCatching { anyToVariant(result) }.getOrElse { exception ->
-                GD.pushError(
-                    "[kogot]: Error converting callable result ($result) to Variant, fallback to null: $exception",
-                )
+            val resultVariant = anyToVariantOrNull(result) ?: run {
+                GD.pushError("[kogot]: Error converting callable result ($result) to Variant, fallback to null")
                 fillCallError(GDEXTENSION_CALL_ERROR_INVALID_METHOD)
                 return@staticCFunction
             }
 
+            fillCallError(GDEXTENSION_CALL_OK, 0, 0)
             VariantBinding.instance.newCopyRaw(rReturn, resultVariant.rawPtr)
         },
     )
