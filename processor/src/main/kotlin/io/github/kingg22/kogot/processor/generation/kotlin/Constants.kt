@@ -41,6 +41,15 @@ val CREATE_FREE_INSTANCE_FUN = MemberName(GODOT_INTERNAL_BINDING_PKG, "createFre
 
 val REGISTER_CLASS = MemberName(GODOT_INTERNAL_BINDING_PKG, "registerClass")
 
+val REGISTER_CUSTOM_SIGNAL = MemberName(GODOT_INTERNAL_BINDING_PKG, "registerCustomSignal")
+
+val REGISTER_SIGNAL_CLASS_NAME = ClassName("$GODOT_PKG.api.annotations", "RegisterSignal")
+
+val REGISTER_SIGNAL_PARAM_CLASS_NAME = ClassName("$GODOT_PKG.api.annotations", "RegisterSignal", "Param")
+
+val VARIANT_CLASS_NAME = ClassName("$GODOT_PKG.api.builtin", "Variant")
+val VARIANT_TYPE_CLASS_NAME = VARIANT_CLASS_NAME.nestedClass("Type")
+
 val CREATE_INSTANCE_FUN = MemberName(GODOT_INTERNAL_BINDING_PKG, "createInstanceFunc")
 
 val ClassDBClassName = ClassName("$GODOT_PKG.api.singleton", "ClassDB")

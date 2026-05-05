@@ -121,13 +121,28 @@ fun KSAnnotation.toAnnotationInfo(): AnnotationInfo {
                 if (typeDecl is KSClassDeclaration) {
                     typeDecl.qualifiedName?.asString() ?: "unknown"
                 } else {
-                    "unknown"
+                    typeDecl.toString()
                 }
             }
 
             is KSAnnotation -> v.toAnnotationInfo()
 
-            is List<*> -> v.toString()
+            is List<*> -> v.mapNotNull { element ->
+                when (element) {
+                    is KSAnnotation -> element.toAnnotationInfo()
+
+                    is KSType -> {
+                        val typeDecl = element.declaration
+                        if (typeDecl is KSClassDeclaration) {
+                            typeDecl.qualifiedName?.asString()
+                        } else {
+                            element.toString()
+                        }
+                    }
+
+                    else -> element?.toString()
+                }
+            }
 
             else -> v
         }

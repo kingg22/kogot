@@ -148,9 +148,19 @@ class KogotProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor 
 
     private fun runGeneration(classes: List<KSClassDeclaration>): GeneratedOutput {
         val classInfos = classes.map { it.toClassInfo() }
+
+        // Build property annotations map: classQualifiedName -> propertyName -> annotations
+        val propertyAnnotations = classes.associate { ksClass ->
+            val qName = ksClass.qualifiedName?.asString() ?: ""
+            qName to ksClass.getAllProperties().associate { prop ->
+                prop.simpleName.asString() to prop.annotations.toList()
+            }
+        }
+
         val context = GeneratorContext(
             outputPackage = options.generatedPackage,
             options = GeneratorOptions(),
+            propertyAnnotations = propertyAnnotations,
         )
 
         val outputs = mutableListOf<GeneratedOutput>()

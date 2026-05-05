@@ -1,12 +1,21 @@
 package io.github.kingg22.kogot.processor.generation
 
+import com.google.devtools.ksp.symbol.KSAnnotation
 import io.github.kingg22.kogot.analysis.models.ClassInfo
 import io.github.kingg22.kogot.processor.diagnostics.DiagnosticMessage
 
 /**
  * Context for code generation.
  */
-data class GeneratorContext(val outputPackage: String, val options: GeneratorOptions)
+data class GeneratorContext(
+    val outputPackage: String,
+    val options: GeneratorOptions,
+    /**
+     * Raw KSP annotations keyed by class qualified name and property name.
+     * Structure: classQualifiedName -> propertyName -> annotations
+     */
+    val propertyAnnotations: Map<String, Map<String, List<KSAnnotation>>> = emptyMap(),
+)
 
 /**
  * Options for generators.
