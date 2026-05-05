@@ -49,6 +49,7 @@ class ImplementationPackageRegistry(packageStr: String, interfaceModel: GDExtens
         put("GDExtensionPtrBuiltInMethod", ffiPackage)
         put("GDExtensionMethodBindPtr", ffiPackage)
         put("GDExtensionPtrOperatorEvaluator", ffiPackage)
+        put("GDExtensionObjectPtrVar", ffiPackage)
         put("checkGodotError", apiInternalPackage)
         put("CallableFactory", "$apiInternalPackage.callable")
     }

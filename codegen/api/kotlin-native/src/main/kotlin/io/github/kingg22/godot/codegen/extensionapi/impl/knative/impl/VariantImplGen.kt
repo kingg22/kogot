@@ -222,6 +222,28 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                 .build(),
         )
 
+        classBuilder.addFunction(
+            FunSpec
+                .constructorBuilder()
+                .addParameter("value", ctx.classNameForOrDefault("Object"))
+                .callThisConstructor()
+                .addCode(
+                    CodeBlock
+                        .builder()
+                        .beginControlFlow("%M", memScoped)
+                        .addStatement(
+                            "val objPtr = %M<%T>()",
+                            cinteropAlloc,
+                            implPackageRegistry.classNameForOrDefault("GDExtensionObjectPtrVar"),
+                        )
+                        .addStatement("objPtr.%M = value.rawPtr", cinteropValue)
+                        .addStatement("fromTypeFptr_%L.%M(rawPtr, objPtr.%M)", "OBJECT", cinteropInvoke, cinteropPtr)
+                        .endControlFlow()
+                        .build(),
+                )
+                .build(),
+        )
+
         // All builtin/object types — value.rawPtr path
         variantTypes.raw.values.forEach { enumValue ->
             val (valueType, subclassName) = resolveTypeNameAndName(enumValue) ?: return@forEach
@@ -1143,7 +1165,7 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
     context(ctx: Context)
     private fun resolveTypeNameAndName(
         enumValue: EnumConstant,
-        filter: (String) -> Boolean = { it == "BOOL" || it == "INT" || it == "FLOAT" },
+        filter: (String) -> Boolean = { it == "BOOL" || it == "INT" || it == "FLOAT" || it == "OBJECT" },
     ): Pair<TypeName, String>? {
         val subclassName = enumValue.name.removePrefix("TYPE_")
             .takeUnless { it == "MAX" || it == "NIL" || filter(it) }
