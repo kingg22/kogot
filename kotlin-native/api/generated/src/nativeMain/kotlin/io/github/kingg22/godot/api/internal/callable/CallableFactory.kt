@@ -54,7 +54,7 @@ public object CallableFactory {
     }
 
     /** See [Callable] class and factory function. Create the empty Callable */
-    public fun create(lambda: Function<*>): Callable = Callable().apply { create(lambda, this) }
+    public fun create(lambda: Function<*>): Callable = Callable(null).apply { create(lambda, this) }
 
     // Create the GDExtensionCallableCustomInfo2 struct using cValue
     public fun createImpl(lambda: Function<*>): CValue<GDExtensionCallableCustomInfo2> = createCallableCustomInfo2(
