@@ -10,7 +10,6 @@ kotlin {
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
     dependencies {
         api(projects.kotlinNative.api)
-        implementation(projects.kotlinNative.annotations)
         implementation(projects.kotlinNative.binding)
     }
 

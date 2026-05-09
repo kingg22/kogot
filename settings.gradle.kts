@@ -71,8 +71,8 @@ include(
 // Kotlin using Native Cinterop
 include(
     "kotlin-native:ffi",
-    "kotlin-native:annotations",
     "kotlin-native:api",
+    "kotlin-native:api:annotations",
     "kotlin-native:api:chore",
     "kotlin-native:api:generated",
     "kotlin-native:api:signal",
