@@ -8,11 +8,17 @@ androidx-room-compiler = "2.8.4"
 # https://github.com/apache/commons-compress/tags
 apache-commons-compress = "1.28.0"
 
+# https://github.com/Kotlin/dokka/releases
+dokka = "2.2.0"
+
 # https://github.com/google/error-prone/releases
 errorprone-core = "2.49.0"
 
 # https://github.com/tbroyer/gradle-errorprone-plugin/releases
 errorprone-gradle = "5.1.0"
+
+# https://github.com/JetBrains/gradle-changelog-plugin/releases
+jetbrains-changelog = "2.5.0"
 
 # https://github.com/JetBrains/java-annotations/releases
 jetbrains-jvm-annotations = "26.1.0"
@@ -99,6 +105,7 @@ kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-p
 nullaway-gradle = { group = "net.ltgt.nullaway", name = "net.ltgt.nullaway.gradle.plugin", version.ref = "nullaway-gradle" }
 spotless-gradle = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version.ref = "spotless" }
 download-gradle = { group = "de.undercouch.download", name = "de.undercouch.download.gradle.plugin", version.ref = "undercouch-download" }
+dokka-gradle = { group = "org.jetbrains.dokka", name = "org.jetbrains.dokka.gradle.plugin", version.ref = "dokka" }
 
 # Libraries can be bundled together for easier import
 [bundles]
@@ -108,9 +115,12 @@ gradle-plugins = [
     "nullaway-gradle",
     "spotless-gradle",
     "download-gradle",
+    "dokka-gradle",
 ]
 
 [plugins]
+changelog = { id = "org.jetbrains.changelog", version.ref = "jetbrains-changelog" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 download = { id = "de.undercouch.download", version.ref = "undercouch-download" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
