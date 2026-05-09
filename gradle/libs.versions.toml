@@ -144,4 +144,5 @@ testing-jvm-conventions = { id = "buildlogic.testing-jvm-conventions" }
 common-styles-conventions = { id = "buildlogic.common-styles-conventions" }
 godot-codegen-simple = { id = "buildlogic.godot-codegen" }
 godot-codegen-chore = { id = "buildlogic.godot-codegen-chore" }
+dokka-conventions = { id = "buildlogic.dokka-conventions" }
 jextract = { id = "buildlogic.jextract" }

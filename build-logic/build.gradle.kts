@@ -91,12 +91,16 @@ gradlePlugin {
             description = "Shared spotless configuration for both Kotlin and Java"
         }
         create("godotCodegenConventionsPlugin") {
-            id = "buildlogic.godot-codegen"
+            id = libs.plugins.godot.codegen.simple.get().pluginId
             implementationClass = "io.github.kingg22.buildlogic.godot.GodotCodegenConventionsPlugin"
         }
         create("godotCodegenChorePlugin") {
-            id = "buildlogic.godot-codegen-chore"
+            id = libs.plugins.godot.codegen.chore.get().pluginId
             implementationClass = "io.github.kingg22.buildlogic.godot.chore.GodotCodegenChorePlugin"
+        }
+        create("dokkaConventionsPlugin") {
+            id = libs.plugins.dokka.conventions.get().pluginId
+            implementationClass = "io.github.kingg22.buildlogic.dokka.DokkaConventionsPlugin"
         }
     }
 }
