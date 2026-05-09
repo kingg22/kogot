@@ -11,7 +11,28 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.options.Option
 import java.lang.reflect.InvocationTargetException
+import java.net.URL
 import java.net.URLClassLoader
+
+private class SelectiveClassLoader(urls: List<URL>, parent: ClassLoader?, private val delegatePackages: Set<String>) :
+    URLClassLoader(urls.toTypedArray(), parent) {
+
+    override fun loadClass(name: String, resolve: Boolean): Class<*> {
+        if (delegatePackages.any { name.startsWith(it) }) {
+            return super.loadClass(name, resolve)
+        }
+        synchronized(getClassLoadingLock(name)) {
+            var c = findLoadedClass(name)
+            if (c == null) {
+                c = findClass(name)
+            }
+            if (resolve && c != null) {
+                resolveClass(c)
+            }
+            return c
+        }
+    }
+}
 
 @CacheableTask
 abstract class GenerateGodotTask : DefaultTask() {
@@ -127,9 +148,10 @@ abstract class GenerateGodotTask : DefaultTask() {
 
         val originalContextClassLoader = Thread.currentThread().contextClassLoader
 
-        val classLoader = URLClassLoader(
-            classpathFiles.toTypedArray(),
+        val classLoader = SelectiveClassLoader(
+            classpathFiles,
             this::class.java.classLoader,
+            setOf("org.gradle", "org.slf4j", "io.github.kingg22", "java"),
         )
 
         Thread.currentThread().contextClassLoader = classLoader
