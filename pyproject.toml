@@ -1,0 +1,8 @@
+[project]
+name = "kogot-documentation"
+version = "0.1.0"
+description = "Only docs"
+requires-python = ">=3.11"
+dependencies = [
+    "zensical==0.0.40",
+]
