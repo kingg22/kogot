@@ -27,6 +27,7 @@ kotlin {
     dependencies {
         api(projects.kotlinNative.runtime)
         api(projects.kotlinNative.api.chore)
+        api(projects.kotlinNative.api.callable)
     }
 
     applyDefaultHierarchyTemplate()
@@ -47,12 +48,4 @@ godotCodegen {
     backend = CodegenBackend.KOTLIN_NATIVE
     kind = CodegenKind.API
     packageName = "io.github.kingg22.godot"
-
-    combinations {
-        register("callable") {
-            backend = CodegenBackend.KOTLIN_NATIVE
-            kind = CodegenKind.CALLABLE
-            packageName = "io.github.kingg22.godot.api.internal.callable"
-        }
-    }
 }
