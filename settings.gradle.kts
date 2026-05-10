@@ -73,6 +73,7 @@ include(
     "kotlin-native:ffi",
     "kotlin-native:api",
     "kotlin-native:api:annotations",
+    "kotlin-native:api:callable",
     "kotlin-native:api:chore",
     "kotlin-native:api:generated",
     "kotlin-native:api:signal",
