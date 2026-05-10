@@ -5,6 +5,7 @@ import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.tasks.BaseKotlinCompile
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
@@ -17,8 +18,23 @@ class KotlinMultiplatformConventionsPlugin : Plugin<Project> {
             .gradleProperty("kotlinVersion")
             .orElse("2.3")
 
+        val useNewInteroperabilityMode = target.providers
+            .gradleProperty("useNewInteroperabilityMode")
+            .orElse("false")
+            .map { it.toBoolean() }
+
         target.extensions.configure<KotlinMultiplatformExtension> {
             commonConfiguration(kotlinVersion)
+
+            if (useNewInteroperabilityMode.isPresent && useNewInteroperabilityMode.get()) {
+                targets.withType<KotlinNativeTarget>().configureEach {
+                    compilations.configureEach {
+                        cinterops.configureEach {
+                            extraOpts += listOf("-Xccall-mode", "direct")
+                        }
+                    }
+                }
+            }
         }
 
         target.tasks.register("compileKotlin") {
