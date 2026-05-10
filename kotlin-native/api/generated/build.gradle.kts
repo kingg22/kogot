@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform.conventions)
     alias(libs.plugins.kotlin.styles.conventions)
     alias(libs.plugins.godot.codegen.simple)
+    alias(libs.plugins.dokka.conventions)
 }
 
 kotlin {
