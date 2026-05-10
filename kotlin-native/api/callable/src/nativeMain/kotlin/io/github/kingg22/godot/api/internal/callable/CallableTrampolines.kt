@@ -3,16 +3,7 @@ package io.github.kingg22.godot.api.internal.callable
 import io.github.kingg22.godot.internal.binding.InternalBinding
 import io.github.kingg22.godot.internal.binding.StringBinding
 import io.github.kingg22.godot.internal.binding.getInstance
-import io.github.kingg22.godot.internal.ffi.FALSE
-import io.github.kingg22.godot.internal.ffi.GDExtensionBool
-import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomEqual
-import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomFree
-import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomGetArgumentCount
-import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomHash
-import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomIsValid
-import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomLessThan
-import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomToString
-import io.github.kingg22.godot.internal.ffi.TRUE
+import io.github.kingg22.godot.internal.ffi.*
 import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.set
 import kotlinx.cinterop.staticCFunction
@@ -32,8 +23,9 @@ public object CallableTrampolines {
      * Cleans up the userdata from the map.
      */
     public val freeFunc: GDExtensionCallableCustomFree = staticCFunction { userdata ->
-        val ref = requireNotNull(userdata).asStableRef<KotlinCallable>()
-        ref.dispose()
+        println("Freeing callable with userdata: $userdata")
+        val ref = userdata?.asStableRef<KotlinCallable>()
+        ref?.dispose()
     }
 
     /**

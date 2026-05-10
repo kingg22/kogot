@@ -5,25 +5,21 @@ import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.internal.anyToVariantOrNull
 import io.github.kingg22.godot.api.builtin.internal.getValue
 import io.github.kingg22.godot.api.internal.UsedFromCodegenGeneratedCode
+import io.github.kingg22.godot.api.internal.callable.CallableBinding.createCallableCustomInfo2
+import io.github.kingg22.godot.api.internal.callable.CallableBinding.createCustom
+import io.github.kingg22.godot.api.internal.callable.CallableBinding.storeKotlinCallable
 import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.pushError
-import io.github.kingg22.godot.internal.binding.BindingProcAddressHolder
-import io.github.kingg22.godot.internal.binding.CallableBinding
 import io.github.kingg22.godot.internal.binding.InternalBinding
 import io.github.kingg22.godot.internal.binding.VariantBinding
 import io.github.kingg22.godot.internal.binding.getInstance
 import io.github.kingg22.godot.internal.ffi.GDExtensionCallErrorType
-import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomCall
 import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomInfo2
 import io.github.kingg22.godot.internal.ffi.GDExtensionConstVariantPtr
 import io.github.kingg22.godot.internal.ffi.GDExtensionConstVariantPtrVar
 import kotlinx.cinterop.CArrayPointer
-import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CValue
-import kotlinx.cinterop.StableRef
-import kotlinx.cinterop.cValue
 import kotlinx.cinterop.get
-import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.pointed
 import kotlinx.cinterop.staticCFunction
 
@@ -44,13 +40,7 @@ public object CallableFactory {
     public fun create(lambda: Function<*>, callable: Callable) {
         check(callable.isNull()) { "Callable must be null to create a custom callable" }
         val callableCustomInfo2 = createImpl(lambda)
-        // Call the low-level Godot function to create custom callable and fill the callable object
-        memScoped {
-            CallableBinding.instance.customCreate2Raw(
-                callable.rawPtr,
-                callableCustomInfo2.ptr,
-            )
-        }
+        createCustom(callableCustomInfo2, callable.rawPtr)
     }
 
     /** See [Callable] class and factory function. Create the empty Callable */
@@ -136,34 +126,6 @@ public object CallableFactory {
         },
     )
 
-    public fun storeKotlinCallable(lambda: Function<*>): COpaquePointer =
-        StableRef.create(wrapLambda(lambda)).asCPointer()
-
     public fun reinterpretedVariantToKotlin(argument: GDExtensionConstVariantPtr?): Any? =
         if (argument == null) null else Variant(argument).getValue()
-
-    /**
-     * Creates a [GDExtensionCallableCustomInfo2] struct.
-     * Delegates to [CallableTrampolines]
-     * @param userdata Expects a [KotlinCallable] as [COpaquePointer]
-     * @param call The custom function to call this callable
-     * @param objectId 0 means _custom_, not bind to object
-     */
-    public fun createCallableCustomInfo2(
-        userdata: COpaquePointer,
-        call: GDExtensionCallableCustomCall,
-        objectId: ULong = 0uL,
-    ): CValue<GDExtensionCallableCustomInfo2> = cValue {
-        object_id = objectId
-        callable_userdata = userdata
-        call_func = call
-        token = BindingProcAddressHolder.library
-        is_valid_func = CallableTrampolines.isValidFunc
-        free_func = CallableTrampolines.freeFunc
-        hash_func = CallableTrampolines.hashFunc
-        equal_func = CallableTrampolines.equalFunc
-        less_than_func = CallableTrampolines.lessThanFunc
-        to_string_func = CallableTrampolines.toStringFunc
-        get_argument_count_func = CallableTrampolines.getArgumentCountFunc
-    }
 }

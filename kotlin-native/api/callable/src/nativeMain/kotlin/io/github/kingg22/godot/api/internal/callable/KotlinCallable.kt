@@ -12,9 +12,7 @@ import io.github.kingg22.godot.internal.binding.InternalBinding
  *
  * This is similar to the [Function] interface in the Kotlin standard library.
  *
- * @see CallableFactory
  * @see CallableTrampolines
- * @see Function
  */
 @UsedFromCodegenGeneratedCode
 @InternalBinding
