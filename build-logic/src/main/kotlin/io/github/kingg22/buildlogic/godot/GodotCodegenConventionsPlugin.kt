@@ -2,9 +2,11 @@ package io.github.kingg22.buildlogic.godot
 
 import io.github.kingg22.buildlogic.godot.chore.GodotCodegenChoreExtension
 import io.github.kingg22.buildlogic.godot.conventions.CodegenBackend
-import io.github.kingg22.buildlogic.godot.conventions.CodegenBackend.*
+import io.github.kingg22.buildlogic.godot.conventions.CodegenBackend.KOTLIN_NATIVE
 import io.github.kingg22.buildlogic.godot.conventions.CodegenKind
-import io.github.kingg22.buildlogic.godot.conventions.CodegenKind.*
+import io.github.kingg22.buildlogic.godot.conventions.CodegenKind.API
+import io.github.kingg22.buildlogic.godot.conventions.CodegenKind.CALLABLE
+import io.github.kingg22.buildlogic.godot.conventions.CodegenKind.RUNTIME
 import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenDsl
 import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension
 import io.github.kingg22.buildlogic.godot.task.GenerateGodotTask
@@ -67,6 +69,8 @@ class GodotCodegenConventionsPlugin : Plugin<Project> {
         combinations: List<GodotCodegenDsl>,
         codegenConfig: NamedDomainObjectProvider<Configuration>,
     ) {
+        val publishGenerated = target.providers.gradleProperty("publishGenerated")
+
         val combinationTasks = combinations.map { combination ->
             val backend = combination.backend.get()
             val kind = combination.kind.get()
@@ -89,12 +93,18 @@ class GodotCodegenConventionsPlugin : Plugin<Project> {
                 inputExtension.set(choreExtension.extensionApiFile)
                 inputInterface.set(choreExtension.extensionInterfaceFile)
 
+                val outputBaseDir = if (publishGenerated.isPresent) {
+                    target.provider { target.layout.projectDirectory.dir("src/generated/kotlin") }
+                } else {
+                    target.layout.buildDirectory.dir("generated/sources/godot")
+                }
+
                 outputDir.set(
-                    target.layout.buildDirectory.dir(
-                        "generated/sources/godot/" +
-                            backend.name.lowercase() + "/" +
-                            kind.name.lowercase(),
-                    ),
+                    outputBaseDir.map { baseDir ->
+                        baseDir
+                            .dir(backend.name.lowercase())
+                            .dir(kind.name.lowercase())
+                    },
                 )
 
                 packageName.set(combination.packageName)
