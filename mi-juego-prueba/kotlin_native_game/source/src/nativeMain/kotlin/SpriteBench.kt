@@ -9,7 +9,7 @@ import io.github.kingg22.godot.api.builtin.StringName
 import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.asStringName
 import io.github.kingg22.godot.api.builtin.asVariant
-import io.github.kingg22.godot.api.core.GodotObject
+import io.github.kingg22.godot.api.core.Object
 import io.github.kingg22.godot.api.core.node.Node2D
 import io.github.kingg22.godot.api.global.GodotError
 import io.github.kingg22.godot.internal.binding.ClassDBBinding
@@ -69,30 +69,31 @@ import kotlinx.cinterop.value
             println("connect punch result: $result : ${GodotEnum.fromValue<GodotError>(result)}")
         }
 
-        // ✅ emit usando Signal directamente
         try {
             println("[SpriteBench] emitting **hint** via Signal.emit fixed")
             val error = hint.emitFix()
-            println("emitSignalFix hint returned: $error")
+            println("emitFix hint returned: $error")
 
             println("[SpriteBench] emitting **punch** via Signal.emit fixed")
-            val error2 = punch.emitFix(12.asVariant())
-            println("emitSignalFix punch returned: $error2")
+            val error2 = punch.emitFix(12L.asVariant())
+            println("emitFix punch returned: $error2")
 
-            /* ✅ emit usando Object.emitSignal FIX
-            println("[SpriteBench] emitting punch via emitSignalFix")
-            val err = emitSignalFix(punchStr, 200.asVariant())
-            println("emitSignalFix punch returned: $err")
-             */
+            println("[SpriteBench] emitting **hint** via emitSignal")
+            val result = emitSignalFix(hintStr)
+            println("emitSignal hint result: $result")
+            println("[SpriteBench] emitting **punch** via emitSignal")
+            val result2 = emitSignalFix(punchStr, 15L.asVariant())
+            println("emitSignal punch result2: $result2")
         } catch (e: Exception) {
-            println("emitSignalFix failed: ${e.message}")
+            println("[SpriteBench] failed: ${e.message}")
+            e.printStackTrace()
         } finally {
             println("[SpriteBench] _ready finished")
         }
     }
 }
 
-fun signalFix(obj: GodotObject, signal: StringName) = Signal(null).apply {
+fun signalFix(obj: Object, signal: StringName) = Signal(null).apply {
     memScoped {
         val objectPtr = alloc<GDExtensionObjectPtrVar>()
         objectPtr.`value` = obj.rawPtr
@@ -130,20 +131,20 @@ private val methodSignalEmit_3286317445_Fn: GDExtensionPtrBuiltInMethod by lazy(
 }
 
 // **have errors**
-fun GodotObject.emitSignalFix(signal: StringName, vararg args: Variant): GodotError = memScoped {
-    val retPtr = alloc<LongVar>()
+fun Object.emitSignalFix(signal: StringName, vararg args: Variant): GodotError = memScoped {
+    val retPtr = Variant()
 
     val callError = ObjectBinding.instance.methodBindCall(
         methodObjectEmitSignal_Bind,
         rawPtr,
         signal.asVariant().rawPtr,
         *args.map { it.rawPtr }.toTypedArray(),
-        rRet = retPtr.ptr,
+        rRet = retPtr.rawPtr,
     )
 
     checkCallError("emitSignal of $signal", callError)
 
-    return GodotEnum.fromValue(retPtr.value)
+    return GodotEnum.fromValue(retPtr.asInt())
 }
 
 private val methodObjectEmitSignal_Bind: GDExtensionMethodBindPtr by lazy(PUBLICATION) {
