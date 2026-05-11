@@ -34,6 +34,10 @@ fun KotlinNativeTarget.applyBinariesExport(baseName: String = "godot-kotlin-samp
     binaries {
         sharedLib(buildTypes = listOfNativeBuildType) {
             this.baseName = baseName
+
+            if (buildType == NativeBuildType.RELEASE) {
+                binaryOption("smallBinary", "true")
+            }
         }
     }
 }
