@@ -1,0 +1,243 @@
+// Klib ABI Dump
+// Targets: [linuxX64]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <kogot.kotlin-native.api:annotations>
+open annotation class io.github.kingg22.godot.api.annotations/Export : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/Export|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/Export.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportCategory : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportCategory|null[0]
+    constructor <init>(kotlin/String) // io.github.kingg22.godot.api.annotations/ExportCategory.<init>|<init>(kotlin.String){}[0]
+
+    final val name // io.github.kingg22.godot.api.annotations/ExportCategory.name|{}name[0]
+        final fun <get-name>(): kotlin/String // io.github.kingg22.godot.api.annotations/ExportCategory.name.<get-name>|<get-name>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportColorNoAlpha : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportColorNoAlpha|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/ExportColorNoAlpha.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportCustom : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportCustom|null[0]
+    constructor <init>(io.github.kingg22.godot.api/PropertyHint, kotlin/String = ..., kotlin/Array<out io.github.kingg22.godot.api/PropertyUsageFlags>... = ...) // io.github.kingg22.godot.api.annotations/ExportCustom.<init>|<init>(io.github.kingg22.godot.api.PropertyHint;kotlin.String;kotlin.Array<out|io.github.kingg22.godot.api.PropertyUsageFlags>...){}[0]
+
+    final val hint // io.github.kingg22.godot.api.annotations/ExportCustom.hint|{}hint[0]
+        final fun <get-hint>(): io.github.kingg22.godot.api/PropertyHint // io.github.kingg22.godot.api.annotations/ExportCustom.hint.<get-hint>|<get-hint>(){}[0]
+    final val hintString // io.github.kingg22.godot.api.annotations/ExportCustom.hintString|{}hintString[0]
+        final fun <get-hintString>(): kotlin/String // io.github.kingg22.godot.api.annotations/ExportCustom.hintString.<get-hintString>|<get-hintString>(){}[0]
+    final val usage // io.github.kingg22.godot.api.annotations/ExportCustom.usage|{}usage[0]
+        final fun <get-usage>(): kotlin/Array<out io.github.kingg22.godot.api/PropertyUsageFlags> // io.github.kingg22.godot.api.annotations/ExportCustom.usage.<get-usage>|<get-usage>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportDir : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportDir|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/ExportDir.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportEnum : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportEnum|null[0]
+    constructor <init>(kotlin/Array<out kotlin/String>...) // io.github.kingg22.godot.api.annotations/ExportEnum.<init>|<init>(kotlin.Array<out|kotlin.String>...){}[0]
+
+    final val names // io.github.kingg22.godot.api.annotations/ExportEnum.names|{}names[0]
+        final fun <get-names>(): kotlin/Array<out kotlin/String> // io.github.kingg22.godot.api.annotations/ExportEnum.names.<get-names>|<get-names>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportExpEasing : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportExpEasing|null[0]
+    constructor <init>(kotlin/Array<out kotlin/String>...) // io.github.kingg22.godot.api.annotations/ExportExpEasing.<init>|<init>(kotlin.Array<out|kotlin.String>...){}[0]
+
+    final val hints // io.github.kingg22.godot.api.annotations/ExportExpEasing.hints|{}hints[0]
+        final fun <get-hints>(): kotlin/Array<out kotlin/String> // io.github.kingg22.godot.api.annotations/ExportExpEasing.hints.<get-hints>|<get-hints>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportFile : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportFile|null[0]
+    constructor <init>(kotlin/Array<out kotlin/String>...) // io.github.kingg22.godot.api.annotations/ExportFile.<init>|<init>(kotlin.Array<out|kotlin.String>...){}[0]
+
+    final val filter // io.github.kingg22.godot.api.annotations/ExportFile.filter|{}filter[0]
+        final fun <get-filter>(): kotlin/Array<out kotlin/String> // io.github.kingg22.godot.api.annotations/ExportFile.filter.<get-filter>|<get-filter>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportFilePath : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportFilePath|null[0]
+    constructor <init>(kotlin/Array<out kotlin/String>...) // io.github.kingg22.godot.api.annotations/ExportFilePath.<init>|<init>(kotlin.Array<out|kotlin.String>...){}[0]
+
+    final val filter // io.github.kingg22.godot.api.annotations/ExportFilePath.filter|{}filter[0]
+        final fun <get-filter>(): kotlin/Array<out kotlin/String> // io.github.kingg22.godot.api.annotations/ExportFilePath.filter.<get-filter>|<get-filter>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportFlags : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportFlags|null[0]
+    constructor <init>(kotlin/Array<out kotlin/String>...) // io.github.kingg22.godot.api.annotations/ExportFlags.<init>|<init>(kotlin.Array<out|kotlin.String>...){}[0]
+
+    final val names // io.github.kingg22.godot.api.annotations/ExportFlags.names|{}names[0]
+        final fun <get-names>(): kotlin/Array<out kotlin/String> // io.github.kingg22.godot.api.annotations/ExportFlags.names.<get-names>|<get-names>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportFlags2dNavigation : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportFlags2dNavigation|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/ExportFlags2dNavigation.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportFlags2dPhysics : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportFlags2dPhysics|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/ExportFlags2dPhysics.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportFlags2dRender : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportFlags2dRender|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/ExportFlags2dRender.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportFlags3dNavigation : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportFlags3dNavigation|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/ExportFlags3dNavigation.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportFlags3dPhysics : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportFlags3dPhysics|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/ExportFlags3dPhysics.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportFlags3dRender : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportFlags3dRender|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/ExportFlags3dRender.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportFlagsAvoidance : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportFlagsAvoidance|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/ExportFlagsAvoidance.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportGlobalDir : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportGlobalDir|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/ExportGlobalDir.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportGlobalFile : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportGlobalFile|null[0]
+    constructor <init>(kotlin/Array<out kotlin/String>...) // io.github.kingg22.godot.api.annotations/ExportGlobalFile.<init>|<init>(kotlin.Array<out|kotlin.String>...){}[0]
+
+    final val filter // io.github.kingg22.godot.api.annotations/ExportGlobalFile.filter|{}filter[0]
+        final fun <get-filter>(): kotlin/Array<out kotlin/String> // io.github.kingg22.godot.api.annotations/ExportGlobalFile.filter.<get-filter>|<get-filter>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportGroup : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportGroup|null[0]
+    constructor <init>(kotlin/String, kotlin/String = ...) // io.github.kingg22.godot.api.annotations/ExportGroup.<init>|<init>(kotlin.String;kotlin.String){}[0]
+
+    final val name // io.github.kingg22.godot.api.annotations/ExportGroup.name|{}name[0]
+        final fun <get-name>(): kotlin/String // io.github.kingg22.godot.api.annotations/ExportGroup.name.<get-name>|<get-name>(){}[0]
+    final val prefix // io.github.kingg22.godot.api.annotations/ExportGroup.prefix|{}prefix[0]
+        final fun <get-prefix>(): kotlin/String // io.github.kingg22.godot.api.annotations/ExportGroup.prefix.<get-prefix>|<get-prefix>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportMultiline : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportMultiline|null[0]
+    constructor <init>(kotlin/Array<out kotlin/String>...) // io.github.kingg22.godot.api.annotations/ExportMultiline.<init>|<init>(kotlin.Array<out|kotlin.String>...){}[0]
+
+    final val hint // io.github.kingg22.godot.api.annotations/ExportMultiline.hint|{}hint[0]
+        final fun <get-hint>(): kotlin/Array<out kotlin/String> // io.github.kingg22.godot.api.annotations/ExportMultiline.hint.<get-hint>|<get-hint>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportNodePath : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportNodePath|null[0]
+    constructor <init>(kotlin/Array<out kotlin/String>...) // io.github.kingg22.godot.api.annotations/ExportNodePath.<init>|<init>(kotlin.Array<out|kotlin.String>...){}[0]
+
+    final val type // io.github.kingg22.godot.api.annotations/ExportNodePath.type|{}type[0]
+        final fun <get-type>(): kotlin/Array<out kotlin/String> // io.github.kingg22.godot.api.annotations/ExportNodePath.type.<get-type>|<get-type>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportPlaceholder : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportPlaceholder|null[0]
+    constructor <init>(kotlin/String) // io.github.kingg22.godot.api.annotations/ExportPlaceholder.<init>|<init>(kotlin.String){}[0]
+
+    final val placeholder // io.github.kingg22.godot.api.annotations/ExportPlaceholder.placeholder|{}placeholder[0]
+        final fun <get-placeholder>(): kotlin/String // io.github.kingg22.godot.api.annotations/ExportPlaceholder.placeholder.<get-placeholder>|<get-placeholder>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportRange : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportRange|null[0]
+    constructor <init>(kotlin/Float, kotlin/Float, kotlin/Float = ..., kotlin/Array<out kotlin/String>...) // io.github.kingg22.godot.api.annotations/ExportRange.<init>|<init>(kotlin.Float;kotlin.Float;kotlin.Float;kotlin.Array<out|kotlin.String>...){}[0]
+
+    final val extraHints // io.github.kingg22.godot.api.annotations/ExportRange.extraHints|{}extraHints[0]
+        final fun <get-extraHints>(): kotlin/Array<out kotlin/String> // io.github.kingg22.godot.api.annotations/ExportRange.extraHints.<get-extraHints>|<get-extraHints>(){}[0]
+    final val max // io.github.kingg22.godot.api.annotations/ExportRange.max|{}max[0]
+        final fun <get-max>(): kotlin/Float // io.github.kingg22.godot.api.annotations/ExportRange.max.<get-max>|<get-max>(){}[0]
+    final val min // io.github.kingg22.godot.api.annotations/ExportRange.min|{}min[0]
+        final fun <get-min>(): kotlin/Float // io.github.kingg22.godot.api.annotations/ExportRange.min.<get-min>|<get-min>(){}[0]
+    final val step // io.github.kingg22.godot.api.annotations/ExportRange.step|{}step[0]
+        final fun <get-step>(): kotlin/Float // io.github.kingg22.godot.api.annotations/ExportRange.step.<get-step>|<get-step>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportStorage : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportStorage|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/ExportStorage.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportSubgroup : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportSubgroup|null[0]
+    constructor <init>(kotlin/String, kotlin/String = ...) // io.github.kingg22.godot.api.annotations/ExportSubgroup.<init>|<init>(kotlin.String;kotlin.String){}[0]
+
+    final val name // io.github.kingg22.godot.api.annotations/ExportSubgroup.name|{}name[0]
+        final fun <get-name>(): kotlin/String // io.github.kingg22.godot.api.annotations/ExportSubgroup.name.<get-name>|<get-name>(){}[0]
+    final val prefix // io.github.kingg22.godot.api.annotations/ExportSubgroup.prefix|{}prefix[0]
+        final fun <get-prefix>(): kotlin/String // io.github.kingg22.godot.api.annotations/ExportSubgroup.prefix.<get-prefix>|<get-prefix>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/ExportToolButton : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/ExportToolButton|null[0]
+    constructor <init>(kotlin/String, kotlin/String = ...) // io.github.kingg22.godot.api.annotations/ExportToolButton.<init>|<init>(kotlin.String;kotlin.String){}[0]
+
+    final val icon // io.github.kingg22.godot.api.annotations/ExportToolButton.icon|{}icon[0]
+        final fun <get-icon>(): kotlin/String // io.github.kingg22.godot.api.annotations/ExportToolButton.icon.<get-icon>|<get-icon>(){}[0]
+    final val text // io.github.kingg22.godot.api.annotations/ExportToolButton.text|{}text[0]
+        final fun <get-text>(): kotlin/String // io.github.kingg22.godot.api.annotations/ExportToolButton.text.<get-text>|<get-text>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/Godot : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/Godot|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/Godot.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/Icon : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/Icon|null[0]
+    constructor <init>(kotlin/String) // io.github.kingg22.godot.api.annotations/Icon.<init>|<init>(kotlin.String){}[0]
+
+    final val iconPath // io.github.kingg22.godot.api.annotations/Icon.iconPath|{}iconPath[0]
+        final fun <get-iconPath>(): kotlin/String // io.github.kingg22.godot.api.annotations/Icon.iconPath.<get-iconPath>|<get-iconPath>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/RegisterSignal : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/RegisterSignal|null[0]
+    constructor <init>(kotlin/Array<out io.github.kingg22.godot.api.annotations/RegisterSignal.Param>... = ..., kotlin/String = ...) // io.github.kingg22.godot.api.annotations/RegisterSignal.<init>|<init>(kotlin.Array<out|io.github.kingg22.godot.api.annotations.RegisterSignal.Param>...;kotlin.String){}[0]
+
+    final val name // io.github.kingg22.godot.api.annotations/RegisterSignal.name|{}name[0]
+        final fun <get-name>(): kotlin/String // io.github.kingg22.godot.api.annotations/RegisterSignal.name.<get-name>|<get-name>(){}[0]
+    final val params // io.github.kingg22.godot.api.annotations/RegisterSignal.params|{}params[0]
+        final fun <get-params>(): kotlin/Array<out io.github.kingg22.godot.api.annotations/RegisterSignal.Param> // io.github.kingg22.godot.api.annotations/RegisterSignal.params.<get-params>|<get-params>(){}[0]
+
+    open annotation class Param : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/RegisterSignal.Param|null[0]
+        constructor <init>(io.github.kingg22.godot.api.builtin/Variant.Type, kotlin/String, kotlin/Array<io.github.kingg22.godot.api/PropertyHint> = ..., kotlin/String = ..., kotlin/Array<io.github.kingg22.godot.api/PropertyUsageFlags> = ...) // io.github.kingg22.godot.api.annotations/RegisterSignal.Param.<init>|<init>(io.github.kingg22.godot.api.builtin.Variant.Type;kotlin.String;kotlin.Array<io.github.kingg22.godot.api.PropertyHint>;kotlin.String;kotlin.Array<io.github.kingg22.godot.api.PropertyUsageFlags>){}[0]
+
+        final val hintString // io.github.kingg22.godot.api.annotations/RegisterSignal.Param.hintString|{}hintString[0]
+            final fun <get-hintString>(): kotlin/String // io.github.kingg22.godot.api.annotations/RegisterSignal.Param.hintString.<get-hintString>|<get-hintString>(){}[0]
+        final val hints // io.github.kingg22.godot.api.annotations/RegisterSignal.Param.hints|{}hints[0]
+            final fun <get-hints>(): kotlin/Array<io.github.kingg22.godot.api/PropertyHint> // io.github.kingg22.godot.api.annotations/RegisterSignal.Param.hints.<get-hints>|<get-hints>(){}[0]
+        final val name // io.github.kingg22.godot.api.annotations/RegisterSignal.Param.name|{}name[0]
+            final fun <get-name>(): kotlin/String // io.github.kingg22.godot.api.annotations/RegisterSignal.Param.name.<get-name>|<get-name>(){}[0]
+        final val type // io.github.kingg22.godot.api.annotations/RegisterSignal.Param.type|{}type[0]
+            final fun <get-type>(): io.github.kingg22.godot.api.builtin/Variant.Type // io.github.kingg22.godot.api.annotations/RegisterSignal.Param.type.<get-type>|<get-type>(){}[0]
+        final val usages // io.github.kingg22.godot.api.annotations/RegisterSignal.Param.usages|{}usages[0]
+            final fun <get-usages>(): kotlin/Array<io.github.kingg22.godot.api/PropertyUsageFlags> // io.github.kingg22.godot.api.annotations/RegisterSignal.Param.usages.<get-usages>|<get-usages>(){}[0]
+    }
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/Rpc : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/Rpc|null[0]
+    constructor <init>(io.github.kingg22.godot.api.core.refcounted/MultiplayerAPI.RPCMode = ..., io.github.kingg22.godot.api.annotations/Rpc.SyncMode = ..., io.github.kingg22.godot.api.core.refcounted/MultiplayerPeer.TransferMode = ..., kotlin/Int = ...) // io.github.kingg22.godot.api.annotations/Rpc.<init>|<init>(io.github.kingg22.godot.api.core.refcounted.MultiplayerAPI.RPCMode;io.github.kingg22.godot.api.annotations.Rpc.SyncMode;io.github.kingg22.godot.api.core.refcounted.MultiplayerPeer.TransferMode;kotlin.Int){}[0]
+
+    final val mode // io.github.kingg22.godot.api.annotations/Rpc.mode|{}mode[0]
+        final fun <get-mode>(): io.github.kingg22.godot.api.core.refcounted/MultiplayerAPI.RPCMode // io.github.kingg22.godot.api.annotations/Rpc.mode.<get-mode>|<get-mode>(){}[0]
+    final val sync // io.github.kingg22.godot.api.annotations/Rpc.sync|{}sync[0]
+        final fun <get-sync>(): io.github.kingg22.godot.api.annotations/Rpc.SyncMode // io.github.kingg22.godot.api.annotations/Rpc.sync.<get-sync>|<get-sync>(){}[0]
+    final val transferChannel // io.github.kingg22.godot.api.annotations/Rpc.transferChannel|{}transferChannel[0]
+        final fun <get-transferChannel>(): kotlin/Int // io.github.kingg22.godot.api.annotations/Rpc.transferChannel.<get-transferChannel>|<get-transferChannel>(){}[0]
+    final val transferMode // io.github.kingg22.godot.api.annotations/Rpc.transferMode|{}transferMode[0]
+        final fun <get-transferMode>(): io.github.kingg22.godot.api.core.refcounted/MultiplayerPeer.TransferMode // io.github.kingg22.godot.api.annotations/Rpc.transferMode.<get-transferMode>|<get-transferMode>(){}[0]
+
+    final enum class SyncMode : kotlin/Enum<io.github.kingg22.godot.api.annotations/Rpc.SyncMode> { // io.github.kingg22.godot.api.annotations/Rpc.SyncMode|null[0]
+        enum entry CALL_LOCAL // io.github.kingg22.godot.api.annotations/Rpc.SyncMode.CALL_LOCAL|null[0]
+        enum entry CALL_REMOTE // io.github.kingg22.godot.api.annotations/Rpc.SyncMode.CALL_REMOTE|null[0]
+
+        final val entries // io.github.kingg22.godot.api.annotations/Rpc.SyncMode.entries|#static{}entries[0]
+            final fun <get-entries>(): kotlin.enums/EnumEntries<io.github.kingg22.godot.api.annotations/Rpc.SyncMode> // io.github.kingg22.godot.api.annotations/Rpc.SyncMode.entries.<get-entries>|<get-entries>#static(){}[0]
+
+        final fun valueOf(kotlin/String): io.github.kingg22.godot.api.annotations/Rpc.SyncMode // io.github.kingg22.godot.api.annotations/Rpc.SyncMode.valueOf|valueOf#static(kotlin.String){}[0]
+        final fun values(): kotlin/Array<io.github.kingg22.godot.api.annotations/Rpc.SyncMode> // io.github.kingg22.godot.api.annotations/Rpc.SyncMode.values|values#static(){}[0]
+    }
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/StaticUnload : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/StaticUnload|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/StaticUnload.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.annotations/Tool : kotlin/Annotation { // io.github.kingg22.godot.api.annotations/Tool|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.annotations/Tool.<init>|<init>(){}[0]
+}

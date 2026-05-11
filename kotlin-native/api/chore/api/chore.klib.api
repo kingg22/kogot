@@ -1,0 +1,91 @@
+// Klib ABI Dump
+// Targets: [linuxX64]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <kogot.kotlin-native.api:chore>
+open annotation class io.github.kingg22.godot.api.builtin/MustBeVariant : kotlin/Annotation { // io.github.kingg22.godot.api.builtin/MustBeVariant|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.builtin/MustBeVariant.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api.internal/UsedFromCodegenGeneratedCode : kotlin/Annotation { // io.github.kingg22.godot.api.internal/UsedFromCodegenGeneratedCode|null[0]
+    constructor <init>() // io.github.kingg22.godot.api.internal/UsedFromCodegenGeneratedCode.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api/DelicateGodotApi : kotlin/Annotation { // io.github.kingg22.godot.api/DelicateGodotApi|null[0]
+    constructor <init>() // io.github.kingg22.godot.api/DelicateGodotApi.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api/ExperimentalForInheritanceGodotApi : kotlin/Annotation { // io.github.kingg22.godot.api/ExperimentalForInheritanceGodotApi|null[0]
+    constructor <init>() // io.github.kingg22.godot.api/ExperimentalForInheritanceGodotApi.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api/ExperimentalGodotApi : kotlin/Annotation { // io.github.kingg22.godot.api/ExperimentalGodotApi|null[0]
+    constructor <init>(kotlin/String = ...) // io.github.kingg22.godot.api/ExperimentalGodotApi.<init>|<init>(kotlin.String){}[0]
+
+    final val reason // io.github.kingg22.godot.api/ExperimentalGodotApi.reason|{}reason[0]
+        final fun <get-reason>(): kotlin/String // io.github.kingg22.godot.api/ExperimentalGodotApi.reason.<get-reason>|<get-reason>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api/ExperimentalGodotKotlin : kotlin/Annotation { // io.github.kingg22.godot.api/ExperimentalGodotKotlin|null[0]
+    constructor <init>() // io.github.kingg22.godot.api/ExperimentalGodotKotlin.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.kingg22.godot.api/InternalForInheritanceGodotApi : kotlin/Annotation { // io.github.kingg22.godot.api/InternalForInheritanceGodotApi|null[0]
+    constructor <init>() // io.github.kingg22.godot.api/InternalForInheritanceGodotApi.<init>|<init>(){}[0]
+}
+
+abstract interface io.github.kingg22.godot.api/GodotEnum { // io.github.kingg22.godot.api/GodotEnum|null[0]
+    abstract val value // io.github.kingg22.godot.api/GodotEnum.value|{}value[0]
+        abstract fun <get-value>(): kotlin/Long // io.github.kingg22.godot.api/GodotEnum.value.<get-value>|<get-value>(){}[0]
+
+    final object Companion { // io.github.kingg22.godot.api/GodotEnum.Companion|null[0]
+        final inline fun <#A2: reified io.github.kingg22.godot.api/GodotEnum & kotlin/Enum<#A2>> entries(): kotlin.enums/EnumEntries<#A2> // io.github.kingg22.godot.api/GodotEnum.Companion.entries|entries(){0§<io.github.kingg22.godot.api.GodotEnum&kotlin.Enum<0:0>>}[0]
+        final inline fun <#A2: reified io.github.kingg22.godot.api/GodotEnum & kotlin/Enum<#A2>> fromValue(kotlin/Long): #A2 // io.github.kingg22.godot.api/GodotEnum.Companion.fromValue|fromValue(kotlin.Long){0§<io.github.kingg22.godot.api.GodotEnum&kotlin.Enum<0:0>>}[0]
+        final inline fun <#A2: reified io.github.kingg22.godot.api/GodotEnum & kotlin/Enum<#A2>> fromValueOrNull(kotlin/Long): #A2? // io.github.kingg22.godot.api/GodotEnum.Companion.fromValueOrNull|fromValueOrNull(kotlin.Long){0§<io.github.kingg22.godot.api.GodotEnum&kotlin.Enum<0:0>>}[0]
+    }
+}
+
+abstract interface io.github.kingg22.godot.api/GodotNative { // io.github.kingg22.godot.api/GodotNative|null[0]
+    abstract val rawPtr // io.github.kingg22.godot.api/GodotNative.rawPtr|{}rawPtr[0]
+        abstract fun <get-rawPtr>(): kotlinx.cinterop/CPointer<out kotlinx.cinterop/CPointed> // io.github.kingg22.godot.api/GodotNative.rawPtr.<get-rawPtr>|<get-rawPtr>(){}[0]
+}
+
+final value class <#A: io.github.kingg22.godot.api/GodotEnum & kotlin/Enum<#A>> io.github.kingg22.godot.api/EnumMask : io.github.kingg22.godot.api/GodotEnum { // io.github.kingg22.godot.api/EnumMask|null[0]
+    constructor <init>(kotlin/Long) // io.github.kingg22.godot.api/EnumMask.<init>|<init>(kotlin.Long){}[0]
+
+    final val flags // io.github.kingg22.godot.api/EnumMask.flags|{}flags[0]
+        final fun <get-flags>(): kotlin/Long // io.github.kingg22.godot.api/EnumMask.flags.<get-flags>|<get-flags>(){}[0]
+    final val value // io.github.kingg22.godot.api/EnumMask.value|{}value[0]
+        final fun <get-value>(): kotlin/Long // io.github.kingg22.godot.api/EnumMask.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // io.github.kingg22.godot.api/EnumMask.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // io.github.kingg22.godot.api/EnumMask.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // io.github.kingg22.godot.api/EnumMask.toString|toString(){}[0]
+    final inline fun and(#A): io.github.kingg22.godot.api/EnumMask<#A> // io.github.kingg22.godot.api/EnumMask.and|and(1:0){}[0]
+    final inline fun and(io.github.kingg22.godot.api/EnumMask<#A>): io.github.kingg22.godot.api/EnumMask<#A> // io.github.kingg22.godot.api/EnumMask.and|and(io.github.kingg22.godot.api.EnumMask<1:0>){}[0]
+    final inline fun contains(#A): kotlin/Boolean // io.github.kingg22.godot.api/EnumMask.contains|contains(1:0){}[0]
+    final inline fun containsAll(io.github.kingg22.godot.api/EnumMask<#A>): kotlin/Boolean // io.github.kingg22.godot.api/EnumMask.containsAll|containsAll(io.github.kingg22.godot.api.EnumMask<1:0>){}[0]
+    final inline fun isEmpty(): kotlin/Boolean // io.github.kingg22.godot.api/EnumMask.isEmpty|isEmpty(){}[0]
+    final inline fun isNotEmpty(): kotlin/Boolean // io.github.kingg22.godot.api/EnumMask.isNotEmpty|isNotEmpty(){}[0]
+    final inline fun not(): io.github.kingg22.godot.api/EnumMask<#A> // io.github.kingg22.godot.api/EnumMask.not|not(){}[0]
+    final inline fun or(#A): io.github.kingg22.godot.api/EnumMask<#A> // io.github.kingg22.godot.api/EnumMask.or|or(1:0){}[0]
+    final inline fun or(io.github.kingg22.godot.api/EnumMask<#A>): io.github.kingg22.godot.api/EnumMask<#A> // io.github.kingg22.godot.api/EnumMask.or|or(io.github.kingg22.godot.api.EnumMask<1:0>){}[0]
+    final inline fun xor(#A): io.github.kingg22.godot.api/EnumMask<#A> // io.github.kingg22.godot.api/EnumMask.xor|xor(1:0){}[0]
+    final inline fun xor(io.github.kingg22.godot.api/EnumMask<#A>): io.github.kingg22.godot.api/EnumMask<#A> // io.github.kingg22.godot.api/EnumMask.xor|xor(io.github.kingg22.godot.api.EnumMask<1:0>){}[0]
+
+    final object Companion { // io.github.kingg22.godot.api/EnumMask.Companion|null[0]
+        final inline fun <#A2: io.github.kingg22.godot.api/GodotEnum & kotlin/Enum<#A2>> of(#A2): io.github.kingg22.godot.api/EnumMask<#A2> // io.github.kingg22.godot.api/EnumMask.Companion.of|of(0:0){0§<io.github.kingg22.godot.api.GodotEnum&kotlin.Enum<0:0>>}[0]
+        final inline fun <#A2: io.github.kingg22.godot.api/GodotEnum & kotlin/Enum<#A2>> of(#A2, #A2): io.github.kingg22.godot.api/EnumMask<#A2> // io.github.kingg22.godot.api/EnumMask.Companion.of|of(0:0;0:0){0§<io.github.kingg22.godot.api.GodotEnum&kotlin.Enum<0:0>>}[0]
+        final inline fun <#A2: io.github.kingg22.godot.api/GodotEnum & kotlin/Enum<#A2>> of(): io.github.kingg22.godot.api/EnumMask<#A2> // io.github.kingg22.godot.api/EnumMask.Companion.of|of(){0§<io.github.kingg22.godot.api.GodotEnum&kotlin.Enum<0:0>>}[0]
+        final inline fun <#A2: io.github.kingg22.godot.api/GodotEnum & kotlin/Enum<#A2>> of(kotlin.collections/Iterable<#A2>): io.github.kingg22.godot.api/EnumMask<#A2> // io.github.kingg22.godot.api/EnumMask.Companion.of|of(kotlin.collections.Iterable<0:0>){0§<io.github.kingg22.godot.api.GodotEnum&kotlin.Enum<0:0>>}[0]
+        final inline fun <#A2: io.github.kingg22.godot.api/GodotEnum & kotlin/Enum<#A2>> of(kotlin/Array<out #A2>...): io.github.kingg22.godot.api/EnumMask<#A2> // io.github.kingg22.godot.api/EnumMask.Companion.of|of(kotlin.Array<out|0:0>...){0§<io.github.kingg22.godot.api.GodotEnum&kotlin.Enum<0:0>>}[0]
+    }
+}
+
+final inline fun <#A: io.github.kingg22.godot.api/GodotEnum & kotlin/Enum<#A>> (#A).io.github.kingg22.godot.api/or(#A): io.github.kingg22.godot.api/EnumMask<#A> // io.github.kingg22.godot.api/or|or@0:0(0:0){0§<io.github.kingg22.godot.api.GodotEnum&kotlin.Enum<0:0>>}[0]
+final inline fun <#A: io.github.kingg22.godot.api/GodotEnum & kotlin/Enum<#A>> (#A).io.github.kingg22.godot.api/or(io.github.kingg22.godot.api/EnumMask<#A>): io.github.kingg22.godot.api/EnumMask<#A> // io.github.kingg22.godot.api/or|or@0:0(io.github.kingg22.godot.api.EnumMask<0:0>){0§<io.github.kingg22.godot.api.GodotEnum&kotlin.Enum<0:0>>}[0]
+final inline fun <#A: io.github.kingg22.godot.api/GodotEnum & kotlin/Enum<#A>> (kotlin.collections/Iterable<#A>).io.github.kingg22.godot.api/toEnumMask(): io.github.kingg22.godot.api/EnumMask<#A> // io.github.kingg22.godot.api/toEnumMask|toEnumMask@kotlin.collections.Iterable<0:0>(){0§<io.github.kingg22.godot.api.GodotEnum&kotlin.Enum<0:0>>}[0]
+final inline fun <#A: io.github.kingg22.godot.api/GodotEnum & kotlin/Enum<#A>> (kotlin/Array<#A>).io.github.kingg22.godot.api/toEnumMask(): io.github.kingg22.godot.api/EnumMask<#A> // io.github.kingg22.godot.api/toEnumMask|toEnumMask@kotlin.Array<0:0>(){0§<io.github.kingg22.godot.api.GodotEnum&kotlin.Enum<0:0>>}[0]
