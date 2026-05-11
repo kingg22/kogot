@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform.conventions)
@@ -7,8 +8,12 @@ plugins {
 }
 
 kotlin {
+    explicitApi()
+
+    @OptIn(ExperimentalAbiValidation::class)
+    abiValidation()
+
     compilerOptions {
-        explicitApi()
         optIn.addAll(
             "kotlinx.cinterop.ExperimentalForeignApi",
             "kotlin.experimental.ExperimentalNativeApi",

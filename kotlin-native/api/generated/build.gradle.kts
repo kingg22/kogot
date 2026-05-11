@@ -1,6 +1,7 @@
 import io.github.kingg22.buildlogic.godot.conventions.CodegenBackend
 import io.github.kingg22.buildlogic.godot.conventions.CodegenKind
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
@@ -11,8 +12,12 @@ plugins {
 }
 
 kotlin {
+    explicitApi()
+
+    @OptIn(ExperimentalAbiValidation::class)
+    abiValidation()
+
     compilerOptions {
-        explicitApi()
         optIn.addAll(
             "kotlinx.cinterop.ExperimentalForeignApi",
             "kotlin.experimental.ExperimentalNativeApi",
