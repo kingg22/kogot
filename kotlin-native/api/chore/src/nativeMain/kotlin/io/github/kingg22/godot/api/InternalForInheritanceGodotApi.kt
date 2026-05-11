@@ -10,4 +10,5 @@ package io.github.kingg22.godot.api
 )
 @Retention(BINARY)
 @Target(CLASS)
+@MustBeDocumented
 public annotation class InternalForInheritanceGodotApi
