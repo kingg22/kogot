@@ -740,7 +740,7 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                     implPackageRegistry.memberNameForOrDefault("anyToVariantOrNull"),
                 )
                 .addStatement("val result = this.evaluate(rh, %T.EQUAL) ?: return false", variantOperatorClass)
-                .addStatement("return result.asBoolOrNull() ?: false")
+                .addStatement("return result.toBoolOrNull() ?: false")
                 .build(),
         )
 
@@ -910,6 +910,25 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
 
             classBuilder.addFunction(orNullFun)
             classBuilder.addFunction(forcedFun)
+
+            if (subclassName.equals("STRING", ignoreCase = true)) {
+                classBuilder.addFunction(
+                    orNullFun
+                        .toBuilder(name = "toKStringOrNull")
+                        .clearBody()
+                        .returns(STRING.copy(nullable = true))
+                        .addCode("return this.toGodotStringOrNull()?.toKString()")
+                        .build(),
+                )
+                classBuilder.addFunction(
+                    forcedFun
+                        .toBuilder("toKString")
+                        .clearBody()
+                        .returns(STRING)
+                        .addCode("return this.toGodotString().toKString()")
+                        .build(),
+                )
+            }
         }
     }
 
@@ -925,8 +944,8 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
     ): Pair<FunSpec, FunSpec> {
         val pascalName = subclassName.screamingToPascalCase()
             .replaceFirstChar { it.uppercase() }
-        val orNullName = "as${pascalName}OrNull"
-        val forcedName = "as$pascalName"
+        val orNullName = "to${pascalName}OrNull"
+        val forcedName = "to$pascalName"
 
         val orNullFun = FunSpec
             .builder(orNullName)
@@ -970,9 +989,9 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
         variantTypeClass: ClassName,
         valueType: TypeName,
     ): Pair<FunSpec, FunSpec> {
-        val pascalName = subclassName.screamingToPascalCase()
-        val orNullName = "as${pascalName}OrNull"
-        val forcedName = "as$pascalName"
+        val pascalName = subclassName.screamingToPascalCase().takeUnless { it == "String" } ?: "GodotString"
+        val orNullName = "to${pascalName}OrNull"
+        val forcedName = "to$pascalName"
 
         val orNullFun = FunSpec
             .builder(orNullName)
@@ -1138,7 +1157,7 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
         fun asVariantType(kotlinType: TypeName, ctorArg: String = "this") {
             // nullable
             funs += FunSpec
-                .builder("asVariant")
+                .builder("toVariant")
                 .receiver(kotlinType.copy(nullable = true))
                 .returns(variantClassName)
                 .addStatement(
