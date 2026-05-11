@@ -106,17 +106,21 @@ class EngineClassImplGen {
                         buildCodeBlock {
                             add("\n")
                             withIndent {
-                                addStatement("%T", ctx.classNameForOrDefault("ClassDB"))
+                                beginControlFlow(
+                                    "%T(%S).use { cls ->",
+                                    ctx.classNameForOrDefault("StringName"),
+                                    cls.shortName,
+                                )
                                 withIndent {
-                                    addStatement(".instance")
-                                    addStatement(
-                                        ".instantiate(%T(%S))",
-                                        ctx.classNameForOrDefault("StringName"),
-                                        cls.shortName,
-                                    )
-                                    addStatement(".asObject()")
-                                    addStatement(".rawPtr,")
+                                    addStatement("%T", ctx.classNameForOrDefault("ClassDB"))
+                                    withIndent {
+                                        addStatement(".instance")
+                                        addStatement(".instantiate(cls)")
+                                        addStatement(".toObject()")
+                                        addStatement(".rawPtr")
+                                    }
                                 }
+                                endControlFlow()
                             }
                         },
                     )
