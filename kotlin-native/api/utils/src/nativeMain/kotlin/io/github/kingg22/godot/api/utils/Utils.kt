@@ -2,10 +2,10 @@
 
 package io.github.kingg22.godot.api.utils
 
+import io.github.kingg22.godot.api.GodotError
 import io.github.kingg22.godot.api.builtin.GodotString
 import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.asVariantString
-import io.github.kingg22.godot.api.global.GodotError
 
 public inline fun GD.typeStringAsGdStr(type: Variant.Type): GodotString = typeStringAsGdStr(type.value)
 

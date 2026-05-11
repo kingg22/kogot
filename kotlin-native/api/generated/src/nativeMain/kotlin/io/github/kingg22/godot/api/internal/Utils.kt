@@ -1,6 +1,6 @@
 package io.github.kingg22.godot.api.internal
 
-import io.github.kingg22.godot.api.global.GodotError
+import io.github.kingg22.godot.api.GodotError
 
 @UsedFromCodegenGeneratedCode
 @Suppress("NOTHING_TO_INLINE")

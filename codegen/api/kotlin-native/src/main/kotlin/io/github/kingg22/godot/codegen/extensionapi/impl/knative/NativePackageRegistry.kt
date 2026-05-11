@@ -110,7 +110,7 @@ class NativePackageRegistry private constructor(private val typeToPackage: Map<S
 
             // Global enums
             model.globalEnumTypes.forEach { enum ->
-                register(enum, "$rootPackage.api.global")
+                register(enum, "$rootPackage.api")
             }
 
             // Native structures — manual impl, but types must be resolvable

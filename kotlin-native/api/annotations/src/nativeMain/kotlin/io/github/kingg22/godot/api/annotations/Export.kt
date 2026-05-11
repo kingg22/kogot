@@ -1,7 +1,7 @@
 package io.github.kingg22.godot.api.annotations
 
-import io.github.kingg22.godot.api.global.PropertyHint
-import io.github.kingg22.godot.api.global.PropertyUsageFlags
+import io.github.kingg22.godot.api.PropertyHint
+import io.github.kingg22.godot.api.PropertyUsageFlags
 
 /**
  * Mark the following property as exported (editable in the Inspector dock and saved to disk).

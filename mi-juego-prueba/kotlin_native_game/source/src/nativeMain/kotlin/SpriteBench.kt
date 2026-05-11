@@ -1,6 +1,7 @@
 @file:OptIn(ExperimentalForeignApi::class)
 
 import io.github.kingg22.godot.api.GodotEnum
+import io.github.kingg22.godot.api.GodotError
 import io.github.kingg22.godot.api.annotations.Godot
 import io.github.kingg22.godot.api.annotations.RegisterSignal
 import io.github.kingg22.godot.api.builtin.Callable
@@ -11,7 +12,6 @@ import io.github.kingg22.godot.api.builtin.asStringName
 import io.github.kingg22.godot.api.builtin.asVariant
 import io.github.kingg22.godot.api.core.Object
 import io.github.kingg22.godot.api.core.node.Node2D
-import io.github.kingg22.godot.api.global.GodotError
 import io.github.kingg22.godot.internal.binding.ClassDBBinding
 import io.github.kingg22.godot.internal.binding.ObjectBinding
 import io.github.kingg22.godot.internal.binding.VariantBinding

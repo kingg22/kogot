@@ -1,8 +1,8 @@
 package io.github.kingg22.godot.api.annotations
 
+import io.github.kingg22.godot.api.PropertyHint
+import io.github.kingg22.godot.api.PropertyUsageFlags
 import io.github.kingg22.godot.api.builtin.Variant
-import io.github.kingg22.godot.api.global.PropertyHint
-import io.github.kingg22.godot.api.global.PropertyUsageFlags
 
 /**
  * Requires to be annotated in a property of [io.github.kingg22.godot.api.builtin.Signal]
