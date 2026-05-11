@@ -1,27 +1,58 @@
-// TODO Rename all references `toX` instead of `asX`
-
 package io.github.kingg22.godot.api.builtin
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.builtin.internal.anyToVariant
+import io.github.kingg22.godot.api.builtin.internal.anyToVariantOrNull
 import io.github.kingg22.godot.api.builtin.internal.getValue
+import kotlin.contracts.contract
 import kotlin.reflect.KProperty
 
-public fun String.asGodotString(): GodotString = GodotString(this)
+/** Syntactic sugar for [GodotString] constructor */
+public fun String.toGodotString(): GodotString = GodotString(this)
 
-public fun String.asNodePath(): NodePath = NodePath(this)
+/** Syntactic sugar for [NodePath] constructor */
+public fun String.toNodePath(): NodePath = NodePath(this)
 
-public fun String.asStringName(): StringName = StringName(this)
+/** Syntactic sugar for [StringName] constructor */
+public fun String.toStringName(): StringName = StringName(this)
 
-public fun String?.asVariantString(): Variant = this?.asGodotString().use { it.asVariant() }
+/** Converts [String] to [Variant] using [GodotString] as [Variant.Type.STRING] */
+public fun String?.toVariant(): Variant = toVariantString()
 
-public fun String?.asVariantStringName(): Variant = this?.asStringName().use { it.asVariant() }
+/** Converts [String] to [Variant] using [GodotString] as [Variant.Type.STRING] */
+public fun String?.toVariantString(): Variant = this?.toGodotString().use { it.toVariant() }
 
-public fun String?.asVariantNodePath(): Variant = this?.asNodePath().use { it.asVariant() }
+/** Converts [String] to [Variant] using [NodePath] as [Variant.Type.NODE_PATH] */
+public fun String?.toVariantNodePath(): Variant = this?.toNodePath().use { it.toVariant() }
 
-/** CAUTION: Read docs of [from] converter */
+/** Converts [String] to [Variant] using [StringName] as [Variant.Type.STRING_NAME] */
+public fun String?.toVariantStringName(): Variant = this?.toStringName().use { it.toVariant() }
+
+/**
+ * Converts an element to a [Variant] with type checking.
+ *
+ * This is unsafe, use caution. Prefers explicit convert methods over this function.
+ *
+ * @see anyToVariant
+ */
 @ExperimentalGodotKotlin
-public inline fun <reified T> T?.asVariant(): Variant = anyToVariant(this)
+public inline fun <reified T> T?.toVariant(): Variant {
+    contract { returns() implies (this@toVariant != null) }
+    return anyToVariant(this)
+}
+
+/**
+ * Converts an element to a [Variant] with type checking or null if you can't be converted.
+ *
+ * This is unsafe, use caution. Prefers explicit convert methods over this function.
+ *
+ * @see anyToVariantOrNull
+ */
+@ExperimentalGodotKotlin
+public inline fun <reified T> T?.toVariantOrNull(): Variant? {
+    contract { returns() implies (this@toVariantOrNull != null) }
+    return anyToVariantOrNull(this)
+}
 
 /**
  * Converts an element to a [Variant] with type checking.
