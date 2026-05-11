@@ -19,47 +19,47 @@ public fun anyToVariantOrNull(element: @MustBeVariant Any?): Variant? {
     return when (element) {
         is Variant -> element
         is Unit -> Variant()
-        is Boolean -> element.asVariant()
-        is Int -> element.asVariant()
-        is Long -> element.asVariant()
-        is Float -> element.asVariant()
-        is Double -> element.asVariant()
-        is String -> GodotString(element).use { it.asVariant() }
-        is GodotString -> element.asVariant()
-        is StringName -> element.asVariant()
-        is NodePath -> element.asVariant()
-        is Vector2 -> element.asVariant()
-        is Vector2i -> element.asVariant()
-        is Rect2 -> element.asVariant()
-        is Rect2i -> element.asVariant()
-        is Vector3 -> element.asVariant()
-        is Vector3i -> element.asVariant()
-        is Vector4 -> element.asVariant()
-        is Vector4i -> element.asVariant()
-        is Transform2D -> element.asVariant()
-        is Transform3D -> element.asVariant()
-        is Plane -> element.asVariant()
-        is Quaternion -> element.asVariant()
-        is AABB -> element.asVariant()
-        is Basis -> element.asVariant()
-        is Projection -> element.asVariant()
-        is Color -> element.asVariant()
-        is Rid -> element.asVariant()
-        is Callable -> element.asVariant()
-        is Signal -> element.asVariant()
-        is GodotObject -> element.asVariant()
-        is Dictionary<*, *> -> element.asVariant()
-        is GodotArray<*> -> element.asVariant()
-        is PackedByteArray -> element.asVariant()
-        is PackedInt32Array -> element.asVariant()
-        is PackedInt64Array -> element.asVariant()
-        is PackedFloat32Array -> element.asVariant()
-        is PackedFloat64Array -> element.asVariant()
-        is PackedStringArray -> element.asVariant()
-        is PackedVector2Array -> element.asVariant()
-        is PackedVector3Array -> element.asVariant()
-        is PackedVector4Array -> element.asVariant()
-        is PackedColorArray -> element.asVariant()
+        is Boolean -> element.toVariant()
+        is Int -> element.toVariant()
+        is Long -> element.toVariant()
+        is Float -> element.toVariant()
+        is Double -> element.toVariant()
+        is String -> GodotString(element).use { it.toVariant() }
+        is GodotString -> element.toVariant()
+        is StringName -> element.toVariant()
+        is NodePath -> element.toVariant()
+        is Vector2 -> element.toVariant()
+        is Vector2i -> element.toVariant()
+        is Rect2 -> element.toVariant()
+        is Rect2i -> element.toVariant()
+        is Vector3 -> element.toVariant()
+        is Vector3i -> element.toVariant()
+        is Vector4 -> element.toVariant()
+        is Vector4i -> element.toVariant()
+        is Transform2D -> element.toVariant()
+        is Transform3D -> element.toVariant()
+        is Plane -> element.toVariant()
+        is Quaternion -> element.toVariant()
+        is AABB -> element.toVariant()
+        is Basis -> element.toVariant()
+        is Projection -> element.toVariant()
+        is Color -> element.toVariant()
+        is Rid -> element.toVariant()
+        is Callable -> element.toVariant()
+        is Signal -> element.toVariant()
+        is GodotObject -> element.toVariant()
+        is Dictionary<*, *> -> element.toVariant()
+        is GodotArray<*> -> element.toVariant()
+        is PackedByteArray -> element.toVariant()
+        is PackedInt32Array -> element.toVariant()
+        is PackedInt64Array -> element.toVariant()
+        is PackedFloat32Array -> element.toVariant()
+        is PackedFloat64Array -> element.toVariant()
+        is PackedStringArray -> element.toVariant()
+        is PackedVector2Array -> element.toVariant()
+        is PackedVector3Array -> element.toVariant()
+        is PackedVector4Array -> element.toVariant()
+        is PackedColorArray -> element.toVariant()
         is Throwable -> throw IllegalStateException("Cannot convert Throwable to Variant", element)
         else -> null
     }
@@ -74,13 +74,17 @@ public fun anyToVariantOrNull(element: @MustBeVariant Any?): Variant? {
  * - `null` is converted to [Variant.Type.NIL]
  * - [Variant] is returned the same Variant, not a copy
  * - [Unit] is converted to [Variant.Type.NIL]
- * - [Throwable] is not supported, throws [IllegalStateException]
+ * - [Throwable] is not supported, throws [IllegalStateException] with it as cause
+ * - [CPointer][kotlinx.cinterop.COpaquePointer] is not supported
  *
  * @param element The element to convert, [must be a variant type compatible][MustBeVariant].
+ * @throws [IllegalStateException] if the type of variant is [MAX][Variant.Type.MAX] or [Throwable] or unsupported type.
  * @see Variant
  * @see asVariant
  */
 @ExperimentalGodotKotlin
 @ApiStatus.Internal
-public fun anyToVariant(element: @MustBeVariant Any?): Variant =
-    anyToVariantOrNull(element) ?: error("Unsupported type for Variant: $element (${element::class})")
+public fun anyToVariant(element: @MustBeVariant Any?): Variant {
+    contract { returns() implies (element != null) }
+    return anyToVariantOrNull(element) ?: error("Unsupported type for Variant: $element (${element::class})")
+}

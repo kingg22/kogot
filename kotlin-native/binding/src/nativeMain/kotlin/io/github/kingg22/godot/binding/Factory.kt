@@ -1,6 +1,6 @@
 package io.github.kingg22.godot.binding
 
-import io.github.kingg22.godot.api.builtin.asStringName
+import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.api.singleton.ClassDB
 import io.github.kingg22.godot.internal.binding.BindingProcAddressHolder
@@ -53,9 +53,9 @@ public fun getInstanceBinding(objectPtr: GDExtensionObjectPtr): GDExtensionClass
 public inline fun <reified T : GodotObject> instantiate(): T {
     val nativePtr = requireNotNull(T::class.simpleName) {
         "Cannot instantiate ${T::class.qualifiedName} without a valid class name"
-    }.asStringName().use { str ->
+    }.toStringName().use { str ->
         ClassDB.instance.instantiate(str)
-    }.asObject().rawPtr
+    }.toObject().rawPtr
 
     // Ahora sí, ese bindingPtr es el `selfPtr` (StableRef) que guardamos antes.
     @OptIn(InternalBinding::class)

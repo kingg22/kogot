@@ -4,7 +4,7 @@ package io.github.kingg22.godot
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.GodotNative
-import io.github.kingg22.godot.api.builtin.asStringName
+import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.internal.binding.ClassDBBinding
 import io.github.kingg22.godot.internal.binding.ObjectBinding
@@ -20,7 +20,7 @@ internal inline fun <Convert : GodotNative> castToInternal(
 ): Convert? {
     contract { callsInPlace(factory, InvocationKind.AT_MOST_ONCE) }
 
-    val classTagPtr = godotClassName.asStringName().use { str ->
+    val classTagPtr = godotClassName.toStringName().use { str ->
         ClassDBBinding
             .instance
             .getClassTagRaw(str.rawPtr)

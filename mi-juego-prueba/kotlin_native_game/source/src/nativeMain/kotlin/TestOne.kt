@@ -4,8 +4,8 @@ import io.github.kingg22.godot.api.annotations.Godot
 import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.builtin.Vector2i
-import io.github.kingg22.godot.api.builtin.asGodotString
-import io.github.kingg22.godot.api.builtin.asVariant
+import io.github.kingg22.godot.api.builtin.toGodotString
+import io.github.kingg22.godot.api.builtin.toVariant
 import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.api.core.SceneTree
 import io.github.kingg22.godot.api.core.node.Node2D
@@ -49,7 +49,7 @@ private const val SPRITE_COUNT = 5
             println("[SpriteBench] _ready started")
 
             // Try to create Texture2D - but first let's test WITHOUT texture
-            val icon = ResourceLoader.instance.load("res://icon.svg".asGodotString()).castTo(::Texture2D)
+            val icon = ResourceLoader.instance.load("res://icon.svg".toGodotString()).castTo(::Texture2D)
             println("[SpriteBench] Texture2D wrapper created")
 
             // get root from the engine singleton
@@ -94,9 +94,9 @@ private const val SPRITE_COUNT = 5
                 "[SpriteBench] Callable returned: ${returnVariant.stringify().toKString()}, is nil: ${returnVariant.isNil()}",
             )
             println("[SpriteBench] calling callable2 with 15 as args")
-            returnVariant = callable2.call(15L.asVariant())
+            returnVariant = callable2.call(15L.toVariant())
             println(
-                "[SpriteBench] Callable2 returned: ${returnVariant.stringify().toKString()}, is nil: ${returnVariant.isNil()}, value: ${returnVariant.asIntOrNull()}",
+                "[SpriteBench] Callable2 returned: ${returnVariant.stringify().toKString()}, is nil: ${returnVariant.isNil()}, value: ${returnVariant.toIntOrNull()}",
             )
         } catch (e: Throwable) {
             println("[SpriteBench] === _ready failed ===")
@@ -112,7 +112,7 @@ private const val SPRITE_COUNT = 5
                 if (frameIndex == FRAME_COUNT) {
                     println("[SpriteBench] Frame count reached, freeing children")
                     for (child in getChildren().asList()) {
-                        Node(child.asObject().rawPtr).queueFree()
+                        Node(child.toObject().rawPtr).queueFree()
                     }
 
                     val outText = StringBuilder(FRAME_COUNT * 12)
@@ -120,7 +120,7 @@ private const val SPRITE_COUNT = 5
                         outText.append("(").append(t).appendLine(")")
                     }
                     val edit = TextEdit()
-                    edit.text = outText.toString().asGodotString()
+                    edit.text = outText.toString().toGodotString()
                     edit.size = windowSize
                     addChild(node = edit)
                     println("[SpriteBench] TextEdit added")

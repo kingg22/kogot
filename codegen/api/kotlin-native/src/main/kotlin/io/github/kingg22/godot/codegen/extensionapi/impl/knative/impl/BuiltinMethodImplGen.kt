@@ -1,17 +1,7 @@
 package io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl
 
-import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.STAR
-import com.squareup.kotlinpoet.STRING
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.buildCodeBlock
-import com.squareup.kotlinpoet.joinToCode
-import com.squareup.kotlinpoet.withIndent
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.NativeBuiltinClassGenerator
 import io.github.kingg22.godot.codegen.impl.renameAllUpperCaseToCamelCase
@@ -361,7 +351,10 @@ class BuiltinMethodImplGen {
 
                 beginControlFlow("%T.Type.%L ->", variantTypeName, variantType)
                     // FIXME here can lead memory leaks
-                    .addStatement("val tmp = other.as%L()", rightType.renameAllUpperCaseToCamelCase())
+                    .addStatement(
+                        "val tmp = other.to%L()",
+                        rightType.renameAllUpperCaseToCamelCase().takeUnless { it == "String" } ?: "GodotString",
+                    )
                     .addStatement("ftptr = %N", fptrName)
                     .addStatement("rhsPtr = tmp.rawPtr")
                 endControlFlow()

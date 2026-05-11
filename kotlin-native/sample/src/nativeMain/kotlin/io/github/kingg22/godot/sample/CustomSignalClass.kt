@@ -1,8 +1,8 @@
 package io.github.kingg22.godot.sample
 
 import io.github.kingg22.godot.api.builtin.StringName
-import io.github.kingg22.godot.api.builtin.asGodotString
-import io.github.kingg22.godot.api.builtin.asStringName
+import io.github.kingg22.godot.api.builtin.toGodotString
+import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.print
@@ -50,8 +50,8 @@ fun registerCustomSignalClass() {
     memScoped {
         ClassDBBinding.instance.registerExtensionClass5Raw(
             BindingProcAddressHolder.library,
-            "CustomSignalClass".asStringName().rawPtr,
-            "Node".asStringName().rawPtr,
+            "CustomSignalClass".toStringName().rawPtr,
+            "Node".toStringName().rawPtr,
             info.ptr,
         )
     }
@@ -60,9 +60,9 @@ fun registerCustomSignalClass() {
 }
 
 fun registerSignalsForCustomSignalClass(
-    className: StringName = "CustomSignalClass".asStringName(),
-    signalName: StringName = "my_signal".asStringName(),
-    paramName: StringName = "value".asStringName(),
+    className: StringName = "CustomSignalClass".toStringName(),
+    signalName: StringName = "my_signal".toStringName(),
+    paramName: StringName = "value".toStringName(),
     variantType: GDExtensionVariantType = GDEXTENSION_VARIANT_TYPE_INT,
 ) {
     val argInfo = cValue<GDExtensionPropertyInfo> {
@@ -70,7 +70,7 @@ fun registerSignalsForCustomSignalClass(
         name = paramName.rawPtr
         class_name = className.rawPtr
         hint = 0u
-        hint_string = "".asGodotString().rawPtr
+        hint_string = "".toGodotString().rawPtr
         usage = 0u
     }
 

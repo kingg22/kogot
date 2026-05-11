@@ -1,12 +1,52 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package io.github.kingg22.godot.api.utils
 
+import io.github.kingg22.godot.api.GodotError
 import io.github.kingg22.godot.api.builtin.GodotString
-import io.github.kingg22.godot.api.builtin.asVariant
+import io.github.kingg22.godot.api.builtin.Variant
+import io.github.kingg22.godot.api.builtin.toVariant
 
-@Suppress("NOTHING_TO_INLINE")
+public inline fun GD.typeStringAsGdStr(type: Variant.Type): GodotString = typeStringAsGdStr(type.value)
+
+public inline fun GD.typeString(type: Variant.Type): String = typeString(type.value)
+
+public inline fun GD.errorStringAsGdStr(error: GodotError): GodotString = errorStringAsGdStr(error.value)
+
+public inline fun GD.errorString(error: GodotError): String = errorString(error.value)
+
+public inline fun GD.print(arg1: String, vararg args: String) {
+    print(arg1.toVariant(), *args.map { it.toVariant() }.toTypedArray())
+}
+
+public inline fun GD.printRich(arg1: String, vararg args: String) {
+    printRich(arg1.toVariant(), *args.map { it.toVariant() }.toTypedArray())
+}
+
+public inline fun GD.printerr(arg1: String, vararg args: String) {
+    printerr(arg1.toVariant(), *args.map { it.toVariant() }.toTypedArray())
+}
+
+public inline fun GD.printt(arg1: String, vararg args: String) {
+    printt(arg1.toVariant(), *args.map { it.toVariant() }.toTypedArray())
+}
+
+public inline fun GD.prints(arg1: String, vararg args: String) {
+    prints(arg1.toVariant(), *args.map { it.toVariant() }.toTypedArray())
+}
+
+public inline fun GD.printraw(arg1: String, vararg args: String) {
+    printraw(arg1.toVariant(), *args.map { it.toVariant() }.toTypedArray())
+}
+
+public inline fun GD.printVerbose(arg1: String, vararg args: String) {
+    printVerbose(arg1.toVariant(), *args.map { it.toVariant() }.toTypedArray())
+}
+
+public inline fun GD.pushWarning(arg1: String, vararg args: String) {
+    pushWarning(arg1.toVariant(), *args.map { it.toVariant() }.toTypedArray())
+}
+
 public inline fun GD.pushError(arg1: String, vararg args: String) {
-    pushError(
-        GodotString(arg1).use { it.asVariant() },
-        *args.map { GodotString(it).use { str -> str.asVariant() } }.toTypedArray(),
-    )
+    pushError(arg1.toVariant(), *args.map { it.toVariant() }.toTypedArray())
 }

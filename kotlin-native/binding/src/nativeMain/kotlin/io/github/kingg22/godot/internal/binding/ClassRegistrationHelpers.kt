@@ -1,6 +1,6 @@
 package io.github.kingg22.godot.internal.binding
 
-import io.github.kingg22.godot.api.builtin.asStringName
+import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.internal.ffi.*
@@ -54,7 +54,7 @@ public fun <T : GodotObject> createInstanceFunc(
     contract { callsInPlace(factory, InvocationKind.AT_MOST_ONCE) }
 
     // println("[Kogot] CreateInstance: Creating $parentClassName instance")
-    val base = parentClassName.asStringName().use { str ->
+    val base = parentClassName.toStringName().use { str ->
         ClassDBBinding.instance.constructObject2Raw(str.rawPtr)
     } ?: error("Failed to construct base $parentClassName")
     // println("[Kogot] CreateInstance: Base $parentClassName constructed. $base")
@@ -69,7 +69,7 @@ public fun <T : GodotObject> createInstanceFunc(
     val selfRef = StableRef.create(instance)
     val selfPtr = selfRef.asCPointer()
 
-    className.asStringName().use { str ->
+    className.toStringName().use { str ->
         ObjectBinding.instance.setInstanceRaw(
             base,
             str.rawPtr,
@@ -167,8 +167,8 @@ public inline fun <reified T : GodotObject> registerClass(
 
     val info = classCreationInfo5(createInstance, freeInstance, getVirtual, StableRef.create(T::class).asCPointer())
 
-    className.asStringName().use { classStringName ->
-        parentClassName.asStringName().use { parentStringName ->
+    className.toStringName().use { classStringName ->
+        parentClassName.toStringName().use { parentStringName ->
             memScoped {
                 ClassDBBinding.instance.registerExtensionClass5Raw(
                     BindingProcAddressHolder.library,

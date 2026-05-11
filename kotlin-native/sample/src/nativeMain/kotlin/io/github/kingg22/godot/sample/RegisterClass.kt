@@ -1,7 +1,7 @@
 package io.github.kingg22.godot.sample
 
 import io.github.kingg22.godot.api.builtin.StringName
-import io.github.kingg22.godot.api.builtin.asStringName
+import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.singleton.ClassDB
 import io.github.kingg22.godot.internal.binding.BindingProcAddressHolder
 import io.github.kingg22.godot.internal.binding.ObjectBinding
@@ -28,7 +28,7 @@ val notificationFunc: GDExtensionClassNotification2 = staticCFunction { instance
 
 val createInstanceFunc: GDExtensionClassCreateInstance2 = staticCFunction { _, _ ->
     println("CreateInstanceFunc: Creating CustomSignalClass instance")
-    val base = ClassDB.instance.instantiate("Node".asStringName()).asObject().rawPtr
+    val base = ClassDB.instance.instantiate("Node".toStringName()).toObject().rawPtr
     println("CreateInstanceFunc: Base Node constructed")
     val self = CustomSignalClass(base)
     println("CreateInstanceFunc: Wrapper constructed")
@@ -38,7 +38,7 @@ val createInstanceFunc: GDExtensionClassCreateInstance2 = staticCFunction { _, _
     println("CreateInstanceFunc: setInstance")
     ObjectBinding.instance.setInstanceRaw(
         base,
-        "CustomSignalClass".asStringName().rawPtr,
+        "CustomSignalClass".toStringName().rawPtr,
         selfPtr,
     )
     memScoped {
@@ -75,7 +75,7 @@ val getVirtualFunc: GDExtensionClassGetVirtual2 = staticCFunction { classPtr, fu
         println("GetVirtualFunc: Function name TODO...")
         if (clazz == CustomSignalClass::class) {
             println("GetVirtualFunc: Class is CustomSignalClass!")
-            val readyStringName = "_ready".asStringName()
+            val readyStringName = "_ready".toStringName()
             if (stringName == readyStringName.also { it.close() }) {
                 println("GetVirtualFunc: func is _ready")
                 return@staticCFunction staticCFunction { instancePtr, _, _ ->
