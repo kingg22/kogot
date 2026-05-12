@@ -3,13 +3,13 @@ package io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.kingg22.godot.codegen.extensionapi.Context
+import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.NativeBuiltinClassGenerator
 import io.github.kingg22.godot.codegen.impl.renameAllUpperCaseToCamelCase
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.impl.toScreamingSnakeCase
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
-import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinClass
 import io.github.kingg22.godot.codegen.types.*
 
@@ -25,7 +25,7 @@ import io.github.kingg22.godot.codegen.types.*
  * The fptr is loaded via `VariantBinding.instance.getPtrBuiltinMethodRaw(variantType, name, hash)`.
  * Properties are emitted as top-level `private val` lazy delegates in the class file.
  */
-class BuiltinMethodImplGen {
+class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
     private lateinit var implPackageRegistry: ImplementationPackageRegistry
 
     fun initialize(implRegistry: ImplementationPackageRegistry) {
@@ -567,15 +567,19 @@ class BuiltinMethodImplGen {
     context(ctx: Context)
     private fun buildFixedArgsBody(method: BuiltinClass.BuiltinMethod, propName: String): CodeBlock = buildCodeBlock {
         val returnType = method.returnType
-        if (returnType != null && returnType != "void") add("return ")
+        val hasReturn = returnType != null && returnType != "void"
+        val resolvedReturn = if (hasReturn) typeResolver.resolve(returnType, null) else null
 
+        if (hasReturn) add("return ")
         beginControlFlow("%M", memScoped)
 
         // 1. Alloc return buffer
-        if (returnType != null && returnType != "void") add(buildReturnAlloc(returnType))
+        if (hasReturn && resolvedReturn != null) {
+            add(buildReturnAlloc(returnType, implPackageRegistry, resolvedReturn))
+        }
 
         // 2. Alloc primitive args
-        method.arguments.forEach { arg -> add(buildArgAlloc(arg)) }
+        method.arguments.forEach { arg -> add(buildArgAlloc(arg, implPackageRegistry, typeResolver)) }
 
         // 3. Build p_base expression
         val pBase = if (method.isStatic) "null" else "rawPtr"
@@ -589,16 +593,16 @@ class BuiltinMethodImplGen {
             isGodotPrimitive(returnType) -> "retPtr.%M"
 
             // .ptr
-            ctx.isBuiltin(returnType) -> "retPtr.rawPtr"
-
-            ctx.findEngineClass(returnType) != null -> "retPtr.%M.%M()"
+            ctx.isBuiltin(returnType) || ctx.findEngineClass(returnType) != null -> "retPtr.%M.%M()"
 
             // .ptr.reinterpret()
             else -> "null"
         }
 
         // 4. Invoke
-        val argExpressions = method.arguments.joinToCode("") { arg -> argPointerExpression(arg) }.let {
+        val argExpressions = method.arguments.joinToCode("") { arg ->
+            argPointerExpression(arg, implPackageRegistry, typeResolver)
+        }.let {
             if (method.isVararg) {
                 it.toBuilder().addStatement("*args.map·{·it.rawPtr·}.toTypedArray(),").build()
             } else {
@@ -641,129 +645,11 @@ class BuiltinMethodImplGen {
         }
 
         // 5. Read return
-        if (returnType != null && returnType != "void") add(buildReturnRead(returnType))
+        if (hasReturn && resolvedReturn != null) {
+            add(buildReturnRead(returnType, implPackageRegistry, resolvedReturn))
+        }
 
         endControlFlow()
-    }
-
-    context(ctx: Context)
-    private fun buildArgAlloc(arg: MethodArg): CodeBlock = buildCodeBlock {
-        val name = safeIdentifier(arg.name)
-        when {
-            arg.type == "float" || arg.type == "double" -> {
-                addStatement("val %LVar = %M<%T>()", name, cinteropAlloc, DOUBLE_VAR)
-                addStatement("%LVar.%M = %N", name, cinteropValue, name)
-            }
-
-            arg.type == "int" -> {
-                addStatement("val %LVar = %M<%T>()", name, cinteropAlloc, LONG_VAR)
-                addStatement("%LVar.%M = %N", name, cinteropValue, name)
-            }
-
-            arg.type == "bool" -> {
-                addStatement(
-                    "val %LVar = %M(%N)",
-                    name,
-                    implPackageRegistry.memberNameForOrDefault("allocGdBool"),
-                    name,
-                )
-            }
-
-            ctx.isEngineClass(arg.type) || ctx.isSingleton(arg.type) -> {
-                addStatement("val %LVar = %M<%T>()", name, cinteropAlloc, C_OPAQUE_POINTER_VAR)
-                addStatement(
-                    "%LVar.%M = %N${if (arg.isNullable) "?" else ""}.rawPtr",
-                    name,
-                    cinteropValue,
-                    name,
-                )
-            }
-            // builtin classes and everything else — rawPtr passed directly, no alloc needed
-        }
-    }
-
-    context(ctx: Context)
-    private fun argPointerExpression(arg: MethodArg): CodeBlock {
-        val name = safeIdentifier(arg.name)
-        return when {
-            arg.type == "float" || arg.type == "double" || arg.type == "int" -> CodeBlock.ofStatement(
-                "%LVar.%M,",
-                name,
-                cinteropPtr,
-            )
-
-            arg.type == "bool" -> CodeBlock.ofStatement("%LVar,", name)
-
-            ctx.isBuiltin(arg.type) || arg.type == "Variant" -> CodeBlock.ofStatement("%N.rawPtr,", name)
-
-            arg.type.startsWith("enum::") -> CodeBlock.ofStatement(
-                "%M<%T>().also·{ it.%M = %N.value }.%M,",
-                cinteropAlloc,
-                LONG_VAR,
-                cinteropValue,
-                name,
-                cinteropPtr,
-            )
-
-            ctx.isEngineClass(arg.type) || ctx.isSingleton(arg.type) -> CodeBlock.ofStatement(
-                "%LVar.%M,",
-                name,
-                cinteropPtr,
-            )
-
-            else -> CodeBlock.ofStatement("%N.rawPtr,", name)
-        }
-    }
-
-    context(ctx: Context)
-    private fun buildReturnAlloc(returnType: String): CodeBlock = buildCodeBlock {
-        when {
-            returnType == "float" || returnType == "double" ->
-                addStatement("val retPtr = %M<%T>()", cinteropAlloc, DOUBLE_VAR)
-
-            returnType == "int" ->
-                addStatement("val retPtr = %M<%T>()", cinteropAlloc, LONG_VAR)
-
-            returnType == "bool" ->
-                addStatement(
-                    "val retPtr = %M()",
-                    implPackageRegistry.memberNameForOrDefault("allocGdBool"),
-                )
-
-            ctx.isBuiltin(returnType) ->
-                addStatement(
-                    "val retPtr = %T()",
-                    ctx.classNameForOrDefault(returnType.renameGodotClass()),
-                )
-
-            ctx.findEngineClass(returnType) != null ->
-                addStatement("val retPtr = %M<%T>()", cinteropAlloc, C_OPAQUE_POINTER_VAR)
-
-            else -> error("Unknown return type for builtin method: '$returnType'")
-        }
-    }
-
-    context(ctx: Context)
-    private fun buildReturnRead(returnType: String): CodeBlock = when {
-        returnType == "float" || returnType == "double" || returnType == "int" ->
-            CodeBlock.ofStatement("return retPtr.%M", cinteropValue)
-
-        returnType == "bool" -> CodeBlock.ofStatement(
-            "return retPtr.%M()",
-            implPackageRegistry.memberNameForOrDefault("readGdBool"),
-        )
-
-        ctx.isBuiltin(returnType) -> CodeBlock.ofStatement("return retPtr")
-
-        ctx.findEngineClass(returnType) != null -> CodeBlock.ofStatement(
-            "return %T(%M(retPtr.%M)·{·%S·})",
-            ctx.classNameForOrDefault(returnType.renameGodotClass()),
-            K_REQUIRE_NOT_NULL,
-            cinteropValue,
-            "Return pointer value of $returnType was null",
-        )
-
-        else -> CodeBlock.ofStatement("return retPtr")
     }
 
     private fun isGodotPrimitive(type: String) = NativeBuiltinClassGenerator.SKIPPED_TYPES.contains(type)

@@ -24,7 +24,7 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
     private val logger = logger()
     private lateinit var implPackageRegistry: ImplementationPackageRegistry
     private val bodyGenerator = BodyGenerator
-    private val builtinClassImplGen = BuiltinClassImplGen(typeResolver, BuiltinMethodImplGen())
+    private val builtinClassImplGen = BuiltinClassImplGen(typeResolver, BuiltinMethodImplGen(typeResolver))
     private val defaultValue = DefaultValueGenerator(typeResolver)
     private val methodGenerator = NativeMethodGenerator(typeResolver, bodyGenerator, defaultValue)
     private val genericInterceptor = GenericBuiltinInterceptor(typeResolver)
@@ -56,7 +56,7 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
     private val variant = NativeVariantGenerator(enumGen, variantImplGen)
     private val nativeStructureBodyImpl = KNativeImplGen(bodyGenerator)
     private val nativeStructure = KNativeStructureGenerator(typeResolver, nativeStructureBodyImpl)
-    private val utilFuncImplGen = UtilityFunctionImplGen()
+    private val utilFuncImplGen = UtilityFunctionImplGen(typeResolver)
     private val utils = NativeUtilityFunctionGenerator(methodGenerator, overloadGen, utilFuncImplGen)
 
     context(ctx: Context, gdeInterface: GDExtensionInterface?)

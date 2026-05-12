@@ -5,11 +5,15 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.joinToCode
 import io.github.kingg22.godot.codegen.extensionapi.Context
+import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
-import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.UtilityFunction
-import io.github.kingg22.godot.codegen.types.*
+import io.github.kingg22.godot.codegen.types.cinteropInvoke
+import io.github.kingg22.godot.codegen.types.cinteropPtr
+import io.github.kingg22.godot.codegen.types.cinteropReinterpret
+import io.github.kingg22.godot.codegen.types.lazyMethod
+import io.github.kingg22.godot.codegen.types.memScoped
 
 /**
  * Generates lazy-loaded function pointer properties and actual invocation bodies
@@ -32,7 +36,7 @@ import io.github.kingg22.godot.codegen.types.*
  * - `int`                    → `alloc<LongVar>()`, read `.value` after invoke
  * - `bool`                   → `allocGdBool()`, read via `readGdBool()` after invoke
  */
-class UtilityFunctionImplGen {
+class UtilityFunctionImplGen(private val typeResolver: TypeResolver) {
     private lateinit var implPackageRegistry: ImplementationPackageRegistry
 
     fun initialize(implRegistry: ImplementationPackageRegistry) {
@@ -116,27 +120,34 @@ class UtilityFunctionImplGen {
     context(ctx: Context)
     private fun buildFixedArgsBody(fn: UtilityFunction, propName: String): CodeBlock = CodeBlock.builder().apply {
         val returnType = fn.returnType
+        val resolvedReturn = if (returnType != null) typeResolver.resolve(returnType, null) else null
 
         if (returnType != null) add("return ")
 
         beginControlFlow("%M", memScoped)
 
         // 1. Alloc return buffer
-        if (returnType != null) add(buildReturnAlloc(returnType))
+        if (returnType != null && resolvedReturn != null) {
+            add(buildReturnAlloc(returnType, implPackageRegistry, resolvedReturn))
+        }
 
         // 2. Alloc arguments
-        fn.arguments.forEach { arg -> add(buildArgAlloc(arg)) }
+        fn.arguments.forEach { arg -> add(buildArgAlloc(arg, implPackageRegistry, typeResolver)) }
 
         // 3. Invoke logic
-        val argExpressions = fn.arguments.joinToCode("") { arg -> argPointerExpression(arg) }
+        val argExpressions = fn.arguments.joinToCode("") { arg ->
+            argPointerExpression(
+                arg,
+                implPackageRegistry,
+                typeResolver,
+            )
+        }
         val retExpression = when {
             returnType == null -> CodeBlock.of("null")
 
             returnType == "bool" -> CodeBlock.of("retPtr")
 
-            isGodotPrimitive(returnType) -> CodeBlock.of("retPtr.%M", cinteropPtr)
-
-            ctx.isBuiltin(returnType) -> CodeBlock.of("retPtr.rawPtr")
+            isGodotPrimitive(returnType) || ctx.isBuiltin(returnType) -> CodeBlock.of("retPtr.%M", cinteropPtr)
 
             ctx.findEngineClass(returnType) != null ->
                 CodeBlock.of("retPtr.%M.%M()", cinteropPtr, cinteropReinterpret)
@@ -161,110 +172,12 @@ class UtilityFunctionImplGen {
         }
 
         // 4. Read return
-        if (returnType != null) {
-            add(buildReturnRead(returnType))
+        if (returnType != null && resolvedReturn != null) {
+            add(buildReturnRead(returnType, implPackageRegistry, resolvedReturn))
         }
 
         endControlFlow()
     }.build()
-
-    private fun isGodotPrimitive(type: String): Boolean =
-        type == "float" || type == "int" || type == "bool" || type == "double"
-
-    private fun buildArgAlloc(arg: MethodArg): CodeBlock = CodeBlock.builder().apply {
-        val name = safeIdentifier(arg.name)
-
-        when (arg.type) {
-            "float", "double", "int" -> {
-                val cType = when (arg.type) {
-                    "float", "double" -> DOUBLE_VAR
-                    "int" -> LONG_VAR
-                    else -> error("Invalid type: ${arg.type}")
-                }
-                addStatement("val %LVar = %M<%T>()", name, cinteropAlloc, cType)
-                addStatement("%LVar.%M = %N", name, cinteropValue, name)
-            }
-
-            "bool" -> {
-                addStatement(
-                    "val %LVar = %M(%N)",
-                    name,
-                    implPackageRegistry.memberNameForOrDefault("allocGdBool"),
-                    name,
-                )
-            }
-        }
-    }.build()
-
-    context(ctx: Context)
-    private fun argPointerExpression(arg: MethodArg): CodeBlock {
-        val name = safeIdentifier(arg.name)
-        return when {
-            isGodotPrimitive(arg.type) -> CodeBlock.builder().addStatement("%LVar.%M,", name, cinteropPtr).build()
-
-            ctx.isBuiltin(arg.type) || arg.type == "Variant" -> CodeBlock.builder()
-                .addStatement("%N.rawPtr,", name).build()
-
-            arg.type.startsWith("enum::") -> CodeBlock.builder().addStatement(
-                "%M<%T>().also♢{ it.%M = %N.value }.%M,",
-                cinteropAlloc,
-                LONG_VAR,
-                cinteropValue,
-                name,
-                cinteropPtr,
-            ).build()
-
-            else -> error("Invalid type: ${arg.type}")
-        }
-    }
-
-    context(ctx: Context)
-    private fun buildReturnAlloc(returnType: String): CodeBlock = CodeBlock.builder().apply {
-        when {
-            returnType == "float" || returnType == "double" -> addStatement(
-                "val retPtr = %M<%T>()",
-                cinteropAlloc,
-                DOUBLE_VAR,
-            )
-
-            returnType == "int" -> addStatement("val retPtr = %M<%T>()", cinteropAlloc, LONG_VAR)
-
-            returnType == "bool" -> addStatement(
-                "val retPtr = %M()",
-                implPackageRegistry.memberNameForOrDefault("allocGdBool"),
-            )
-
-            ctx.isBuiltin(returnType) -> addStatement(
-                "val retPtr = %T()",
-                ctx.classNameForOrDefault(returnType.renameGodotClass()),
-            )
-
-            ctx.findEngineClass(returnType) != null -> addStatement(
-                "val retPtr = %M<%T>()",
-                cinteropAlloc,
-                C_OPAQUE_POINTER_VAR,
-            )
-
-            else -> error("Invalid return type, unknown strategy: '$returnType'")
-        }
-    }.build()
-
-    context(ctx: Context)
-    private fun buildReturnRead(returnType: String): CodeBlock = when {
-        isGodotPrimitive(returnType) && returnType != "bool" -> CodeBlock.ofStatement("return retPtr.%M", cinteropValue)
-
-        returnType == "bool" -> CodeBlock.ofStatement(
-            "return retPtr.%M()",
-            implPackageRegistry.memberNameForOrDefault("readGdBool"),
-        )
-
-        ctx.findEngineClass(returnType) != null -> CodeBlock.ofStatement(
-            "return retPtr.value?.let { %T(it) }",
-            ctx.classNameForOrDefault(returnType.renameGodotClass()),
-        )
-
-        else -> CodeBlock.ofStatement("return retPtr")
-    }
 
     private fun functionPointerName(fn: UtilityFunction) = safeIdentifier(fn.name) + "Fn"
 }
