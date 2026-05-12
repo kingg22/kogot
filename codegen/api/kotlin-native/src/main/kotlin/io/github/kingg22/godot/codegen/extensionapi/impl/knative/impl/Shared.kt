@@ -320,3 +320,127 @@ fun buildReturnRead(
         else -> CodeBlock.ofStatement("${preAppendReturn}retPtr")
     }
 }
+
+/**
+ * Holds the return argument expression for FFI invoke calls, with explicit flag
+ * to determine how to emit in the invoke call.
+ *
+ * ## Usage in invoke call
+ *
+ * BuiltinMethodImplGen uses a special pattern where for CVar types and engine/builtin
+ * types, the invoke call needs `retPtr.%M` (the pointer itself) instead of a CodeBlock
+ * expression. This is because the FFI function expects a pointer-sized `r_return` argument:
+ *
+ * ```
+ * invoke(p_base, p_args, retPtr.%M, argCount)  // when needsPtrInInvoke = true
+ * invoke(p_base, p_args, rReturnCodeBlock, argCount)  // when needsPtrInInvoke = false
+ * ```
+ *
+ * ## needsPtrInInvoke flag
+ *
+ * When `true`: emit `retPtr.%M` directly in the invoke call (cinteropPtr extension).
+ * This is needed for:
+ * - CVar types (IntVar, LongVar, FloatVar, etc.) - need pointer to stack-allocated var
+ * - Engine classes, builtins, collections - need pointer to allocated COpaquePointerVar
+ *
+ * When `false`: use `asCodeBlock` directly in the invoke call.
+ * This is for:
+ * - void/null - passes `null`
+ * - bool - passes `retPtr` (the GdBool instance, not a pointer)
+ * - enums, bitfields - passes `retPtr` (the LongVar, not a pointer)
+ *
+ * ## asCodeBlock field
+ *
+ * The CodeBlock expression that represents the return argument in the generated code.
+ * For use in non-ptr positions (e.g., when the return needs reinterpret()).
+ */
+data class ReturnArgInfo(
+    val asCodeBlock: CodeBlock,
+    /**
+     * When true: emit `retPtr.%M` directly in the invoke call.
+     * When false: use `asCodeBlock` directly.
+     */
+    val needsPtrInInvoke: Boolean,
+)
+
+/**
+ * Builds the r_return expression to pass to an FFI invoke call.
+ *
+ * ## Parameters
+ * - [returnType]: The Godot return type string (e.g., "void", "int", "Sprite2D")
+ * - [kotlinType]: The resolved Kotlin TypeName
+ * - [forBuiltinInvoke]: When true, includes .reinterpret() for engine/builtin types (for
+ *   BuiltinMethodImplGen's GDExtensionPtrBuiltInMethod.invoke). When false, uses simpler
+ *   retPtr.%M form (for EngineMethodImplGen's methodBindPtrcallRaw).
+ *
+ * ## BuiltinMethodImplGen invoke signature
+ * `GDExtensionPtrBuiltInMethod.invoke(p_base, p_args, r_return, argument_count)`
+ * - r_return: COpaquePointer - the raw pointer to return buffer
+ * - For engine/builtin types: pass retPtr.%M (pointer), then construct type via reinterpret()
+ *   after the call completes
+ *
+ * ## EngineMethodImplGen methodBindPtrcallRaw signature
+ * `ObjectBinding.instance.methodBindPtrcallRaw(bind, p_object, p_args, r_ret)`
+ * - r_ret: COpaquePointer? - just needs the pointer, no reinterpret needed
+ * - For engine/builtin types: pass retPtr.%M (the pointer to COpaquePointerVar.value)
+ *
+ * ## Return type mapping
+ * - `void`/`null` → needsPtrInInvoke=false, asCodeBlock="null"
+ * - `bool` → needsPtrInInvoke=false, asCodeBlock="retPtr" (GdBool instance, not pointer)
+ * - CVar types (Int, Long, Float, Double, etc.) → needsPtrInInvoke=true, asCodeBlock="retPtr.%M" (cinteropPtr)
+ * - COPAQUE_POINTER, enums, bitfields, C_POINTER → needsPtrInInvoke=false, asCodeBlock="retPtr.%M" (cinteropPtr)
+ * - Engine classes, builtins, arrays, dicts, typed dicts, typed arrays:
+ *   - forBuiltinInvoke=true → needsPtrInInvoke=true, asCodeBlock="retPtr.%M.%M()" (cinteropPtr.reinterpret())
+ *   - forBuiltinInvoke=false → needsPtrInInvoke=true, asCodeBlock="retPtr.%M" (cinteropPtr)
+ * - Fallback → needsPtrInInvoke=false, asCodeBlock="retPtr"
+ */
+context(ctx: Context)
+fun returnArgExpression(returnType: String?, kotlinType: TypeName, forBuiltinInvoke: Boolean = false): ReturnArgInfo {
+    val cVarType = primitiveKotlinToCVar(kotlinType)
+
+    // Engine classes, builtins, and collections: need raw pointer for the invoke call.
+    // The type is constructed via reinterpret() after the call (BuiltinMethodImplGen path).
+    val isEngineOrBuiltinOrCollection = returnType != null && (
+        ctx.findEngineClass(returnType) != null ||
+            ctx.isBuiltin(returnType) ||
+            returnType.startsWith("array") ||
+            returnType.startsWith("dictionary") ||
+            returnType.startsWith("typeddictionary") ||
+            returnType.startsWith("typedarray")
+        )
+
+    // CVar types (IntVar, LongVar, etc.): need pointer to stack-allocated variable.
+    val isCVar = cVarType != null
+
+    return when {
+        returnType == null || returnType == "void" ->
+            ReturnArgInfo(CodeBlock.of("null"), needsPtrInInvoke = false)
+
+        kotlinType == BOOLEAN ->
+            // bool: passes GdBool instance directly (not pointer). Value read via readGdBool().
+            ReturnArgInfo(CodeBlock.of("retPtr"), needsPtrInInvoke = false)
+
+        isEngineOrBuiltinOrCollection ->
+            // Engine/builtin types: invoke needs retPtr.%M (the raw pointer).
+            // asCodeBlock differs based on context:
+            // - forBuiltinInvoke=true: include .reinterpret() for post-call type construction
+            // - forBuiltinInvoke=false: just retPtr.%M for methodBindPtrcallRaw
+            ReturnArgInfo(
+                if (forBuiltinInvoke) {
+                    CodeBlock.of("retPtr.%M.%M()", cinteropPtr, cinteropReinterpret)
+                } else {
+                    CodeBlock.of("retPtr.%M", cinteropPtr)
+                },
+                needsPtrInInvoke = true,
+            )
+
+        isCVar || kotlinType == COPAQUE_POINTER ||
+            returnType.startsWith("enum::") ||
+            returnType.startsWith("bitfield::") ||
+            (kotlinType is ParameterizedTypeName && kotlinType.rawType == C_POINTER)
+        -> ReturnArgInfo(CodeBlock.of("retPtr.%M", cinteropPtr), needsPtrInInvoke = false)
+
+        else ->
+            ReturnArgInfo(CodeBlock.of("retPtr"), needsPtrInInvoke = false)
+    }
+}

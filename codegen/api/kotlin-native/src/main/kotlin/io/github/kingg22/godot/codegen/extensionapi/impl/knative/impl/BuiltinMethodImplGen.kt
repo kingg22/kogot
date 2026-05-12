@@ -4,7 +4,6 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
-import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.NativeBuiltinClassGenerator
 import io.github.kingg22.godot.codegen.impl.renameAllUpperCaseToCamelCase
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
@@ -585,18 +584,12 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
         val pBase = if (method.isStatic) "null" else "rawPtr"
 
         // 4. Build r_return expression
-        val rReturn = when {
-            returnType == null || returnType == "void" -> "null"
-
-            returnType == "bool" -> "retPtr"
-
-            isGodotPrimitive(returnType) -> "retPtr.%M"
-
-            // .ptr
-            ctx.isBuiltin(returnType) || ctx.findEngineClass(returnType) != null -> "retPtr.%M.%M()"
-
-            // .ptr.reinterpret()
-            else -> "null"
+        // forBuiltinInvoke=true because BuiltinMethodImplGen uses GDExtensionPtrBuiltInMethod.invoke
+        // which needs .reinterpret() for engine/builtin types
+        val rReturn = if (hasReturn && resolvedReturn != null) {
+            returnArgExpression(returnType, resolvedReturn, forBuiltinInvoke = true)
+        } else {
+            ReturnArgInfo(CodeBlock.of("null"), needsPtrInInvoke = false)
         }
 
         // 4. Invoke
@@ -611,7 +604,7 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
         }
 
         if (argExpressions.isEmpty()) {
-            if (rReturn == "retPtr.%M" || rReturn == "retPtr.%M.%M()") {
+            if (rReturn.needsPtrInInvoke) {
                 addStatement(
                     "%N.%M(%L, null, retPtr.%M, 0)",
                     propName,
@@ -620,7 +613,7 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
                     cinteropPtr,
                 )
             } else {
-                addStatement("%N.%M(%L, null, %L, 0)", propName, cinteropInvoke, pBase, rReturn)
+                addStatement("%N.%M(%L, null, %L, 0)", propName, cinteropInvoke, pBase, rReturn.asCodeBlock)
             }
         } else {
             val allocConstTypePtrArray = implPackageRegistry.memberNameForOrDefault("allocConstTypePtrArray")
@@ -633,10 +626,10 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
                 withIndent { add(argExpressions) }
                 addStatement("),")
 
-                if (rReturn == "retPtr.%M" || rReturn == "retPtr.%M.%M()") {
+                if (rReturn.needsPtrInInvoke) {
                     addStatement("retPtr.%M,", cinteropPtr)
                 } else {
-                    addStatement("%L,", rReturn)
+                    addStatement("%L,", rReturn.asCodeBlock)
                 }
 
                 addStatement("%L%L,", method.arguments.size, if (method.isVararg) " + args.size" else "")
@@ -651,8 +644,6 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
 
         endControlFlow()
     }
-
-    private fun isGodotPrimitive(type: String) = NativeBuiltinClassGenerator.SKIPPED_TYPES.contains(type)
 
     private fun methodFptrName(className: String, method: BuiltinClass.BuiltinMethod): String =
         "method${className}${safeIdentifier(method.name).replaceFirstChar(Char::uppercase)}_${method.hash.toULong()}_Fn"

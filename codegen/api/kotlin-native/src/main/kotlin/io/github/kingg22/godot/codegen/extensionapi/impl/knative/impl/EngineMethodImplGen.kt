@@ -1,15 +1,20 @@
 package io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl
 
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.BOOLEAN
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.buildCodeBlock
+import com.squareup.kotlinpoet.joinToCode
+import com.squareup.kotlinpoet.withIndent
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngineClass
-import io.github.kingg22.godot.codegen.types.COPAQUE_POINTER
-import io.github.kingg22.godot.codegen.types.C_POINTER
 import io.github.kingg22.godot.codegen.types.K_TODO
-import io.github.kingg22.godot.codegen.types.cinteropPtr
 import io.github.kingg22.godot.codegen.types.cinteropValue
 import io.github.kingg22.godot.codegen.types.memScoped
 import io.github.kingg22.godot.codegen.utils.logger
@@ -205,9 +210,7 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
                     addStatement("),")
                 }
                 if (hasReturn && resolvedReturn != null) {
-                    val rRet = rRetLiteral(returnType, resolvedReturn)
-
-                    addStatement("%L,", rRet)
+                    addStatement("%L,", returnArgExpression(returnType, resolvedReturn).asCodeBlock)
                 } else {
                     addStatement("null,")
                 }
@@ -248,36 +251,6 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
             }
 
             endControlFlow()
-        }
-    }
-
-    /**
-     * Returns the r_ret expression string for the inline (single-line) invocation case.
-     *
-     * Callers that need the `.ptr` suffix must emit `retPtr.%M` with [cinteropPtr] as the
-     * MemberName — so this returns the sentinel string `"retPtr.ptr"` for that case, which
-     * the caller detects and handles.
-     */
-    context(ctx: Context)
-    private fun rRetLiteral(returnType: String, resolvedReturn: TypeName): CodeBlock {
-        val cVarType = primitiveKotlinToCVar(resolvedReturn)
-        return when {
-            resolvedReturn == BOOLEAN -> CodeBlock.of("retPtr")
-
-            cVarType != null ||
-                resolvedReturn == COPAQUE_POINTER ||
-                returnType.startsWith("enum::") ||
-                returnType.startsWith("bitfield::") ||
-                ctx.findEngineClass(returnType) != null ||
-                ctx.isBuiltin(returnType) ||
-                returnType.startsWith("array") ||
-                returnType.startsWith("dictionary") ||
-                returnType.startsWith("typeddictionary") ||
-                returnType.startsWith("typedarray") ||
-                (resolvedReturn is ParameterizedTypeName && resolvedReturn.rawType == C_POINTER)
-            -> CodeBlock.of("retPtr.%M", cinteropPtr)
-
-            else -> CodeBlock.of("retPtr")
         }
     }
 

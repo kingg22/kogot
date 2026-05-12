@@ -10,8 +10,6 @@ import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.UtilityFunction
 import io.github.kingg22.godot.codegen.types.cinteropInvoke
-import io.github.kingg22.godot.codegen.types.cinteropPtr
-import io.github.kingg22.godot.codegen.types.cinteropReinterpret
 import io.github.kingg22.godot.codegen.types.lazyMethod
 import io.github.kingg22.godot.codegen.types.memScoped
 
@@ -142,17 +140,10 @@ class UtilityFunctionImplGen(private val typeResolver: TypeResolver) {
                 typeResolver,
             )
         }
-        val retExpression = when {
-            returnType == null -> CodeBlock.of("null")
-
-            returnType == "bool" -> CodeBlock.of("retPtr")
-
-            isGodotPrimitive(returnType) || ctx.isBuiltin(returnType) -> CodeBlock.of("retPtr.%M", cinteropPtr)
-
-            ctx.findEngineClass(returnType) != null ->
-                CodeBlock.of("retPtr.%M.%M()", cinteropPtr, cinteropReinterpret)
-
-            else -> CodeBlock.of("null")
+        val retExpression = if (returnType != null && resolvedReturn != null) {
+            returnArgExpression(returnType, resolvedReturn).asCodeBlock
+        } else {
+            CodeBlock.of("null")
         }
 
         if (fn.arguments.isEmpty()) {
