@@ -3,7 +3,7 @@ package io.github.kingg22.godot.api.internal.callable
 import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.internal.anyToVariantOrNull
-import io.github.kingg22.godot.api.builtin.internal.getValue
+import io.github.kingg22.godot.api.builtin.value
 import io.github.kingg22.godot.api.internal.UsedFromCodegenGeneratedCode
 import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.pushError
@@ -40,5 +40,5 @@ public object CallableFactory {
     public fun create(lambda: Function<*>): Callable = Callable(null).apply { create(lambda, this) }
 
     public fun reinterpretedVariantToKotlin(argument: GDExtensionConstVariantPtr?): Any? =
-        if (argument == null) null else Variant(argument).getValue()
+        if (argument == null) null else Variant(argument).value
 }

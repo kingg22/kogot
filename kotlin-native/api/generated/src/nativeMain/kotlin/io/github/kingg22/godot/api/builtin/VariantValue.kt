@@ -1,21 +1,33 @@
-package io.github.kingg22.godot.api.builtin.internal
+package io.github.kingg22.godot.api.builtin
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
-import io.github.kingg22.godot.api.builtin.MustBeVariant
-import io.github.kingg22.godot.api.builtin.Variant
-import io.github.kingg22.godot.api.builtin.Variant.Type
 
 /**
  * Returns the value of this [Variant].
  *
  * Prefers explicit converter method over this function.
  *
- * Doesn't return [String]!!
+ * Or use `val value = variant.getValue<T>()`
  *
- * @throws [IllegalStateException] if the type of variant is [MAX][Type.MAX]
+ * Or use `val value = variant.getValueOrNull<T>()`
+ *
+ * Or use `val value: T by variant`
+ *
+ * **Safety**:
+ * - Nevers returns [kotlin.String]
+ * - Never downcasting to [kotlin.Int], [kotlin.Float], [kotlin.Short], [kotlin.Byte]
+ * - Can return `null` if the type is [Variant.Type.NIL]
+ * - Never returns specific types like [Texture][io.github.kingg22.godot.api.core.refcounted.Texture] always going to be
+ * [Object][io.github.kingg22.godot.api.core.GodotObject] if the type is [Variant.Type.OBJECT]
+ * - Always returns [VariantArray] for [Variant.Type.ARRAY]
+ * - Always returns [VariantDictionary] for [Variant.Type.DICTIONARY]
+ * - Throws [IllegalStateException] if the type of variant is [Variant.Type.MAX]
+ *
+ * @see Variant.getValue
+ * @see Variant.getValueOrNull
  */
 @ExperimentalGodotKotlin
-public fun Variant.getValue(): @MustBeVariant Any? = when (getType()) {
+public val Variant.value: @MustBeVariant Any? get() = when (getType()) {
     NIL -> null
     BOOL -> toBool()
     INT -> toInt()
@@ -34,12 +46,12 @@ public fun Variant.getValue(): @MustBeVariant Any? = when (getType()) {
     VECTOR4I -> toVector4i()
     PLANE -> toPlane()
     QUATERNION -> toQuaternion()
-    AABB -> toAabb()
+    Variant.Type.AABB -> toAabb()
     BASIS -> toBasis()
     TRANSFORM3D -> toTransform3D()
     PROJECTION -> toProjection()
     COLOR -> toColor()
-    RID -> toRid()
+    Variant.Type.RID -> toRid()
     OBJECT -> toObject()
     CALLABLE -> toCallable()
     SIGNAL -> toSignal()
