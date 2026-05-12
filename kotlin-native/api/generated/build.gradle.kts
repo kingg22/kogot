@@ -42,15 +42,17 @@ kotlin {
 }
 
 fun KotlinNativeTarget.configureGodotInterop() {
-    compilations.getByName("main").cinterops.create("godotNativeStructures") {
-        packageName = "io.github.kingg22.godot.api.native"
-        defFile("nativeInterop/cinterop/extension_api_native.def")
-        includeDirs.allHeaders("nativeInterop/cinterop")
+    compilations.named("main").configure {
+        cinterops.register("godotNativeStructures") {
+            this.packageName = "io.github.kingg22.godot.api.native"
+            defFile("nativeInterop/cinterop/extension_api_native.def")
+            includeDirs.allHeaders("nativeInterop/cinterop")
+        }
     }
 }
 
 godotCodegen {
     backend = CodegenBackend.KOTLIN_NATIVE
     kind = CodegenKind.API
-    packageName = "io.github.kingg22.godot"
+    this.packageName = "io.github.kingg22.godot"
 }

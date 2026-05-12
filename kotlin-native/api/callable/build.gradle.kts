@@ -33,5 +33,5 @@ kotlin {
 godotCodegen {
     backend = CodegenBackend.KOTLIN_NATIVE
     kind = CodegenKind.CALLABLE
-    packageName = "io.github.kingg22.godot.api.internal.callable"
+    this.packageName = "io.github.kingg22.godot.api.internal.callable"
 }

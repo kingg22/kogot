@@ -1,4 +1,3 @@
-import io.github.kingg22.buildlogic.dokka.configureRemoteSource
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 plugins {
@@ -12,7 +11,6 @@ kotlin {
     dependencies {
         api(projects.kotlinNative.api.annotations)
         api(projects.kotlinNative.api.generated)
-        api(projects.kotlinNative.api.utils)
     }
 
     applyDefaultHierarchyTemplate()
@@ -24,5 +22,4 @@ kotlin {
 dependencies {
     dokka(projects.kotlinNative.api.annotations)
     dokka(projects.kotlinNative.api.generated)
-    dokka(projects.kotlinNative.api.utils)
 }

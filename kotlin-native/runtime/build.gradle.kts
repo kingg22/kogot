@@ -34,5 +34,5 @@ kotlin {
 godotCodegen {
     backend = CodegenBackend.KOTLIN_NATIVE
     kind = CodegenKind.RUNTIME
-    packageName = "io.github.kingg22.godot"
+    this.packageName = "io.github.kingg22.godot"
 }

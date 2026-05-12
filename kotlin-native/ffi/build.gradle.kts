@@ -1,3 +1,4 @@
+import io.github.kingg22.buildlogic.godot.chore.GodotCodegenChoreExtension
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
@@ -23,9 +24,11 @@ kotlin {
 }
 
 fun KotlinNativeTarget.configureGodotInterop() {
-    compilations.getByName("main").cinterops.create("godot") {
-        packageName = "io.github.kingg22.godot.internal.ffi"
-        defFile(layout.projectDirectory.file("nativeInterop/cinterop/godot.def"))
-        includeDirs.allHeaders(rootProject.layout.projectDirectory.file("godot-version/v4_6_2/"))
+    compilations.named("main").configure {
+        cinterops.register("godot") {
+            this.packageName = "io.github.kingg22.godot.internal.ffi"
+            defFile(layout.projectDirectory.file("nativeInterop/cinterop/godot.def"))
+            includeDirs.allHeaders(rootProject.extensions.getByType<GodotCodegenChoreExtension>().godotVersionDir)
+        }
     }
 }
