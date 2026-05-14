@@ -12,12 +12,8 @@ import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.builtin.toVariant
 import io.github.kingg22.godot.api.core.Object
 import io.github.kingg22.godot.api.core.node.Node2D
-import io.github.kingg22.godot.internal.binding.ClassDBBinding
-import io.github.kingg22.godot.internal.binding.ObjectBinding
 import io.github.kingg22.godot.internal.binding.VariantBinding
 import io.github.kingg22.godot.internal.binding.allocConstTypePtrArray
-import io.github.kingg22.godot.internal.binding.checkCallError
-import io.github.kingg22.godot.internal.ffi.GDExtensionMethodBindPtr
 import io.github.kingg22.godot.internal.ffi.GDExtensionObjectPtrVar
 import io.github.kingg22.godot.internal.ffi.GDExtensionPtrBuiltInMethod
 import io.github.kingg22.godot.internal.ffi.GDExtensionPtrConstructor
@@ -79,10 +75,10 @@ import kotlinx.cinterop.value
             println("emitFix punch returned: $error2")
 
             println("[SpriteBench] emitting **hint** via emitSignal")
-            val result = emitSignalFix(hintStr)
+            val result = emitSignal(hintStr)
             println("emitSignal hint result: $result")
             println("[SpriteBench] emitting **punch** via emitSignal")
-            val result2 = emitSignalFix(punchStr, 15L.toVariant())
+            val result2 = emitSignal(punchStr, 15L.toVariant())
             println("emitSignal punch result2: $result2")
         } catch (e: Exception) {
             println("[SpriteBench] failed: ${e.message}")
@@ -127,31 +123,5 @@ private val methodSignalEmit_3286317445_Fn: GDExtensionPtrBuiltInMethod by lazy(
     StringName("emit").use { name ->
         VariantBinding.instance.getPtrBuiltinMethodRaw(GDEXTENSION_VARIANT_TYPE_SIGNAL, name.rawPtr, 3_286_317_445L)
             ?: error("Missing builtin method 'Signal.emit' hash: 3286317445")
-    }
-}
-
-// **have errors**
-fun Object.emitSignalFix(signal: StringName, vararg args: Variant): GodotError = memScoped {
-    val retPtr = Variant()
-
-    val callError = ObjectBinding.instance.methodBindCall(
-        methodObjectEmitSignal_Bind,
-        rawPtr,
-        signal.toVariant().rawPtr,
-        *args.map { it.rawPtr }.toTypedArray(),
-        rRet = retPtr.rawPtr,
-    )
-
-    checkCallError("emitSignal of $signal", callError)
-
-    return GodotEnum.fromValue(retPtr.toInt())
-}
-
-private val methodObjectEmitSignal_Bind: GDExtensionMethodBindPtr by lazy(PUBLICATION) {
-    StringName("Object").use { cn ->
-        StringName("emit_signal").use { mn ->
-            ClassDBBinding.instance.getMethodBindRaw(cn.rawPtr, mn.rawPtr, 4_047_867_050L)
-                ?: error("Missing method bind 'Object.emit_signal', hash: 4_047_867_050")
-        }
     }
 }
