@@ -132,6 +132,9 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
                 CodeBlock.of("")
             }
         }
+        if (method.isVararg) {
+            return buildVarargBody(method, className)
+        }
         return buildPtrcallBody(method, className)
     }
 
@@ -157,10 +160,6 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
         className: String,
         setterMode: Boolean = false,
     ): CodeBlock {
-        if (method.isVararg) {
-            logger.warning { "Found vararg method: $className.${method.name}, needs to use variantCall" }
-        }
-
         val objectBinding = implPackageRegistry.classNameForOrDefault("ObjectBinding")
         val propName = methodBindName(className, method)
         val allocConstTypePtrArray = implPackageRegistry.memberNameForOrDefault("allocConstTypePtrArray")
@@ -248,6 +247,62 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
                     // No es setterMode: Solo emitimos la lectura normal del retorno
                     add(buildReturnRead(returnType, implPackageRegistry, resolvedReturn))
                 }
+            }
+
+            endControlFlow()
+        }
+    }
+
+    // ── vararg body ───────────────────────────────────────────────
+
+    /**
+     * Generates the body for vararg methods using methodBindCall instead of methodBindPtrcallRaw.
+     *
+     * Vararg methods cannot use ptrcall because the argument count is not known at compile time.
+     * Instead, we use methodBindCall which accepts vararg Variant pointers directly.
+     */
+    context(ctx: Context)
+    private fun buildVarargBody(method: EngineClass.ClassMethod, className: String): CodeBlock {
+        val objectBinding = implPackageRegistry.classNameForOrDefault("ObjectBinding")
+        val checkCallError = implPackageRegistry.memberNameForOrDefault("checkCallError")
+        val propName = methodBindName(className, method)
+
+        val rv = method.returnValue
+        val returnType = rv?.meta ?: rv?.type
+        val kotlinReturnType = if (rv != null) typeResolver.resolve(rv) else null
+        val hasReturn = returnType != null && returnType != "void"
+
+        return buildCodeBlock {
+            if (hasReturn) add("return ")
+
+            beginControlFlow("%M", memScoped)
+
+            // Return buffer - always allocate as Variant for vararg calls
+            addStatement("val retPtr = %T()", ctx.classNameForOrDefault("Variant"))
+
+            // Collect fixed args pointers
+            val fixedArgPtrs = method.arguments.map { arg -> argVariantPointerExpression(arg) }
+
+            // methodBindCall invocation
+            addStatement("val error = %T.instance.methodBindCall(", objectBinding)
+            withIndent {
+                addStatement("%N,", propName)
+                addStatement("rawPtr,")
+                // Emit fixed arg pointers
+                fixedArgPtrs.forEach { add(it) }
+                // Emit vararg spread
+                if (method.isVararg) {
+                    addStatement("*args.map·{·it.rawPtr·}.toTypedArray(),")
+                }
+                addStatement("rRet = retPtr.rawPtr,")
+            }
+            addStatement(")")
+
+            addStatement("%M(%S, error)", checkCallError, "${method.name} of $className")
+
+            // Return value handling - use Variant converter methods for vararg return
+            if (hasReturn && kotlinReturnType != null) {
+                add(buildReturnReadOfVariant(returnType, kotlinReturnType))
             }
 
             endControlFlow()

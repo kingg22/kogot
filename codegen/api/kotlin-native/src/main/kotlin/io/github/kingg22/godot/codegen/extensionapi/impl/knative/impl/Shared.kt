@@ -157,8 +157,6 @@ fun buildArgAlloc(
 /**
  * Produces the pointer expression for an argument passed to a FFI invoke call.
  * Must be called AFTER [buildArgAlloc] — consumes the same type decisions.
- *
- * When typeResolver is null, uses string-based dispatch matching [buildArgAlloc].
  */
 context(ctx: Context)
 fun argPointerExpression(
@@ -199,6 +197,26 @@ fun argPointerExpression(
         -> CodeBlock.ofStatement("%N${if (arg.isNullable) "?" else ""}.rawPtr,", name)
 
         else -> error("Invalid arg type, unknown strategy to invoke: '${arg.type}' (resolved: $kotlinType)")
+    }
+}
+
+/**
+ * Produces the **Variant pointer** expression for an argument passed to the FFI invoke call.
+ * Doesn't require previous allocations of arguments
+ * @throws IllegalStateException if the argument is an native structure
+ */
+context(ctx: Context)
+fun argVariantPointerExpression(arg: MethodArg): CodeBlock {
+    val name = safeIdentifier(arg.name)
+    val variantClass = ctx.classNameForOrDefault("Variant")
+
+    return when {
+        arg.type.startsWith("enum::") || arg.type.startsWith("bitfield::") ->
+            CodeBlock.ofStatement("%T(%N.value).rawPtr,", variantClass, name)
+
+        ctx.isNativeStructure(arg.meta ?: arg.type) -> error("Unsupported native structure as Variant arg: $arg")
+
+        else -> CodeBlock.ofStatement("%T(%N).rawPtr,", variantClass, name)
     }
 }
 
@@ -318,6 +336,48 @@ fun buildReturnRead(
         }
 
         else -> CodeBlock.ofStatement("${preAppendReturn}retPtr")
+    }
+}
+
+/**
+ * generates Variant converter calls (`toInt(), toBool()`, etc.)
+ * instead of CVar value access. Use this when the return buffer is a Variant
+ * object returned from methodBindCall.
+ */
+context(ctx: Context)
+fun buildReturnReadOfVariant(returnType: String, kotlinType: TypeName, setterMode: Boolean = false): CodeBlock {
+    val preAppendReturn = if (setterMode) "" else "return "
+
+    // Variant return path - use Variant converter methods
+    return when {
+        kotlinType == BOOLEAN -> CodeBlock.ofStatement("${preAppendReturn}retPtr.toBool()")
+
+        kotlinType == INT -> CodeBlock.ofStatement("${preAppendReturn}retPtr.toInt().toInt()")
+
+        kotlinType == LONG -> CodeBlock.ofStatement("${preAppendReturn}retPtr.toInt()")
+
+        kotlinType == DOUBLE -> CodeBlock.ofStatement("${preAppendReturn}retPtr.toFloat()")
+
+        kotlinType == FLOAT -> CodeBlock.ofStatement("${preAppendReturn}retPtr.toFloat().toFloat()")
+
+        kotlinType == STRING -> CodeBlock.ofStatement("${preAppendReturn}retPtr.toString().toKString()")
+
+        returnType.startsWith("enum::") -> {
+            val godotEnum = ctx.classNameForOrDefault("GodotEnum")
+            CodeBlock.ofStatement("$preAppendReturn%T.fromValue<%T>(retPtr.toInt())", godotEnum, kotlinType)
+        }
+
+        returnType.startsWith("bitfield::") ->
+            CodeBlock.ofStatement("$preAppendReturn%T(retPtr.toLont())", kotlinType)
+
+        kotlinType == ctx.classNameForOrDefault("Variant") -> CodeBlock.ofStatement("${preAppendReturn}retPtr")
+
+        ctx.isBuiltin(returnType) -> {
+            val converterName = "to${returnType.removePrefix("builtin::").replaceFirstChar(Char::uppercase)}"
+            CodeBlock.ofStatement("$preAppendReturn%T(retPtr.$converterName())", kotlinType)
+        }
+
+        else -> CodeBlock.ofStatement("${preAppendReturn}retPtr.getValue<%T>()", kotlinType)
     }
 }
 
