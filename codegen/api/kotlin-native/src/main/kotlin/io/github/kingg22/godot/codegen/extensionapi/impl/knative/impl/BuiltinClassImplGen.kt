@@ -629,25 +629,45 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
             val ptrExprs = args.map { arg ->
                 val kotlinName = safeIdentifier(arg.name)
                 val varName = "${kotlinName}Var"
-                when (val kotlinType = typeResolver.resolve(arg.type, arg.meta)) {
-                    BOOLEAN -> {
+                val kotlinType = typeResolver.resolve(arg.type, arg.meta)
+
+                when {
+                    kotlinType == BOOLEAN -> {
                         addStatement(
                             "val %N = %M(%N)",
                             varName,
                             implPackageRegistry.memberNameForOrDefault("allocGdBool"),
                             kotlinName,
                         )
-                        CodeBlock.builder().addStatement("%N,", varName).build()
+                        CodeBlock.ofStatement("%N,", varName)
                     }
 
-                    FLOAT, DOUBLE, INT, LONG, BYTE, SHORT, U_BYTE, U_SHORT, U_INT, U_LONG -> {
+                    kotlinType in listOf(FLOAT, DOUBLE, INT, LONG, BYTE, SHORT, U_BYTE, U_SHORT, U_INT, U_LONG) -> {
                         val cVarType = primitiveKotlinToCVar(kotlinType) ?: error("Unsupported type: $kotlinType")
                         addStatement("val %N = %M<%T>()", varName, cinteropAlloc, cVarType)
                         addStatement("%N.%M = %N", varName, cinteropValue, kotlinName)
-                        CodeBlock.builder().addStatement("%N.%M,", varName, cinteropPtr).build()
+                        CodeBlock.ofStatement("%N.%M,", varName, cinteropPtr)
                     }
 
-                    else -> CodeBlock.builder().addStatement("%N.rawPtr,", kotlinName).build()
+                    context.isEngineClass(arg.type) -> {
+                        // Engine class (Object, etc.) needs void** (PtrToArg<Object*> semantics)
+                        addStatement(
+                            "val %N = %M<%T>()",
+                            varName,
+                            cinteropAlloc,
+                            implPackageRegistry.classNameForOrDefault("GDExtensionObjectPtrVar"),
+                        )
+                        addStatement(
+                            "%N.%M = %N%L.rawPtr",
+                            varName,
+                            cinteropValue,
+                            kotlinName,
+                            if (arg.isNullable) "?" else "",
+                        )
+                        CodeBlock.ofStatement("%N.%M,", varName, cinteropPtr)
+                    }
+
+                    else -> CodeBlock.ofStatement("%N.rawPtr,", kotlinName)
                 }
             }
 
