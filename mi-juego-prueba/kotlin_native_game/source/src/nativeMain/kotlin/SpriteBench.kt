@@ -10,13 +10,10 @@ import io.github.kingg22.godot.api.builtin.StringName
 import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.builtin.toVariant
-import io.github.kingg22.godot.api.core.Object
 import io.github.kingg22.godot.api.core.node.Node2D
 import io.github.kingg22.godot.internal.binding.VariantBinding
 import io.github.kingg22.godot.internal.binding.allocConstTypePtrArray
-import io.github.kingg22.godot.internal.ffi.GDExtensionObjectPtrVar
 import io.github.kingg22.godot.internal.ffi.GDExtensionPtrBuiltInMethod
-import io.github.kingg22.godot.internal.ffi.GDExtensionPtrConstructor
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.LongVar
@@ -32,10 +29,10 @@ import kotlinx.cinterop.value
     private val punchStr = "punch".toStringName()
 
     @RegisterSignal
-    private lateinit var hint: Signal
+    private val hint by lazy { Signal(this, hintStr) }
 
     @RegisterSignal(RegisterSignal.Param(Variant.Type.INT, "value"))
-    private lateinit var punch: Signal
+    private val punch by lazy { Signal(this, punchStr) }
 
     private val callable1 = Callable {
         println("Callable1: received")
@@ -47,8 +44,6 @@ import kotlinx.cinterop.value
 
     override fun _ready() {
         println("[SpriteBench] _ready started")
-        hint = signalFix(this, hintStr)
-        punch = signalFix(this, punchStr)
 
         // ✅ connect después de validar
         if (hint.isConnected(callable1)) {
@@ -87,25 +82,6 @@ import kotlinx.cinterop.value
             println("[SpriteBench] _ready finished")
         }
     }
-}
-
-fun signalFix(obj: Object, signal: StringName) = Signal(null).apply {
-    memScoped {
-        val objectPtr = alloc<GDExtensionObjectPtrVar>()
-        objectPtr.`value` = obj.rawPtr
-        constructorFptr_2.invoke(
-            rawPtr,
-            allocConstTypePtrArray(
-                objectPtr.ptr,
-                signal.rawPtr,
-            ),
-        )
-    }
-}
-
-private val constructorFptr_2: GDExtensionPtrConstructor by lazy(PUBLICATION) {
-    VariantBinding.instance.getPtrConstructorRaw(GDEXTENSION_VARIANT_TYPE_SIGNAL, 2)
-        ?: error("Missing builtin constructor for Signal[2]")
 }
 
 fun Signal.emitFix(vararg args: Variant): GodotError = memScoped {
