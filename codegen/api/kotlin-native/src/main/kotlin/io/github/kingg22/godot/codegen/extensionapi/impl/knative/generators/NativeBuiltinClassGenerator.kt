@@ -13,6 +13,8 @@ import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.BuiltinClassImplGen
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.buildLayoutConstants
+import io.github.kingg22.godot.codegen.extensionapi.resolver.addKdocIfPresent
+import io.github.kingg22.godot.codegen.extensionapi.resolver.experimentalApiAnnotation
 import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
@@ -32,8 +34,6 @@ import io.github.kingg22.godot.codegen.utils.warning
  * - Class structure: name, supertype, modifiers, kdoc
  * - Members: fields, constants, method signatures, operator signatures, constructors
  * - Companion object with static methods and constants
- *
- * Body generation is delegated to [BodyGenerator].
  *
  * Types that are NOT generated as classes (primitives/nil):
  * [NativeBuiltinClassGenerator.SKIPPED_TYPES] — these are handled via typealiases or extension functions elsewhere.

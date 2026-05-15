@@ -9,6 +9,7 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
+import io.github.kingg22.godot.codegen.impl.buildLazyBlock
 import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.models.config.CodegenOptions
 import io.github.kingg22.godot.codegen.models.extensioninterface.GDExtensionInterface
@@ -101,16 +102,13 @@ class RuntimeFFIGenerator(private val packageName: String) {
             PropertySpec
                 .builder("instance", className)
                 .delegate(
-                    CodeBlock
-                        .builder()
-                        .beginControlFlow("%M(PUBLICATION)", lazyMethod)
-                        .addStatement(
+                    buildLazyBlock {
+                        addStatement(
                             "%T(%T.getProcAddress)",
                             className,
                             packageRegistry.classNameForOrDefault("BindingProcAddressHolder"),
                         )
-                        .endControlFlow()
-                        .build(),
+                    },
                 )
                 .build(),
         )

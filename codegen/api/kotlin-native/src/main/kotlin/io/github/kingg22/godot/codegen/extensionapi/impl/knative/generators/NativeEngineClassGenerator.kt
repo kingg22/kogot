@@ -12,9 +12,12 @@ import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.EngineClassImplGen
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.EngineMethodImplGen
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.EnginePropertyImplGen
+import io.github.kingg22.godot.codegen.extensionapi.resolver.addKdocIfPresent
+import io.github.kingg22.godot.codegen.extensionapi.resolver.experimentalApiAnnotation
 import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngineClass
+import io.github.kingg22.godot.codegen.types.API_STATUS_NON_EXTENSIBLE
 import io.github.kingg22.godot.codegen.utils.withExceptionContext
 
 class NativeEngineClassGenerator(

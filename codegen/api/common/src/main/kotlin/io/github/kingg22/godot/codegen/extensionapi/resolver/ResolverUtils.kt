@@ -1,25 +1,20 @@
-package io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators
+package io.github.kingg22.godot.codegen.extensionapi.resolver
 
 import com.squareup.kotlinpoet.Annotatable
 import com.squareup.kotlinpoet.AnnotationSpec
-import com.squareup.kotlinpoet.ClassName
 import io.github.kingg22.godot.codegen.extensionapi.Context
-import io.github.kingg22.godot.codegen.extensionapi.resolver.KDocFormatter
 import io.github.kingg22.godot.codegen.models.extensionapi.Documentable
-import com.squareup.kotlinpoet.Documentable as KDocumentable
-
-val API_STATUS_NON_EXTENSIBLE = ClassName("org.jetbrains.annotations", "ApiStatus", "NonExtendable")
+import com.squareup.kotlinpoet.Documentable as KPoetDocumentable
 
 @IgnorableReturnValue
-context(context: Context)
+context(ctx: Context)
 fun <T : Annotatable.Builder<T>> T.experimentalApiAnnotation(className: String, memberName: String? = null): T {
-    val isExperimental = context.isExperimentalType(className, memberName)
-    if (isExperimental) {
+    if (ctx.isExperimentalType(className, memberName)) {
         addAnnotation(
             AnnotationSpec
-                .builder(context.classNameOfExperimentalAnnotation())
+                .builder(ctx.classNameOfExperimentalAnnotation())
                 .apply {
-                    val reason = context.getReasonOfExperimental(className, memberName)
+                    val reason = ctx.getReasonOfExperimental(className, memberName)
                     if (!reason.isNullOrBlank()) addMember("reason = %S", reason)
                 }.build(),
         )
@@ -29,7 +24,7 @@ fun <T : Annotatable.Builder<T>> T.experimentalApiAnnotation(className: String, 
 
 @IgnorableReturnValue
 context(_: Context)
-fun <T : KDocumentable.Builder<T>> T.addKdocIfPresent(documentable: Documentable): T {
+fun <T : KPoetDocumentable.Builder<T>> T.addKdocIfPresent(documentable: Documentable): T {
     if (documentable.description.isNullOrBlank()) return this
     val formattedDoc = KDocFormatter.format(documentable.description!!)
     addKdoc("%L", formattedDoc)

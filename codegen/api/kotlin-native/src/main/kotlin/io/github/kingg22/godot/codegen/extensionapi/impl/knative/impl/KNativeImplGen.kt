@@ -2,12 +2,11 @@ package io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl
 
 import com.squareup.kotlinpoet.*
 import io.github.kingg22.godot.codegen.extensionapi.Context
-import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.BodyGenerator
 import io.github.kingg22.godot.codegen.types.cinteropAlloc
 import io.github.kingg22.godot.codegen.types.cinteropPtr
 import io.github.kingg22.godot.codegen.types.memScoped
 
-class KNativeImplGen(private val body: BodyGenerator) {
+class KNativeImplGen {
     // Field classification
     sealed interface FieldKind {
         /** Scalar C primitives: bool, int*, uint*, float, double, real_t, ObjectID */
@@ -134,7 +133,7 @@ class KNativeImplGen(private val body: BodyGenerator) {
                 )
                 .build()
 
-        FieldKind.Unimplemented -> body.todoGetter("Unimplemented field type setter: $publicType")
+        FieldKind.Unimplemented -> error("Unimplemented field type getter: $publicType")
     }
 
     fun generateOffsetSetter(kind: FieldKind, publicType: TypeName, offsetBytes: Int): FunSpec = when (kind) {
@@ -205,12 +204,7 @@ class KNativeImplGen(private val body: BodyGenerator) {
             )
             .build()
 
-        FieldKind.Unimplemented ->
-            FunSpec
-                .setterBuilder()
-                .addParameter("value", publicType)
-                .addCode(body.todoBody("Unimplemented field type setter: $publicType"))
-                .build()
+        FieldKind.Unimplemented -> error("Unimplemented field type setter: $publicType")
     }
 
     // Primitive name helpers

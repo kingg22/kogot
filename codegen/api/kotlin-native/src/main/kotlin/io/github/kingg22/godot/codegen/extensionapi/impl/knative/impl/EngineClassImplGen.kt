@@ -1,7 +1,6 @@
 package io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl
 
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
@@ -10,9 +9,9 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.withIndent
 import io.github.kingg22.godot.codegen.extensionapi.Context
+import io.github.kingg22.godot.codegen.impl.buildLazyBlock
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngineClass
 import io.github.kingg22.godot.codegen.types.COPAQUE_POINTER
-import io.github.kingg22.godot.codegen.types.lazyMethod
 
 /**
  * Generates the constructor binding and `nativePtr` property for Godot engine classes.
@@ -182,26 +181,18 @@ class EngineClassImplGen {
         val stringNameClass = context.classNameForOrDefault("StringName")
         val globalBinding = implPackageRegistry.classNameForOrDefault("GlobalBinding")
 
-        val body = CodeBlock
-            .builder()
-            .beginControlFlow("%T(%S).use { sn ->", stringNameClass, cls.name)
-            .addStatement("val nativePtr = %T.instance.getSingletonRaw(sn.rawPtr)", globalBinding)
-            .indent()
-            .addStatement("?: error(%S)", "Singleton '${cls.name}' not found in Godot")
-            .unindent()
-            .addStatement("%T(nativePtr)", className)
-            .endControlFlow()
-            .build()
-
         return PropertySpec
             .builder("instance", className)
             .delegate(
-                CodeBlock
-                    .builder()
-                    .beginControlFlow("%M(PUBLICATION)", lazyMethod)
-                    .add(body)
-                    .endControlFlow()
-                    .build(),
+                buildLazyBlock {
+                    beginControlFlow("%T(%S).use { sn ->", stringNameClass, cls.name)
+                    addStatement("val nativePtr = %T.instance.getSingletonRaw(sn.rawPtr)", globalBinding)
+                    withIndent {
+                        addStatement("?: error(%S)", "Singleton '${cls.name}' not found in Godot")
+                    }
+                    addStatement("%T(nativePtr)", className)
+                    endControlFlow()
+                },
             )
             .build()
     }

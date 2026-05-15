@@ -40,8 +40,6 @@ val POSIX_FLOAT = ClassName("platform.posix", "float")
 val POSIX_DOUBLE = ClassName("platform.posix", "double")
 val POSIX_WCHAR_T = ClassName("platform.posix", "wchar_t")
 
-val lazyMethod = MemberName("kotlin", "lazy")
-
 val memScoped = MemberName("kotlinx.cinterop", "memScoped")
 val cinteropCstr = MemberName("kotlinx.cinterop", "cstr", true)
 val cinteropPtr = MemberName("kotlinx.cinterop", "ptr", true)

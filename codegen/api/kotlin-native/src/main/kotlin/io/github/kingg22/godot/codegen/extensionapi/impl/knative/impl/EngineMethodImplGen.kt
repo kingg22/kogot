@@ -11,6 +11,8 @@ import com.squareup.kotlinpoet.joinToCode
 import com.squareup.kotlinpoet.withIndent
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
+import io.github.kingg22.godot.codegen.impl.buildLazyBlock
+import io.github.kingg22.godot.codegen.impl.ofStatement
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngineClass

@@ -29,7 +29,14 @@ class NativeUtilityFunctionGenerator(
     context(context: Context)
     fun generateFile(functions: List<UtilityFunction>): FileSpec {
         val spec = generateSpec(functions)
-        return createFile(spec, spec.name!!, context.packageForUtilObject())
+        return createFile(spec, spec.name!!, context.packageForUtilObject()) {
+            // Add all lazy function-pointer properties
+            functions.forEach { fn ->
+                withExceptionContext({ "Error generating fn-ptr property for '${fn.name}'" }) {
+                    addProperty(implGen.buildFunctionPointerProperty(fn))
+                }
+            }
+        }
     }
 
     context(context: Context)
@@ -73,14 +80,6 @@ class NativeUtilityFunctionGenerator(
             val typeBuilder = TypeSpec
                 .objectBuilder("GD")
                 .addKdoc("Utility functions for Godot API.")
-
-            // Add all lazy function-pointer properties before the public functions so
-            // readers see the loading machinery grouped together.
-            functions.forEach { fn ->
-                withExceptionContext({ "Error generating fn-ptr property for '${fn.name}'" }) {
-                    typeBuilder.addProperty(implGen.buildFunctionPointerProperty(fn))
-                }
-            }
 
             typeBuilder.addFunctions(functionsSpec)
             return typeBuilder.build()

@@ -8,6 +8,8 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.UNIT
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
+import io.github.kingg22.godot.codegen.extensionapi.resolver.addKdocIfPresent
+import io.github.kingg22.godot.codegen.extensionapi.resolver.experimentalApiAnnotation
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
 import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
@@ -29,7 +31,6 @@ import io.github.kingg22.godot.codegen.utils.withExceptionContext
  */
 class NativeMethodGenerator(
     private val typeResolver: TypeResolver,
-    private val body: BodyGenerator,
     private val defaultValueGenerator: DefaultValueGenerator,
 ) {
     private val logger = logger()
@@ -51,8 +52,8 @@ class NativeMethodGenerator(
     fun buildMethod(
         method: MethodDescriptor,
         className: String,
+        codeBody: CodeBlock,
         vararg modifiers: KModifier,
-        codeBody: CodeBlock? = null,
         block: FunSpec.Builder.() -> Unit = {},
     ): FunSpec {
         withExceptionContext({ "Generating method $className.'${method.name}'" }) {
@@ -87,7 +88,7 @@ class NativeMethodGenerator(
                 .addModifiers(*modifiers)
                 .returns(returnTypeSpec)
                 // Use the provided body override, otherwise fall back to the TODO() stub.
-                .addCode(codeBody ?: body.todoBody())
+                .addCode(codeBody)
                 .addKdocIfPresent(method)
                 .apply {
                     if (name != kotlinName) {

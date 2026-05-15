@@ -4,13 +4,14 @@ import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.joinToCode
+import com.squareup.kotlinpoet.withIndent
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
+import io.github.kingg22.godot.codegen.impl.buildLazyBlock
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.UtilityFunction
 import io.github.kingg22.godot.codegen.types.cinteropInvoke
-import io.github.kingg22.godot.codegen.types.lazyMethod
 import io.github.kingg22.godot.codegen.types.memScoped
 
 /**
@@ -49,26 +50,18 @@ class UtilityFunctionImplGen(private val typeResolver: TypeResolver) {
         val variantBindingClass = implPackageRegistry.classNameForOrDefault("VariantBinding")
         val stringNameClass = context.classNameForOrDefault("StringName")
 
-        val bodyCode = CodeBlock
-            .builder()
-            .beginControlFlow("%T(%S).use { name ->", stringNameClass, fn.name)
-            .addStatement("%T.instance", variantBindingClass)
-            .indent()
-            .addStatement(".getPtrUtilityFunctionRaw(name.rawPtr, %LL)", fn.hash)
-            .addStatement("?: error(%S)", "Missing utility function '${fn.name}'")
-            .unindent()
-            .endControlFlow()
-            .build()
-
         return PropertySpec
             .builder(functionPointerName(fn), ptrUtilityFunctionType, KModifier.PRIVATE)
             .delegate(
-                CodeBlock
-                    .builder()
-                    .beginControlFlow("%M(PUBLICATION)", lazyMethod)
-                    .add(bodyCode)
-                    .endControlFlow()
-                    .build(),
+                buildLazyBlock {
+                    beginControlFlow("%T(%S).use { name ->", stringNameClass, fn.name)
+                    addStatement("%T.instance", variantBindingClass)
+                    withIndent {
+                        addStatement(".getPtrUtilityFunctionRaw(name.rawPtr, %LL)", fn.hash)
+                        addStatement("?: error(%S)", "Missing utility function '${fn.name}'")
+                    }
+                    endControlFlow()
+                },
             )
             .build()
     }

@@ -4,12 +4,11 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
+import io.github.kingg22.godot.codegen.impl.ofStatement
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinLayout
 import io.github.kingg22.godot.codegen.types.*
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
 
 fun buildLayoutConstants(layout: ResolvedBuiltinLayout): List<PropertySpec> =
     layout.memberOffsets.map { (member, offset) ->
@@ -83,22 +82,7 @@ fun primitiveKotlinToCVar(type: TypeName): TypeName? = when (type) {
     else -> null // builtin class
 }
 
-inline fun buildLazyBlock(body: CodeBlock.Builder.() -> Unit): CodeBlock {
-    contract { callsInPlace(body, InvocationKind.EXACTLY_ONCE) }
-    return CodeBlock
-        .builder()
-        .beginControlFlow("%M(PUBLICATION)", lazyMethod)
-        .apply(body)
-        .endControlFlow()
-        .build()
-}
-
-fun CodeBlock.Companion.ofStatement(format: String, vararg args: Any?) = builder().addStatement(format, *args).build()
-
 // ── Shared duplication helpers for method/function generators ───────────────
-
-/** True for the Godot primitive types that use stack-allocated CVar in generators. */
-fun isGodotPrimitive(type: String): Boolean = type == "float" || type == "int" || type == "bool" || type == "double"
 
 /**
  * Allocates a CVar stack variable for a method/function argument.

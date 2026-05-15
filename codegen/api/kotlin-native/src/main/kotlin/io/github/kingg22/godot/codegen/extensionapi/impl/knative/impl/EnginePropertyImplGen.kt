@@ -7,9 +7,8 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
-import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.BodyGenerator
-import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.addKdocIfPresent
-import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.experimentalApiAnnotation
+import io.github.kingg22.godot.codegen.extensionapi.resolver.addKdocIfPresent
+import io.github.kingg22.godot.codegen.extensionapi.resolver.experimentalApiAnnotation
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngineClass
@@ -246,11 +245,7 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
         when (accessor.kind) {
             AccessorKind.MISSING -> {
                 check(method == null) { "Missing getter requires a null method" }
-                builder.getter(
-                    BodyGenerator.todoGetter(
-                        "Unknown getter for ${engineClass.name}.${property.name} (expected ${property.getter})",
-                    ),
-                )
+                error("Missing getter for ${engineClass.name}.${property.name} (expected ${property.getter})")
             }
 
             AccessorKind.LOCAL, AccessorKind.LOCAL_DELEGATED -> {
@@ -379,16 +374,7 @@ class EnginePropertyImplGen(private val typeResolver: TypeResolver, private val 
 
             AccessorKind.MISSING -> {
                 check(method == null) { "Missing setter requires a null method" }
-                builder.setter(
-                    FunSpec.setterBuilder()
-                        .addParameter("value", typeResolver.resolve(property.type))
-                        .addCode(
-                            BodyGenerator.todoBody(
-                                "Unknown setter for ${engineClass.name}.${property.name} (expected ${property.setter})",
-                            ),
-                        )
-                        .build(),
-                )
+                error("Missing setter for ${engineClass.name}.${property.name} (expected ${property.setter})")
             }
         }
     }

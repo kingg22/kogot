@@ -7,6 +7,8 @@ import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import io.github.kingg22.godot.codegen.extensionapi.Context
+import io.github.kingg22.godot.codegen.extensionapi.resolver.addKdocIfPresent
+import io.github.kingg22.godot.codegen.extensionapi.resolver.experimentalApiAnnotation
 import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.sanitizeTypeName

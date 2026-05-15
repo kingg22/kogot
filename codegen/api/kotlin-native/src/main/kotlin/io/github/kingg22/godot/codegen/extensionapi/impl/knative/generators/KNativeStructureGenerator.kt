@@ -7,6 +7,7 @@ import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.KNativeImplGen
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.KNativeImplGen.FieldKind
 import io.github.kingg22.godot.codegen.extensionapi.resolver.NativeStructureParser.NativeStructureField
+import io.github.kingg22.godot.codegen.extensionapi.resolver.experimentalApiAnnotation
 import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier

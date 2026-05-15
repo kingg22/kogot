@@ -23,10 +23,9 @@ import io.github.kingg22.godot.codegen.utils.warning
 class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeImplGenerator {
     private val logger = logger()
     private lateinit var implPackageRegistry: ImplementationPackageRegistry
-    private val bodyGenerator = BodyGenerator
     private val builtinClassImplGen = BuiltinClassImplGen(typeResolver, BuiltinMethodImplGen(typeResolver))
     private val defaultValue = DefaultValueGenerator(typeResolver)
-    private val methodGenerator = NativeMethodGenerator(typeResolver, bodyGenerator, defaultValue)
+    private val methodGenerator = NativeMethodGenerator(typeResolver, defaultValue)
     private val genericInterceptor = GenericBuiltinInterceptor(typeResolver)
     private val enumGen = NativeEnumGenerator()
     private val typeAliasGen = TypeAliasGenerator(genericInterceptor)
@@ -54,7 +53,7 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
     )
     private val variantImplGen = VariantImplGen(typeResolver)
     private val variant = NativeVariantGenerator(enumGen, variantImplGen)
-    private val nativeStructureBodyImpl = KNativeImplGen(bodyGenerator)
+    private val nativeStructureBodyImpl = KNativeImplGen()
     private val nativeStructure = KNativeStructureGenerator(typeResolver, nativeStructureBodyImpl)
     private val utilFuncImplGen = UtilityFunctionImplGen(typeResolver)
     private val utils = NativeUtilityFunctionGenerator(methodGenerator, overloadGen, utilFuncImplGen)

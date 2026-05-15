@@ -1,9 +1,13 @@
 package io.github.kingg22.godot.codegen.impl
 
 import com.squareup.kotlinpoet.AnnotationSpec
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.TypeSpec
 import io.github.kingg22.godot.codegen.types.K_SUPPRESS
+import io.github.kingg22.godot.codegen.types.lazyMethod
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 fun createFile(
     type: TypeSpec,
@@ -44,3 +48,15 @@ fun FileSpec.Builder.commonConfiguration() = apply {
             .build(),
     )
 }
+
+inline fun buildLazyBlock(body: CodeBlock.Builder.() -> Unit): CodeBlock {
+    contract { callsInPlace(body, InvocationKind.EXACTLY_ONCE) }
+    return CodeBlock
+        .builder()
+        .beginControlFlow("%M(PUBLICATION)", lazyMethod)
+        .apply(body)
+        .endControlFlow()
+        .build()
+}
+
+fun CodeBlock.Companion.ofStatement(format: String, vararg args: Any?) = builder().addStatement(format, *args).build()
