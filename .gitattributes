@@ -130,4 +130,4 @@ gradlew         text eol=lf
 **/gdextension_interface.json linguist-vendored
 **/gdextension_interface.schema.json linguist-vendored
 **/extension_api.json linguist-vendored
-jvm-ffm/ffm/tools/* linguist-vendored
+graphify-out/* linguist-generated
