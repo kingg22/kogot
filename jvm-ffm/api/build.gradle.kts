@@ -1,7 +1,9 @@
+import io.github.kingg22.buildlogic.godot.conventions.CodegenBackend
+
 plugins {
     alias(libs.plugins.kotlin.library.conventions)
     alias(libs.plugins.kotlin.styles.conventions)
-    alias(libs.plugins.godot.codegen)
+    alias(libs.plugins.godot.codegen.simple)
 }
 
 kotlin {
@@ -10,15 +12,11 @@ kotlin {
     }
 }
 
-val generateApi = tasks.generateGodotExtensionApi
-
-generateApi.configure {
-    // backendName.set("jvm_ffm")
-    // temporal use stubs
-    backendName.set("stubs")
+godotCodegen {
+    backend.set(CodegenBackend.JAVA_FFM)
     packageName.set("io.github.kingg22.godot.api")
 }
 
 tasks.spotlessKotlin {
-    dependsOn(generateApi)
+    dependsOn(tasks.generateGodot)
 }
