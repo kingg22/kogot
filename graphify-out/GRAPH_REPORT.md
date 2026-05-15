@@ -1,16 +1,16 @@
-# Graph Report - kogot  (2026-05-11)
+# Graph Report - kogot  (2026-05-15)
 
 ## Corpus Check
-- 342 files · ~183,827 words
+- 340 files · ~184,125 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2094 nodes · 2178 edges · 305 communities (169 shown, 136 thin omitted)
-- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 130 edges (avg confidence: 0.8)
+- 2115 nodes · 2217 edges · 307 communities (170 shown, 137 thin omitted)
+- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 134 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c445d868`
+- Built from commit: `cf679163`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -55,6 +55,7 @@
 - [[_COMMUNITY_Community 37|Community 37]]
 - [[_COMMUNITY_Community 38|Community 38]]
 - [[_COMMUNITY_Community 39|Community 39]]
+- [[_COMMUNITY_Community 40|Community 40]]
 - [[_COMMUNITY_Community 41|Community 41]]
 - [[_COMMUNITY_Community 42|Community 42]]
 - [[_COMMUNITY_Community 43|Community 43]]
@@ -130,7 +131,7 @@
 - [[_COMMUNITY_Community 113|Community 113]]
 - [[_COMMUNITY_Community 114|Community 114]]
 - [[_COMMUNITY_Community 115|Community 115]]
-- [[_COMMUNITY_Community 117|Community 117]]
+- [[_COMMUNITY_Community 116|Community 116]]
 - [[_COMMUNITY_Community 118|Community 118]]
 - [[_COMMUNITY_Community 119|Community 119]]
 - [[_COMMUNITY_Community 120|Community 120]]
@@ -139,8 +140,8 @@
 - [[_COMMUNITY_Community 123|Community 123]]
 - [[_COMMUNITY_Community 124|Community 124]]
 - [[_COMMUNITY_Community 125|Community 125]]
+- [[_COMMUNITY_Community 126|Community 126]]
 - [[_COMMUNITY_Community 127|Community 127]]
-- [[_COMMUNITY_Community 128|Community 128]]
 - [[_COMMUNITY_Community 129|Community 129]]
 - [[_COMMUNITY_Community 130|Community 130]]
 - [[_COMMUNITY_Community 131|Community 131]]
@@ -148,7 +149,7 @@
 - [[_COMMUNITY_Community 133|Community 133]]
 - [[_COMMUNITY_Community 134|Community 134]]
 - [[_COMMUNITY_Community 135|Community 135]]
-- [[_COMMUNITY_Community 137|Community 137]]
+- [[_COMMUNITY_Community 136|Community 136]]
 - [[_COMMUNITY_Community 138|Community 138]]
 - [[_COMMUNITY_Community 139|Community 139]]
 - [[_COMMUNITY_Community 140|Community 140]]
@@ -172,7 +173,7 @@
 - [[_COMMUNITY_Community 158|Community 158]]
 - [[_COMMUNITY_Community 159|Community 159]]
 - [[_COMMUNITY_Community 160|Community 160]]
-- [[_COMMUNITY_Community 162|Community 162]]
+- [[_COMMUNITY_Community 161|Community 161]]
 - [[_COMMUNITY_Community 163|Community 163]]
 - [[_COMMUNITY_Community 164|Community 164]]
 - [[_COMMUNITY_Community 165|Community 165]]
@@ -193,7 +194,7 @@
 - [[_COMMUNITY_Community 180|Community 180]]
 - [[_COMMUNITY_Community 181|Community 181]]
 - [[_COMMUNITY_Community 182|Community 182]]
-- [[_COMMUNITY_Community 185|Community 185]]
+- [[_COMMUNITY_Community 183|Community 183]]
 - [[_COMMUNITY_Community 186|Community 186]]
 - [[_COMMUNITY_Community 187|Community 187]]
 - [[_COMMUNITY_Community 188|Community 188]]
@@ -203,9 +204,9 @@
 - [[_COMMUNITY_Community 192|Community 192]]
 - [[_COMMUNITY_Community 193|Community 193]]
 - [[_COMMUNITY_Community 194|Community 194]]
-- [[_COMMUNITY_Community 197|Community 197]]
-- [[_COMMUNITY_Community 200|Community 200]]
-- [[_COMMUNITY_Community 201|Community 201]]
+- [[_COMMUNITY_Community 195|Community 195]]
+- [[_COMMUNITY_Community 196|Community 196]]
+- [[_COMMUNITY_Community 199|Community 199]]
 - [[_COMMUNITY_Community 202|Community 202]]
 - [[_COMMUNITY_Community 203|Community 203]]
 - [[_COMMUNITY_Community 204|Community 204]]
@@ -213,8 +214,8 @@
 - [[_COMMUNITY_Community 206|Community 206]]
 - [[_COMMUNITY_Community 207|Community 207]]
 - [[_COMMUNITY_Community 208|Community 208]]
+- [[_COMMUNITY_Community 209|Community 209]]
 - [[_COMMUNITY_Community 210|Community 210]]
-- [[_COMMUNITY_Community 211|Community 211]]
 - [[_COMMUNITY_Community 212|Community 212]]
 - [[_COMMUNITY_Community 213|Community 213]]
 - [[_COMMUNITY_Community 214|Community 214]]
@@ -223,18 +224,20 @@
 - [[_COMMUNITY_Community 217|Community 217]]
 - [[_COMMUNITY_Community 218|Community 218]]
 - [[_COMMUNITY_Community 219|Community 219]]
-- [[_COMMUNITY_Community 224|Community 224]]
-- [[_COMMUNITY_Community 229|Community 229]]
+- [[_COMMUNITY_Community 220|Community 220]]
+- [[_COMMUNITY_Community 221|Community 221]]
+- [[_COMMUNITY_Community 225|Community 225]]
 - [[_COMMUNITY_Community 230|Community 230]]
-- [[_COMMUNITY_Community 232|Community 232]]
+- [[_COMMUNITY_Community 231|Community 231]]
 - [[_COMMUNITY_Community 233|Community 233]]
 - [[_COMMUNITY_Community 234|Community 234]]
 - [[_COMMUNITY_Community 235|Community 235]]
 - [[_COMMUNITY_Community 236|Community 236]]
 - [[_COMMUNITY_Community 237|Community 237]]
 - [[_COMMUNITY_Community 238|Community 238]]
-- [[_COMMUNITY_Community 242|Community 242]]
+- [[_COMMUNITY_Community 239|Community 239]]
 - [[_COMMUNITY_Community 243|Community 243]]
+- [[_COMMUNITY_Community 244|Community 244]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `Property Export Annotations` - 28 edges
@@ -260,15 +263,15 @@
 - `toFunctionInfo()` --calls--> `FunctionInfo`  [INFERRED]
   processor/src/main/kotlin/io/github/kingg22/kogot/processor/bridge/KspAnalysisContext.kt → analysis/src/main/kotlin/io/github/kingg22/kogot/analysis/models/FunctionInfo.kt
 
-## Communities (305 total, 136 thin omitted)
+## Communities (307 total, 137 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.04
-Nodes (46): 10) Documentación obligatoria, 11) Política de versiones recomendada, 12) Plan de Forward Compatibility, 13) Checklist antes de release, 14) Conclusión, 1) Principios de diseño (reglas de oro), 2.1 Handshake de versión al iniciar, 2.2 Tabla de funciones (GDExtensionInterface) (+38 more)
+Cohesion: 0.06
+Nodes (12): CodegenOptions, GodotVersion, ResolvedApiModel, ApiEnum, EnumConstant, ExtensionApi, KotlinNativeApiRunner, KotlinNativeRuntimeRunner (+4 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.05
-Nodes (13): CodegenOptions, GodotVersion, ResolvedApiModel, godotVersionRoot(), loadExtensionApi(), loadExtensionInterface(), ResolvedBuiltinAlignTest, KotlinNativeApiRunner (+5 more)
+Cohesion: 0.04
+Nodes (46): 10) Documentación obligatoria, 11) Política de versiones recomendada, 12) Plan de Forward Compatibility, 13) Checklist antes de release, 14) Conclusión, 1) Principios de diseño (reglas de oro), 2.1 Handshake de versión al iniciar, 2.2 Tabla de funciones (GDExtensionInterface) (+38 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.06
@@ -311,12 +314,12 @@ Cohesion: 0.07
 Nodes (10): CodegenCommand, main(), ApiFilters, Builder, CodegenConfig, EnumDescriptor, Named, GodotCodegenConventionsPlugin (+2 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.07
-Nodes (8): BridgeContext, bootstrap(), GodotBridge, onEditorDeinit(), onEditorInit(), onSceneDeinit(), onSceneInit(), shutdown()
-
-### Community 13 - "Community 13"
 Cohesion: 0.06
 Nodes (34): Arquitectura de 3 Capas, Arquitectura de Archivos, Características de Memoria, code:block1 (┌───────────────────────────────────────────────────────────), code:block10 (let s1 = GString::from("hello");), code:block11 (let r1: Gd<RefCounted> = create_resource();), code:block12 (let node: Gd<Node> = Node::new_alloc();), code:block13 (✓ #[repr(C)] garantiza layouts correctos) (+26 more)
+
+### Community 13 - "Community 13"
+Cohesion: 0.07
+Nodes (8): BridgeContext, bootstrap(), GodotBridge, onEditorDeinit(), onEditorInit(), onSceneDeinit(), onSceneInit(), shutdown()
 
 ### Community 14 - "Community 14"
 Cohesion: 0.06
@@ -351,86 +354,90 @@ Cohesion: 0.11
 Nodes (22): allocConstTypePtrArray(), allocConstVariantPtrArray(), allocGdBool(), allocPtrArrayImpl(), allocTypePtrArray(), BindingBooleanResult, BindingCallErrorInfo, BindingStatus (+14 more)
 
 ### Community 23 - "Community 23"
+Cohesion: 0.15
+Nodes (16): asGodotString(), asNodePath(), asStringName(), asVariant(), asVariantNodePath(), asVariantString(), asVariantStringName(), from() (+8 more)
+
+### Community 24 - "Community 24"
 Cohesion: 0.16
 Nodes (3): BridgeLifecycle, Hooks, Logger
 
-### Community 24 - "Community 24"
+### Community 25 - "Community 25"
 Cohesion: 0.1
 Nodes (20): 1. Modelo crudo del JSON, 2. Índices de consulta inmutables, 3. Modelos enriquecidos para codegen, `BuiltinRuntime.kt` no debe existir, Capas permitidas, `Context` debe adelgazar, Criterio de aceptación arquitectónica, Kogot Binding Philosophy (+12 more)
-
-### Community 25 - "Community 25"
-Cohesion: 0.18
-Nodes (4): ApiEnum, EnumConstant, ExtensionApi, EnumConstantResolverTest
 
 ### Community 26 - "Community 26"
 Cohesion: 0.11
 Nodes (18): 1) GDExtension init, 2) ClassDB bridge (Java), 3) Script instance bridge (Java), 4) ScriptLanguage (GDExtension), API pública: estrategia recomendada, Componentes mínimos, Contexto, Datos del proyecto actual (+10 more)
 
-### Community 28 - "Community 28"
+### Community 27 - "Community 27"
+Cohesion: 0.17
+Nodes (5): godotVersionRoot(), loadExtensionApi(), loadExtensionInterface(), ResolvedBuiltinAlignTest, NoOpPackageRegistry
+
+### Community 29 - "Community 29"
 Cohesion: 0.12
 Nodes (16): 1) Fuentes analizadas, 2) Modelo correcto y rápido de initialization (derivado de godot-rust + GDExtension), 3) Hallazgos en tu implementación actual, 4) Correcciones recomendadas, 5) Secuencia propuesta concreta para godot-java, 6) Resumen ejecutivo, A. Estructura por fases (prioridad máxima), B. Hardening C (+8 more)
 
-### Community 30 - "Community 30"
+### Community 31 - "Community 31"
 Cohesion: 0.3
 Nodes (3): ErrorCase, TypeCase, VariantTypeTestData
 
-### Community 31 - "Community 31"
+### Community 32 - "Community 32"
 Cohesion: 0.12
 Nodes (15): ExportCategory, ExportCustom, ExportEnum, ExportExpEasing, ExportFile, ExportFilePath, ExportFlags, ExportGlobalFile (+7 more)
 
-### Community 32 - "Community 32"
+### Community 33 - "Community 33"
 Cohesion: 0.12
 Nodes (15): Checking for Updates, code:bash (cd /home/kingg22/IdeaProjects/godot-rust && ls -la), code:bash (git clone https://github.com/godot-rust/gdext.git), code:bash (# Inside Godot source tree), code:bash (cd /home/kingg22/VisualStudioCodeProjects/graphics.gd), code:bash (git clone https://github.com/TreyAnto/GraphicsGD.git), code:bash (cd /home/kingg22/IdeaProjects/SwiftGodot), code:bash (git clone https://github.com/migueldeicaza/SwiftGodot.git) (+7 more)
 
 ### Community 34 - "Community 34"
-Cohesion: 0.22
-Nodes (11): asGodotString(), asNodePath(), asStringName(), asVariant(), asVariantNodePath(), asVariantString(), asVariantStringName(), from() (+3 more)
+Cohesion: 0.16
+Nodes (6): Builder, ExperimentalInfo, ExperimentalTypesRegistry, GodotElementType, experimentalApiAnnotation(), experimentalApiAnnotation()
 
-### Community 35 - "Community 35"
+### Community 37 - "Community 37"
 Cohesion: 0.13
 Nodes (14): Architecture, Build, code:block1 (User Code (@Godot class)), code:block2 (kogot/), code:kotlin (// Generated from Godot's JSON API — DO NOT EDIT), code:kotlin (@Godot class MyNode(nativePtr: COpaquePointer) : Node(native), code:bash (./gradlew assemble), Generated API Sample (+6 more)
 
-### Community 36 - "Community 36"
+### Community 38 - "Community 38"
 Cohesion: 0.13
 Nodes (14): 1. **Code Generation Completo**, 2. **Default Value Generation** ⭐ NUEVO, 3. **Type Resolution Strategy**, code:kotlin (// Generados en builtin classes), code:text (// runtime/src/nativeMain/kotlin/io/github/kingg22/godot/ffi), code:kotlin (class GDExtensionInterfaceGenerator {), ✅ Completado Hasta Ahora, 📋 Contexto General (+6 more)
 
-### Community 37 - "Community 37"
+### Community 39 - "Community 39"
+Cohesion: 0.24
+Nodes (12): errorString(), errorStringAsGdStr(), print(), printerr(), printraw(), printRich(), prints(), printt() (+4 more)
+
+### Community 40 - "Community 40"
 Cohesion: 0.14
 Nodes (13): 1) Capa FFM (binding), 2) Bridge Java (alto nivel), 3) Flujo de inicialización, 4) Memoria / lifecycle, 5) Compatibilidad JVM HotSpot / GraalVM, code:block1 (Godot → C entrypoint → GodotBridge.initialize()), Criterio de éxito (MVP), Diseño propuesto (+5 more)
 
-### Community 38 - "Community 38"
-Cohesion: 0.19
-Nodes (5): Builder, ExperimentalInfo, ExperimentalTypesRegistry, GodotElementType, experimentalApiAnnotation()
-
-### Community 39 - "Community 39"
+### Community 41 - "Community 41"
 Cohesion: 0.22
 Nodes (9): fixed2d3d(), isAllUpperCase(), isKotlinKeyword(), renameAllUpperCaseToCamelCase(), renameGodotClass(), safeIdentifier(), sanitizeTypeName(), screamingToPascalCase() (+1 more)
 
-### Community 41 - "Community 41"
+### Community 42 - "Community 42"
 Cohesion: 0.15
 Nodes (12): Agent context rules, Agent Directives: Mechanical Overrides, Agent Orchestration, Code Quality, Context Management, Edit Safety, graphify, How to invoke (+4 more)
 
-### Community 42 - "Community 42"
+### Community 43 - "Community 43"
 Cohesion: 0.15
 Nodes (12): 1. Pick an Issue, 2. Create a New Issue, 3. Development Setup, 4. Testing the Sample, Code Quality, code:bash (# Clone the repository), Contributing to kogot, Design Philosophy (+4 more)
 
-### Community 43 - "Community 43"
+### Community 44 - "Community 44"
 Cohesion: 0.15
 Nodes (12): Archivos clave referenciados, Causa probable, Conversación y notas sobre GodotSharp vs GDExtension JVM, Diferencias a tener en cuenta (GodotSharp vs JVM), Estado actual del proyecto JVM, Implicaciones para JVM + GDExtension, Objetivo del usuario, Próximos pasos sugeridos (+4 more)
 
-### Community 44 - "Community 44"
+### Community 45 - "Community 45"
 Cohesion: 0.15
 Nodes (12): code:block27 (handle: GDExtensionStringNamePtr), code:kotlin (@JvmInline), code:block29 (struct GDExtensionCallError), code:block31 (alias GDExtensionInt = int64_t), code:kotlin (typealias GDExtensionInt = Long), 🧪 Ejemplo completo, JSON, JSON (+4 more)
 
-### Community 45 - "Community 45"
+### Community 46 - "Community 46"
 Cohesion: 0.15
 Nodes (12): code:block1 (Godot Engine (C API)), code:block2 (enum), code:block26 (C primitive     → Kotlin primitive), ⚠️ Cosas IMPORTANTES que debes saber, 📘 Guía simplificada: Mapeo Kotlin ↔ Godot (GDExtension API), 🧠 Idea clave, 🔥 Kotlin/JVM NO puede:, 🗺️ Mapa mental completo (+4 more)
 
-### Community 46 - "Community 46"
+### Community 47 - "Community 47"
 Cohesion: 0.24
 Nodes (4): AndRule, CodegenRule, NotRule, OrRule
 
-### Community 47 - "Community 47"
+### Community 48 - "Community 48"
 Cohesion: 0.23
 Nodes (3): ScriptInstance, ScriptInstanceBridge, GDExtensionCallError()
 
@@ -444,11 +451,11 @@ Nodes (12): 1. Infrastructure Layer, 2. Analysis Layer (`analysis/` module, KSP-
 
 ### Community 51 - "Community 51"
 Cohesion: 0.17
-Nodes (11): Archivos Críticos a Crear (orden de implementación sugerido), Arquitectura de Módulos Gradle, Arquitectura General: Capas + Pipeline de Fases, Arquitectura KSP Processor para Kogot Bindings, code:block1 (kogot/), code:block11 (┌───────────────────────────────────────────────────────────), code:block2 (┌───────────────────────────────────────────────────────────), Context (+3 more)
+Nodes (10): Aplicación a Nuestro Diseño, code:block15 (room3-compiler-processing/src/main/java/androidx/room3/compi), code:block16 (room3-compiler-processing/src/main/java/androidx/room3/compi), code:kotlin (fun wrap(ksType: KSType, allowPrimitives: Boolean): KspType ), code:block20 (analysis/src/main/kotlin/io/github/kingg22/kogot/analysis/), code:block21 (processor/src/main/kotlin/.../processor/bridge/), Inspiración Adicional: XProcessing de Room, KSP Implementation (Bridge) (+2 more)
 
 ### Community 52 - "Community 52"
 Cohesion: 0.17
-Nodes (10): Aplicación a Nuestro Diseño, code:block15 (room3-compiler-processing/src/main/java/androidx/room3/compi), code:block16 (room3-compiler-processing/src/main/java/androidx/room3/compi), code:kotlin (fun wrap(ksType: KSType, allowPrimitives: Boolean): KspType ), code:block20 (analysis/src/main/kotlin/io/github/kingg22/kogot/analysis/), code:block21 (processor/src/main/kotlin/.../processor/bridge/), Inspiración Adicional: XProcessing de Room, KSP Implementation (Bridge) (+2 more)
+Nodes (11): Archivos Críticos a Crear (orden de implementación sugerido), Arquitectura de Módulos Gradle, Arquitectura General: Capas + Pipeline de Fases, Arquitectura KSP Processor para Kogot Bindings, code:block1 (kogot/), code:block11 (┌───────────────────────────────────────────────────────────), code:block2 (┌───────────────────────────────────────────────────────────), Context (+3 more)
 
 ### Community 53 - "Community 53"
 Cohesion: 0.22
@@ -466,31 +473,31 @@ Nodes (10): Apply the plugin, Available tasks, code:kotlin (// settings.gradle.k
 Cohesion: 0.2
 Nodes (8): BitfieldKind, Builtin, FieldKind, GodotEnumKind, NativeStruct, OpaquePointer, Primitive, Unimplemented
 
-### Community 59 - "Community 59"
-Cohesion: 0.2
-Nodes (4): FFMUtils, FieldLayout, KNativeStructureGenerator, StructLayout
-
-### Community 61 - "Community 61"
+### Community 60 - "Community 60"
 Cohesion: 0.2
 Nodes (9): Binding Layer Architecture, Binding Roadmap - kogot, code:block1 (User Code (@Godot class)), ✅ COMPLETE, Current Status (2026-04-08), 🔄 IN PROGRESS, Key Gaps to Address, ❌ NOT STARTED (+1 more)
 
-### Community 62 - "Community 62"
+### Community 61 - "Community 61"
 Cohesion: 0.2
 Nodes (9): Code Flows, code:block1 (@Godot → processor/KogotProcessor → GodotBindingGenerator → ), code:block2 (Godot JSON API → codegen/models/ → KotlinPoetGenerator → kot), code:block3 (register() → ClassRegistrationHelpers → GDExtension API → Go), Docs to Read, Generated vs Hand-Written, Key Files by Task, Kogot Repo Map (+1 more)
 
-### Community 63 - "Community 63"
+### Community 62 - "Community 62"
 Cohesion: 0.2
 Nodes (10): 🏷️ 1. ENUM, Bitfield enum, code:block3 (C: int32_t), code:kotlin (enum class InitializationLevel(val value: Int) {), code:block5 (C: uint32_t), code:kotlin (@JvmInline), code:kotlin (object Flags {), En C (+2 more)
 
-### Community 65 - "Community 65"
+### Community 64 - "Community 64"
 Cohesion: 0.25
 Nodes (3): NativePackageRegistry, register(), renameQualified()
 
-### Community 69 - "Community 69"
+### Community 66 - "Community 66"
+Cohesion: 0.22
+Nodes (4): FFMUtils, FieldLayout, KNativeStructureGenerator, StructLayout
+
+### Community 68 - "Community 68"
 Cohesion: 0.22
 Nodes (9): code:block18 (Type*), code:block19 (Long), code:block20 (const Type*), code:block21 (Type**), code:block22 (Long), Doble puntero, 🧠 Modificadores de tipo, Puntero const (+1 more)
 
-### Community 70 - "Community 70"
+### Community 69 - "Community 69"
 Cohesion: 0.22
 Nodes (8): code:bash (cd godot-version), code:bash (godot --dump-extension-api --headless), code:bash (mv extension_api.json extension_api_without_docs.json), code:bash (godot --dump-extension-api-with-docs --headless), code:bash (godot --dump-gdextension-interface --headless), code:bash (godot --dump-gdextension-interface-json --headless), code:http (GET https://github.com/godotengine/godot/blob/4.6/core/exten), Godot Versions Tracking
 
@@ -507,116 +514,120 @@ Cohesion: 0.25
 Nodes (7): AliasType, EnumType, EnumValue, FunctionType, HandleType, StructType, Types
 
 ### Community 74 - "Community 74"
+Cohesion: 0.46
+Nodes (7): toGodotString(), toNodePath(), toStringName(), toVariant(), toVariantNodePath(), toVariantString(), toVariantStringName()
+
+### Community 75 - "Community 75"
 Cohesion: 0.32
 Nodes (5): CustomSignalClass, registerCustomSignalClass(), registerSignalsForCustomSignalClass(), godotKotlinInit(), initialize()
 
-### Community 76 - "Community 76"
+### Community 77 - "Community 77"
 Cohesion: 0.25
 Nodes (7): Auto-registro de clases (Java/Kotlin) — diseño, Compatibilidad Kotlin, Enfoque propuesto, Estado, Objetivo, Reglas para no romper Graal/Minify, Riesgos
 
-### Community 78 - "Community 78"
+### Community 79 - "Community 79"
 Cohesion: 0.38
 Nodes (3): build(), empty(), EnumConstantResolver
 
-### Community 81 - "Community 81"
+### Community 82 - "Community 82"
 Cohesion: 0.33
 Nodes (3): getInstanceBinding(), instantiate(), TestOne
 
-### Community 83 - "Community 83"
+### Community 84 - "Community 84"
 Cohesion: 0.38
 Nodes (4): DiagnosticMessage, error(), Severity, warning()
 
-### Community 85 - "Community 85"
+### Community 86 - "Community 86"
 Cohesion: 0.29
 Nodes (7): 🔧 5. FUNCTION TYPES (punteros a función), code:block16 (typedef void (*Constructor)(TypePtr base, const TypePtr* arg), code:kotlin (typealias Constructor = (Long, Long) -> Unit), JNI, Kotlin, Panama/JExtract, Wrapper manual
 
-### Community 86 - "Community 86"
+### Community 87 - "Community 87"
 Cohesion: 0.29
 Nodes (7): code:block33 (NativeTypes.kt), code:block34 (StringName), Diseño ideal, Nivel alto, Nivel bajo, Nivel medio, 🧭 Recomendación para bindings Kotlin ↔ Godot
 
-### Community 93 - "Community 93"
+### Community 94 - "Community 94"
 Cohesion: 0.4
 Nodes (3): Builder, JextractRelease, PlatformArtifact
 
-### Community 95 - "Community 95"
+### Community 96 - "Community 96"
 Cohesion: 0.33
 Nodes (5): 1) Qué es y cómo está organizado, 2) Flujo de ejecución (runtime), 3) Estado actual según tus logs, 4) Roadmap sugerido (próximos pasos), Godot JVM (godot-java) — Resumen del estado actual
 
-### Community 97 - "Community 97"
+### Community 99 - "Community 99"
 Cohesion: 0.6
 Nodes (4): entries(), fromValue(), fromValueOrNull(), GodotEnum
 
-### Community 101 - "Community 101"
+### Community 103 - "Community 103"
 Cohesion: 0.5
 Nodes (4): fromMap(), KogotOptions, LogLevel, OutputMode
 
-### Community 102 - "Community 102"
+### Community 104 - "Community 104"
 Cohesion: 0.4
 Nodes (5): 🧬 3. ALIAS, code:block13 (GDExtensionInt → int64_t), code:kotlin (typealias GDExtensionInt = Long), Ejemplo, En Kotlin
 
-### Community 103 - "Community 103"
+### Community 105 - "Community 105"
 Cohesion: 0.4
 Nodes (5): code:block23 (GDExtensionInterfaceGetProcAddress("function_name")), code:kotlin (external fun getGodotVersion(ptr: Long)), code:kotlin (fun getGodotVersion(): GodotVersion {), Ejemplo conceptual Kotlin, 🧰 Interface Functions
 
-### Community 104 - "Community 104"
-Cohesion: 0.4
-Nodes (5): code:kotlin (// Test de ClassExtractor sin KSP), code:kotlin (@Test), Con KSP (Integration Tests), Sin KSP (Unit Tests), Testing Strategy
-
-### Community 105 - "Community 105"
+### Community 106 - "Community 106"
 Cohesion: 0.4
 Nodes (5): code:block12 (ide-plugin/), Extensibilidad, IDE Plugin Support, Nuevas Anotaciones, Nuevos Generadores
 
-### Community 106 - "Community 106"
+### Community 107 - "Community 107"
+Cohesion: 0.4
+Nodes (5): code:kotlin (// Test de ClassExtractor sin KSP), code:kotlin (@Test), Con KSP (Integration Tests), Sin KSP (Unit Tests), Testing Strategy
+
+### Community 108 - "Community 108"
 Cohesion: 0.4
 Nodes (5): ClassGraph vs KSP (Para Entender Utopia), Comparación, ¿Nos sirve ClassGraph?, ¿Por qué Utopia usa ClassGraph?, ¿Qué es ClassGraph?
 
-### Community 107 - "Community 107"
+### Community 109 - "Community 109"
 Cohesion: 0.5
 Nodes (3): BuiltinClassMemberOffsets, Classes, Members
 
-### Community 110 - "Community 110"
+### Community 111 - "Community 111"
 Cohesion: 0.5
 Nodes (3): AccessorKind, ResolvedAccessor, ResolvedProperty
 
-### Community 114 - "Community 114"
+### Community 115 - "Community 115"
 Cohesion: 0.83
 Nodes (3): castTo(), castToInternal(), castToOrNull()
 
-### Community 121 - "Community 121"
+### Community 122 - "Community 122"
 Cohesion: 0.5
 Nodes (3): 🧱 4. STRUCT, Regla importante, Representación lógica en Kotlin
 
-### Community 122 - "Community 122"
+### Community 123 - "Community 123"
 Cohesion: 0.5
 Nodes (4): code:kotlin (// Ejemplo simple de KotlinPoet), code:kotlin (// processor/build.gradle.kts), Dependencia Gradle, Generación de Código con KotlinPoet
-
-### Community 163 - "Community 163"
-Cohesion: 0.67
-Nodes (3): code:block10 (error[KOGOT-001]: @Export on invalid type), code:block9 (processor/src/main/kotlin/io/github/kingg22/kogot/processor/), Diagnostic Reporter (Rustc-level DX)
 
 ### Community 164 - "Community 164"
 Cohesion: 0.67
 Nodes (3): code:block22 (room3-compiler-processing-testing/), code:kotlin (@Test), Test Suite de Room
 
+### Community 165 - "Community 165"
+Cohesion: 0.67
+Nodes (3): code:block10 (error[KOGOT-001]: @Export on invalid type), code:block9 (processor/src/main/kotlin/io/github/kingg22/kogot/processor/), Diagnostic Reporter (Rustc-level DX)
+
 ## Knowledge Gaps
-- **603 isolated node(s):** `JavaFfmBackend`, `JavaFfmPackageRegistry`, `NativeStructure`, `ConstantDescriptor`, `Documentable` (+598 more)
+- **604 isolated node(s):** `JavaFfmBackend`, `JavaFfmPackageRegistry`, `NativeStructure`, `ConstantDescriptor`, `Documentable` (+599 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **136 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **137 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `BridgeContext` connect `Community 12` to `Community 75`?**
+- **Why does `GodotFFI` connect `Community 36` to `Community 48`, `Community 76`, `Community 101`?**
+  _High betweenness centrality (0.003) - this node is a cross-community bridge._
+- **Why does `BridgeContext` connect `Community 13` to `Community 76`, `Community 36`?**
   _High betweenness centrality (0.002) - this node is a cross-community bridge._
-- **Why does `GDExtensionCallError()` connect `Community 47` to `Community 60`?**
-  _High betweenness centrality (0.002) - this node is a cross-community bridge._
-- **Why does `GodotFFI` connect `Community 48` to `Community 75`, `Community 99`, `Community 12`, `Community 47`?**
-  _High betweenness centrality (0.002) - this node is a cross-community bridge._
+- **Why does `GDExtensionCallError()` connect `Community 48` to `Community 59`?**
+  _High betweenness centrality (0.001) - this node is a cross-community bridge._
 - **What connects `JavaFfmBackend`, `JavaFfmPackageRegistry`, `NativeStructure` to the rest of the system?**
-  _603 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _604 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.04 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.04 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.06 - nodes in this community are weakly interconnected._
