@@ -222,6 +222,7 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                 .build(),
         )
 
+        // Special constructor of Object, requires ptr to ptr
         classBuilder.addFunction(
             FunSpec
                 .constructorBuilder()
@@ -232,12 +233,12 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                         .builder()
                         .beginControlFlow("%M", memScoped)
                         .addStatement(
-                            "val objPtr = %M<%T>()",
+                            "val objectVar = %M<%T>()",
                             cinteropAlloc,
                             implPackageRegistry.classNameForOrDefault("GDExtensionObjectPtrVar"),
                         )
-                        .addStatement("objPtr.%M = value.rawPtr", cinteropValue)
-                        .addStatement("fromTypeFptr_%L.%M(rawPtr, objPtr.%M)", "OBJECT", cinteropInvoke, cinteropPtr)
+                        .addStatement("objectVar.%M = value.rawPtr", cinteropValue)
+                        .addStatement("fromTypeFptr_%L.%M(rawPtr, objectVar.%M)", "OBJECT", cinteropInvoke, cinteropPtr)
                         .endControlFlow()
                         .build(),
                 )
