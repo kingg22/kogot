@@ -2,6 +2,7 @@ package io.github.kingg22.buildlogic.godot
 
 import io.github.kingg22.buildlogic.godot.chore.GodotCodegenChoreExtension
 import io.github.kingg22.buildlogic.godot.conventions.CodegenBackend
+import io.github.kingg22.buildlogic.godot.conventions.CodegenBackend.JAVA_FFM
 import io.github.kingg22.buildlogic.godot.conventions.CodegenBackend.KOTLIN_NATIVE
 import io.github.kingg22.buildlogic.godot.conventions.CodegenKind
 import io.github.kingg22.buildlogic.godot.conventions.CodegenKind.API
@@ -55,6 +56,11 @@ class GodotCodegenConventionsPlugin : Plugin<Project> {
         conventionsExtension.packageName.convention("io.github.kingg22.godot")
         conventionsExtension.skipPlatformSpecificApis.convention(choreExtension.skipPlatformSpecificApis)
         conventionsExtension.excludeTypes.convention(emptyList())
+
+        target.tasks.register("generateGodot") {
+            group = "codegen"
+            description = "Generates Godot bindings for the current project."
+        }
 
         target.afterEvaluate {
             val combinations = conventionsExtension.combinations.toList() + conventionsExtension
@@ -122,9 +128,7 @@ class GodotCodegenConventionsPlugin : Plugin<Project> {
             task
         }
 
-        target.tasks.register("generateGodot") {
-            group = "codegen"
-            description = "Generates Godot bindings for the current project."
+        target.tasks.named("generateGodot") {
             dependsOn(combinationTasks)
         }
     }
@@ -139,6 +143,7 @@ class GodotCodegenConventionsPlugin : Plugin<Project> {
             KOTLIN_NATIVE to API -> target.project(":codegen:api:kotlin-native")
             KOTLIN_NATIVE to RUNTIME -> target.project(":codegen:runtime:kotlin-native")
             KOTLIN_NATIVE to CALLABLE -> target.project(":codegen:api:kotlin-native-callable")
+            JAVA_FFM to API -> target.project(":codegen:api:java-ffm")
             else -> error("Unsupported backend/output kind combination: $backend to $kind")
         }
 
