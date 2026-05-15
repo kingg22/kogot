@@ -56,7 +56,7 @@ class ClassDBBridge internal constructor(
 
     private val onCreateInstance = GDExtensionClassCreateInstance2.Function {
             classUserdata: MemorySegment,
-            notifyPostInitialize: Byte,
+            _: Byte,
         ->
         val classId =
             classUserdata.reinterpret(ValueLayout.JAVA_LONG.byteSize()).get(ValueLayout.JAVA_LONG, 0)
@@ -74,7 +74,7 @@ class ClassDBBridge internal constructor(
     }
 
     private val onFreeInstance = GDExtensionClassFreeInstance.Function {
-            classUserdata: MemorySegment,
+            _: MemorySegment,
             instancePtr: MemorySegment,
         ->
         val address = instancePtr.address()
@@ -83,7 +83,7 @@ class ClassDBBridge internal constructor(
 
     private val onToString = GDExtensionClassToString.Function {
             instance: MemorySegment?,
-            isValid: MemorySegment?,
+            _: MemorySegment?,
             out: MemorySegment?,
         ->
         val handle = instances[instance!!.address()]
