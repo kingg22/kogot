@@ -4,21 +4,20 @@ import io.github.kingg22.godot.api.builtin.StringName
 import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.singleton.ClassDB
 import io.github.kingg22.godot.internal.binding.BindingProcAddressHolder
+import io.github.kingg22.godot.internal.binding.InternalBinding
 import io.github.kingg22.godot.internal.binding.ObjectBinding
+import io.github.kingg22.godot.internal.binding.getInstance
 import io.github.kingg22.godot.internal.ffi.GDExtensionClassCreateInstance2
 import io.github.kingg22.godot.internal.ffi.GDExtensionClassFreeInstance
 import io.github.kingg22.godot.internal.ffi.GDExtensionClassGetVirtual2
 import io.github.kingg22.godot.internal.ffi.GDExtensionClassNotification2
 import io.github.kingg22.godot.internal.ffi.GDExtensionInstanceBindingCallbacks
-import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.cValue
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.staticCFunction
 import kotlin.reflect.KClass
-
-inline fun <reified T : Any> COpaquePointer?.getInstance(): T = requireNotNull(this).asStableRef<T>().get()
 
 val notificationFunc: GDExtensionClassNotification2 = staticCFunction { instancePtr, notification, reversed ->
     val _ = instancePtr
@@ -65,6 +64,7 @@ val freeInstanceFunc: GDExtensionClassFreeInstance = staticCFunction { _, ptr ->
     ptr.asStableRef<Any>().dispose()
 }
 
+@OptIn(InternalBinding::class)
 val getVirtualFunc: GDExtensionClassGetVirtual2 = staticCFunction { classPtr, funcName, _ ->
     requireNotNull(funcName)
 
