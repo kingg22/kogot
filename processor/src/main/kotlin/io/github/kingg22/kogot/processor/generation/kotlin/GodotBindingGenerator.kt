@@ -79,7 +79,7 @@ class GodotBindingGenerator : Generator {
         val fileSpec = FileSpec
             .builder(packageName, bindingClassName)
             .applyCommonConfig()
-            .optInInternalBindingAndForeignNative()
+            .optInForeignNative()
 
         val typeSpec = TypeSpec
             .objectBuilder(bindingClassName)
@@ -112,13 +112,13 @@ class GodotBindingGenerator : Generator {
             .addStatement("%S,", baseClass)
             .addStatement("%M { _, notifyPostInitialize ->", STATIC_C_FUNCTION)
             .addStatement(
-                "⇥%M(%S, %S, ::%T, notifyPostInitialize == %T.%M)⇤",
+                "⇥%M(%S, %S, notifyPostInitialize == %T.%M, ::%T)⇤",
                 CREATE_INSTANCE_FUN,
                 baseClass,
                 classInfo.shortName,
-                classType,
                 GDExtensionBoolClassName,
                 GDExtensionBoolTrueMember,
+                classType,
             )
             .addStatement("},")
             .addStatement("%M(),", CREATE_FREE_INSTANCE_FUN)
@@ -194,8 +194,10 @@ class GodotBindingGenerator : Generator {
         val packageName = classes.first().packageName + ".generated"
         val className = "GeneratedBindings"
 
-        val type = TypeSpec.classBuilder(className)
+        val type = TypeSpec
+            .classBuilder(className)
             .superclass(BindingInitializationCallbacksClassName)
+            .addAnnotation(InternalBindingClassName)
             .addFunction(
                 FunSpec
                     .builder("onInitScene")
@@ -212,9 +214,9 @@ class GodotBindingGenerator : Generator {
             )
             .build()
 
-        val file = FileSpec.builder(packageName, className)
+        val file = FileSpec
+            .builder(packageName, className)
             .applyCommonConfig()
-            .optInInternalBindingAndForeignNative()
             .addType(type)
             .build()
 

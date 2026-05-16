@@ -25,10 +25,10 @@ fun FileSpec.Builder.applyCommonConfig(): FileSpec.Builder = apply {
     )
 }
 
-fun FileSpec.Builder.optInInternalBindingAndForeignNative() = apply {
+fun FileSpec.Builder.optInForeignNative() = apply {
     addAnnotation(
-        AnnotationSpec.builder(K_OPT_IN)
-            .addMember("%T::class", InternalBindingClassName)
+        AnnotationSpec
+            .builder(K_OPT_IN)
             .addMember("%T::class", ExperimentalForeignApi)
             .build(),
     )
