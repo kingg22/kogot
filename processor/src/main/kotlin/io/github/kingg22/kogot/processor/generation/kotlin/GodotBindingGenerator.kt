@@ -121,7 +121,6 @@ class GodotBindingGenerator : Generator {
                 classType,
             )
             .addStatement("},")
-            .addStatement("%M(),", CREATE_FREE_INSTANCE_FUN)
             .addStatement("%T.getVirtual,", NodeVirtualDispatcherClassName)
             .addStatement("⇤)")
 
