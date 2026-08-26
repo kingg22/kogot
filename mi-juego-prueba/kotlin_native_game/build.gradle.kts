@@ -13,6 +13,7 @@ kotlin {
     dependencies {
         api(projects.kotlinNative.api)
         implementation(projects.kotlinNative.binding)
+        implementation(libs.kotlinx.coroutines.core)
     }
 
     applyDefaultHierarchyTemplate()
