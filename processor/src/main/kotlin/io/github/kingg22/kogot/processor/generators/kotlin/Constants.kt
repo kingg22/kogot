@@ -44,6 +44,8 @@ val CREATE_FREE_INSTANCE_FUN = MemberName(GODOT_INTERNAL_BINDING_PKG, "createFre
 
 val REGISTER_CLASS = MemberName(GODOT_INTERNAL_BINDING_PKG, "registerClass")
 
+val UNREGISTER_CLASS = MemberName(GODOT_INTERNAL_BINDING_PKG, "unregisterClass")
+
 val REGISTER_CUSTOM_SIGNAL = MemberName(GODOT_INTERNAL_BINDING_PKG, "registerCustomSignal")
 
 val REGISTER_PROPERTY = MemberName(GODOT_INTERNAL_BINDING_PKG, "registerProperty")

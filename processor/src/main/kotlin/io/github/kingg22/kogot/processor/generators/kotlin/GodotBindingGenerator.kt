@@ -244,6 +244,13 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
         }
 
         typeSpecBuilder.addFunction(funSpec.build())
+
+        typeSpecBuilder.addFunction(
+            FunSpec
+                .builder("unregister")
+                .addStatement("%M(%S)", UNREGISTER_CLASS, classInfo.shortName)
+                .build(),
+        )
     }
 
     /**
@@ -541,6 +548,25 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
                             ClassName(packageName, "ScriptFileRegistry"),
                         )
                         addStatement("%T.registerKotlinScriptLanguageSupport()", KOTLIN_SCRIPT_REGISTRATION)
+                    }
+                    .build(),
+            )
+            .addFunction(
+                // Reverse-order counterpart of onInitScene. Godot has no GC: on SCENE-level deinit the
+                // script-language / resource-format-loader / -saver singletons handed to the engine
+                // must be torn down, and each extension class must be unregistered, or their instances
+                // and interned signal-name StringNames are reported as leaked at exit (issue #42).
+                FunSpec
+                    .builder("onDeInitScene")
+                    .addModifiers(KModifier.OVERRIDE)
+                    .apply {
+                        addStatement("%T.unregisterKotlinScriptLanguageSupport()", KOTLIN_SCRIPT_REGISTRATION)
+                        classes.asReversed().forEach {
+                            addStatement(
+                                "%T.unregister()",
+                                ClassName(it.packageName, "${it.shortName}_Binding"),
+                            )
+                        }
                     }
                     .build(),
             )

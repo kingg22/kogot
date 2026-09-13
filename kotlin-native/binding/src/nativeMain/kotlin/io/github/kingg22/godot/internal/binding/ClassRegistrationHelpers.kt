@@ -208,3 +208,22 @@ public inline fun <reified T : GodotObject> registerClass(
 
     // println("[Kogot] Registered class: '$className' extends '$parentClassName' successfully")
 }
+
+/**
+ * Reverses [registerClass] for [className]: hands the class name back to
+ * `classdb_unregister_extension_class`, which drops the class together with every method, property
+ * and signal registered on it — including the interned signal-name [io.github.kingg22.godot.api.builtin.StringName]s
+ * that would otherwise be reported as `Orphan StringName` at exit.
+ *
+ * Call only once every instance of the class is freed (Godot refuses to unregister a class that still
+ * has live instances). Invoked from the KSP-generated `GeneratedBindings.onDeInitScene()`.
+ */
+@InternalBinding
+public fun unregisterClass(className: String) {
+    className.toStringName().use { classStringName ->
+        ClassDBBinding.unregisterExtensionClassRaw(
+            BindingProcAddressHolder.library,
+            classStringName.rawPtr,
+        )
+    }
+}
