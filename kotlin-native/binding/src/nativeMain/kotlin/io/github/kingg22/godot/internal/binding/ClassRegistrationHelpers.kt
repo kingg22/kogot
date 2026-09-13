@@ -1,32 +1,28 @@
 package io.github.kingg22.godot.internal.binding
 
+import io.github.kingg22.godot.api.annotations.GodotNotification
 import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.GodotObject
-import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.internal.ffi.*
 import kotlinx.cinterop.*
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
 /**
- * Notification function that calls [Node._ready] when [Node.NOTIFICATION_READY] is received.
+ * Per-instance `notification` hook wired into every registered class through [classCreationInfo6].
  *
- * Godot sends `NOTIFICATION_READY` (value 13) when a node enters the scene tree and is ready.
- * This function dispatches it to the Kotlin instance's `_ready` method.
+ * Forwards each Godot `NOTIFICATION_*` to [GodotNotification._notification] when the class opts in by
+ * implementing [GodotNotification] (e.g. to release native handles on `NOTIFICATION_PREDELETE`);
+ * a no-op otherwise. `_notification` has no entry in `extension_api.json` and no `get_virtual` slot,
+ * so this callback is the only path GDExtension classes have to observe notifications.
+ *
+ * It deliberately does **not** call `_ready()` here: Godot already dispatches `_ready` through the
+ * `get_virtual` table (`NodeVirtualCalls.ready`), and calling it from here as well ran every node's
+ * `_ready` twice.
  */
 @InternalBinding
-public val notificationFunc: GDExtensionClassNotification2 = staticCFunction { instancePtr, notification, _ ->
-    when (notification.toLong()) {
-        Node.NOTIFICATION_READY -> {
-            // println("[Kogot] NotificationFunc: Received Node.NOTIFICATION_READY, calling _ready to $instancePtr")
-            instancePtr.getInstance<Node>()._ready()
-        }
-
-        else -> {
-            // Floods the console with notifications, not useful
-            // println("[Kogot] NotificationFunc: Received notification: $notification")
-        }
-    }
+public val notificationFunc: GDExtensionClassNotification2 = staticCFunction { instancePtr, what, _ ->
+    (instancePtr?.asStableRef<Any>()?.get() as? GodotNotification)?._notification(what)
 }
 
 /**
