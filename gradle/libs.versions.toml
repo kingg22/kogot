@@ -15,7 +15,7 @@ dokka = "2.2.0"
 errorprone-core = "2.50.0"
 
 # https://github.com/tbroyer/gradle-errorprone-plugin/releases
-errorprone-gradle = "5.1.0"
+errorprone-gradle = "5.1.1"
 
 # https://github.com/JetBrains/gradle-changelog-plugin/releases
 jetbrains-changelog = "2.5.0"
