@@ -73,68 +73,71 @@ public fun registerMethod(
 
     classNameStr.use { classNameStr ->
         methodNameStr.use { methodNameStr ->
-            memScoped {
-                // Pre-allocate return value info if needed
-                val returnValueInfo = if (hasReturnValue) {
-                    alloc<GDExtensionPropertyInfo> {
-                        type = returnTypeGde
+            withTransientStringNames { record ->
+                memScoped {
+                    // Pre-allocate return value info if needed
+                    val returnValueInfo = if (hasReturnValue) {
+                        alloc<GDExtensionPropertyInfo> {
+                            type = returnTypeGde
+                            name = methodNameStr.rawPtr
+                            class_name = classNameStr.rawPtr
+                            hint = PropertyHint.NONE.value.toUInt()
+                            hint_string = record("")
+                            usage = PropertyUsageFlags.DEFAULT.value.toUInt()
+                        }.ptr
+                    } else {
+                        null
+                    }
+
+                    // Pre-allocate argument infos if needed
+                    val argumentsInfo = if (arguments.isNotEmpty()) {
+                        allocArray<GDExtensionPropertyInfo>(arguments.size) { index ->
+                            val arg = arguments[index]
+
+                            this.type = arg.type.toGDE()
+                            this.name = record(arg.name)
+                            this.class_name = classNameStr.rawPtr
+                            this.hint = arg.hint.value.toUInt()
+                            this.hint_string = record(arg.hintString)
+                            this.usage = arg.usage.value.toUInt()
+                        }
+                    } else {
+                        null
+                    }
+
+                    // Pre-allocate arguments metadata
+                    val argumentsMetadata = if (arguments.isNotEmpty()) {
+                        allocArray<GDExtensionClassMethodArgumentMetadata.Var>(arguments.size) { _ ->
+                            this.value =
+                                GDExtensionClassMethodArgumentMetadata.GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE
+                        }
+                    } else {
+                        null
+                    }
+
+                    // Build method info with pre-allocated pointers
+                    val methodInfo = cValue<GDExtensionClassMethodInfo> {
                         name = methodNameStr.rawPtr
-                        class_name = classNameStr.rawPtr
-                        hint = PropertyHint.NONE.value.toUInt()
-                        hint_string = "".toStringName().rawPtr
-                        usage = PropertyUsageFlags.DEFAULT.value.toUInt()
-                    }.ptr
-                } else {
-                    null
-                }
-
-                // Pre-allocate argument infos if needed
-                val argumentsInfo = if (arguments.isNotEmpty()) {
-                    allocArray<GDExtensionPropertyInfo>(arguments.size) { index ->
-                        val arg = arguments[index]
-
-                        this.type = arg.type.toGDE()
-                        this.name = arg.name.toStringName().rawPtr
-                        this.class_name = classNameStr.rawPtr
-                        this.hint = arg.hint.value.toUInt()
-                        this.hint_string = arg.hintString.toStringName().rawPtr
-                        this.usage = arg.usage.value.toUInt()
+                        method_userdata = null
+                        call_func = callFunction
+                        ptrcall_func = null
+                        method_flags = flagsUInt
+                        has_return_value = hasReturnGde
+                        return_value_info = returnValueInfo
+                        return_value_metadata = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE
+                        argument_count = arguments.size.toUInt()
+                        arguments_info = argumentsInfo
+                        arguments_metadata = argumentsMetadata
+                        default_argument_count = 0u
+                        default_arguments = null
                     }
-                } else {
-                    null
-                }
 
-                // Pre-allocate arguments metadata
-                val argumentsMetadata = if (arguments.isNotEmpty()) {
-                    allocArray<GDExtensionClassMethodArgumentMetadata.Var>(arguments.size) { _ ->
-                        this.value = GDExtensionClassMethodArgumentMetadata.GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE
-                    }
-                } else {
-                    null
+                    ClassDBBinding.registerExtensionClassMethodRaw(
+                        BindingProcAddressHolder.library,
+                        classNameStr.rawPtr,
+                        methodInfo.ptr,
+                    )
                 }
-
-                // Build method info with pre-allocated pointers
-                val methodInfo = cValue<GDExtensionClassMethodInfo> {
-                    name = methodNameStr.rawPtr
-                    method_userdata = null
-                    call_func = callFunction
-                    ptrcall_func = null
-                    method_flags = flagsUInt
-                    has_return_value = hasReturnGde
-                    return_value_info = returnValueInfo
-                    return_value_metadata = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE
-                    argument_count = arguments.size.toUInt()
-                    arguments_info = argumentsInfo
-                    arguments_metadata = argumentsMetadata
-                    default_argument_count = 0u
-                    default_arguments = null
-                }
-
-                ClassDBBinding.registerExtensionClassMethodRaw(
-                    BindingProcAddressHolder.library,
-                    classNameStr.rawPtr,
-                    methodInfo.ptr,
-                )
             }
         }
     }

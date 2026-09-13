@@ -50,14 +50,16 @@ public fun registerProperty(
                     this.usage = usage.value.toUInt()
                 }
 
-                memScoped {
-                    ClassDBBinding.registerExtensionClassPropertyRaw(
-                        BindingProcAddressHolder.library,
-                        classNameStr.rawPtr,
-                        propertyInfo.ptr,
-                        setterMethodName?.toStringName()?.rawPtr,
-                        getterMethodName.toStringName().rawPtr,
-                    )
+                withTransientStringNames { record ->
+                    memScoped {
+                        ClassDBBinding.registerExtensionClassPropertyRaw(
+                            BindingProcAddressHolder.library,
+                            classNameStr.rawPtr,
+                            propertyInfo.ptr,
+                            setterMethodName?.let(record),
+                            record(getterMethodName),
+                        )
+                    }
                 }
             }
         }
