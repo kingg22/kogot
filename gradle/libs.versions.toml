@@ -3,7 +3,7 @@
 
 [versions]
 # https://mvnrepository.com/artifact/androidx.room/room-compiler-processing-testing
-androidx-room-compiler = "2.8.4"
+androidx-room-compiler = "2.8.5"
 
 # https://github.com/apache/commons-compress/tags
 apache-commons-compress = "1.28.0"
