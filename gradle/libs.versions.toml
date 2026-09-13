@@ -24,7 +24,7 @@ jetbrains-changelog = "2.5.0"
 jetbrains-jvm-annotations = "26.1.0"
 
 # https://github.com/jspecify/jspecify/releases
-jspecify = "1.0.0"
+jspecify = "1.0.1"
 
 # https://github.com/google/truth/releases
 google-truth = "1.4.5"
