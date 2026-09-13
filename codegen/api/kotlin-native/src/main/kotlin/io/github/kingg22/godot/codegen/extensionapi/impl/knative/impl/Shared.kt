@@ -354,6 +354,11 @@ fun buildReturnRead(
  * instead of CVar value access. Use this when the return buffer is a Variant
  * object returned from methodBindCall.
  *
+ * The `Variant`-typed return case reads out a *copy* of `retPtr` (via the `Variant(COpaquePointer)`
+ * copy constructor) rather than the bare `retPtr` identifier: callers of this function (see
+ * `buildVarargBody`) close `retPtr` once the read is done, so returning `retPtr` itself would hand the
+ * caller a handle to an already-closed buffer.
+ *
  * When [setterMode] is `true` this returns a **bare expression** (`CodeBlock.of`, no `return` prefix,
  * no statement markers) meant to be embedded into a larger statement via `%L` — e.g.
  * `addStatement("val result = %L", buildReturnReadOfVariant(..., setterMode = true))`. Passing the
@@ -388,7 +393,7 @@ fun buildReturnReadOfVariant(returnType: String, kotlinType: TypeName, setterMod
 
         returnType.startsWith("bitfield::") -> emit("%T(retPtr.toLont())", kotlinType)
 
-        kotlinType == ctx.classNameForOrDefault("Variant") -> emit("retPtr")
+        kotlinType == ctx.classNameForOrDefault("Variant") -> emit("%T(retPtr.rawPtr)", kotlinType)
 
         ctx.isBuiltin(returnType) -> {
             val converterName = "to${returnType.removePrefix("builtin::").replaceFirstChar(Char::uppercase)}"

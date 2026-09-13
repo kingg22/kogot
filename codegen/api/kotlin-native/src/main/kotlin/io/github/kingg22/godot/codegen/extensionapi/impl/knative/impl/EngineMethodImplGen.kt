@@ -268,6 +268,12 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
      * one is bound to a named local and explicitly `.close()`d once it is no longer needed — an inlined
      * `Variant(x).rawPtr` would never release the copy it takes of `x` (e.g. a StringName's interned
      * entry), leaking it for the process lifetime instead of just at the call site.
+     *
+     * `retPtr` is always closed in a `finally`, including when [io.github.kingg22.godot.internal.binding.checkCallError]
+     * throws on a non-OK call error, so it is never leaked on the error path. A method returning `Variant`
+     * itself reads out a *copy* of `retPtr` (`buildReturnReadOfVariant`'s `Variant` arm) rather than
+     * aliasing `retPtr` directly — aliasing it would hand the caller a handle to a buffer this function
+     * closes before returning.
      */
     context(ctx: Context)
     private fun buildVarargBody(method: EngineClass.ClassMethod, className: String): CodeBlock {
@@ -312,6 +318,9 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
 
             fixedArgLocals.forEach { addStatement("%N.close()", it) }
 
+            // retPtr must be closed on every path, including checkCallError throwing on a bad call
+            // error, so the read (and the return, when there is one) both happen inside the try.
+            beginControlFlow("try")
             addStatement("%M(%S, error)", checkCallError, "${method.name} of $className")
 
             // Return value handling - use Variant converter methods for vararg return
@@ -320,11 +329,11 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
                     "val result = %L",
                     buildReturnReadOfVariant(returnType, kotlinReturnType, setterMode = true),
                 )
-                addStatement("retPtr.close()")
                 addStatement("return result")
-            } else {
-                addStatement("retPtr.close()")
             }
+            nextControlFlow("finally")
+            addStatement("retPtr.close()")
+            endControlFlow()
 
             endControlFlow()
         }
