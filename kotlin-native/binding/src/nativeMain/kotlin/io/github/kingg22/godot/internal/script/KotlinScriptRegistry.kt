@@ -40,6 +40,11 @@ public object KotlinScriptRegistry {
         entries.putAll(from)
     }
 
+    /** Drops every registered entry. Called from `KotlinScriptRegistration.unregisterKotlinScriptLanguageSupport()`. */
+    public fun clear() {
+        entries.clear()
+    }
+
     public operator fun get(path: String): Entry? = entries[path]
 
     public operator fun contains(path: String): Boolean = entries.containsKey(path)

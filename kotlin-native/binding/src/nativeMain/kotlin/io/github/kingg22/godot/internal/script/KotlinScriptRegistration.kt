@@ -1,5 +1,6 @@
 package io.github.kingg22.godot.internal.script
 
+import io.github.kingg22.godot.api.GodotError
 import io.github.kingg22.godot.api.core.ScriptLanguageExtensionVirtualCalls
 import io.github.kingg22.godot.api.core.refcounted.ResourceFormatLoaderVirtualCalls
 import io.github.kingg22.godot.api.core.refcounted.ResourceFormatSaverVirtualCalls
@@ -8,7 +9,10 @@ import io.github.kingg22.godot.api.internal.checkGodotError
 import io.github.kingg22.godot.api.singleton.Engine
 import io.github.kingg22.godot.api.singleton.ResourceLoader
 import io.github.kingg22.godot.api.singleton.ResourceSaver
+import io.github.kingg22.godot.api.utils.GD
+import io.github.kingg22.godot.api.utils.pushError
 import io.github.kingg22.godot.internal.binding.InternalBinding
+import io.github.kingg22.godot.internal.binding.ObjectBinding
 import io.github.kingg22.godot.internal.binding.createInstanceFunc
 import io.github.kingg22.godot.internal.binding.registerClass
 import io.github.kingg22.godot.internal.binding.resolveVirtualCall
@@ -28,6 +32,14 @@ import kotlinx.cinterop.staticCFunction
 public object KotlinScriptRegistration {
     /** The single registered [KotlinScriptLanguage] instance, returned by [KotlinScript._getLanguage]. */
     public lateinit var language: KotlinScriptLanguage
+        private set
+
+    /** The single [KotlinResourceFormatLoader] handed to [ResourceLoader]; retained so it can be removed on deinit. */
+    public lateinit var loader: KotlinResourceFormatLoader
+        private set
+
+    /** The single [KotlinResourceFormatSaver] handed to [ResourceSaver]; retained so it can be removed on deinit. */
+    public lateinit var saver: KotlinResourceFormatSaver
         private set
 
     private var registered = false
@@ -306,7 +318,8 @@ public object KotlinScriptRegistration {
             false,
             ::KotlinResourceFormatLoader,
         ) ?: error("Failed to create the KotlinResourceFormatLoader singleton")
-        ResourceLoader.instance.addResourceFormatLoader(KotlinResourceFormatLoader(loaderPtr))
+        loader = KotlinResourceFormatLoader(loaderPtr)
+        ResourceLoader.instance.addResourceFormatLoader(loader)
 
         val saverPtr = createInstanceFunc(
             "ResourceFormatSaver",
@@ -314,6 +327,50 @@ public object KotlinScriptRegistration {
             false,
             ::KotlinResourceFormatSaver,
         ) ?: error("Failed to create the KotlinResourceFormatSaver singleton")
-        ResourceSaver.instance.addResourceFormatSaver(KotlinResourceFormatSaver(saverPtr))
+        saver = KotlinResourceFormatSaver(saverPtr)
+        ResourceSaver.instance.addResourceFormatSaver(saver)
+    }
+
+    /**
+     * Reverses [registerKotlinScriptLanguageSupport]: unregisters the script language, resource-format
+     * loader and saver from the engine and frees the singletons that were handed to it (issue #42).
+     *
+     * Godot has no GC — an [Object] created by the extension and given to a still-live engine singleton
+     * outlives `ObjectDB::cleanup()` and is reported as a leaked instance at exit unless it is torn down
+     * here. Called from the KSP-generated `onDeInitScene()`, the reverse-order counterpart of the
+     * `onInitScene()` that calls [registerKotlinScriptLanguageSupport].
+     *
+     * Runs during shutdown, so it never throws: a non-OK unregister result is logged, not raised.
+     */
+    public fun unregisterKotlinScriptLanguageSupport() {
+        if (!registered) return
+        registered = false
+
+        if (::language.isInitialized) {
+            val error = Engine.instance.unregisterScriptLanguage(language)
+            if (error != GodotError.OK) {
+                GD.pushError("Kotlin Script Language unregistration from engine failed: $error")
+            }
+            // ScriptLanguageExtension is a plain Object (not RefCounted): the engine stored a raw
+            // pointer and won't delete it, so destroy it ourselves. This calls back into
+            // freeInstanceFunc, which disposes the StableRef.
+            ObjectBinding.destroyRaw(language.rawPtr)
+        }
+
+        // KotlinResourceFormatLoader / -Saver are RefCounted. kogot never runs reference counting on
+        // its wrappers, so the reference taken at construction is still outstanding after the engine
+        // drops its own: remove from the engine's Ref<> array first, then release that construction
+        // reference and free if it was the last one (the Ref<T> destructor pattern). Both paths call
+        // back into freeInstanceFunc, which disposes the StableRef.
+        if (::loader.isInitialized) {
+            ResourceLoader.instance.removeResourceFormatLoader(loader)
+            if (loader.unreference()) ObjectBinding.destroyRaw(loader.rawPtr)
+        }
+        if (::saver.isInitialized) {
+            ResourceSaver.instance.removeResourceFormatSaver(saver)
+            if (saver.unreference()) ObjectBinding.destroyRaw(saver.rawPtr)
+        }
+
+        KotlinScriptRegistry.clear()
     }
 }
