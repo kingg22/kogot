@@ -39,7 +39,7 @@ kotlin = "2.4.20"
 kotlinx-serialization = "1.11.0"
 
 # https://github.com/square/kotlinpoet/releases
-kotlinpoet = "2.3.0"
+kotlinpoet = "2.4.0"
 
 # https://github.com/google/ksp/releases
 ksp-plugin = "2.3.12"
