@@ -262,6 +262,12 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
      *
      * Vararg methods cannot use ptrcall because the argument count is not known at compile time.
      * Instead, we use methodBindCall which accepts vararg Variant pointers directly.
+     *
+     * Every fixed argument is wrapped in its own throwaway [io.github.kingg22.godot.api.builtin.Variant]
+     * for the call (see [argVariantConstructorExpression]), and so is the `retPtr` return buffer. Each
+     * one is bound to a named local and explicitly `.close()`d once it is no longer needed — an inlined
+     * `Variant(x).rawPtr` would never release the copy it takes of `x` (e.g. a StringName's interned
+     * entry), leaking it for the process lifetime instead of just at the call site.
      */
     context(ctx: Context)
     private fun buildVarargBody(method: EngineClass.ClassMethod, className: String): CodeBlock {
@@ -282,8 +288,12 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
             // Return buffer - always allocate as Variant for vararg calls
             addStatement("val retPtr = %T()", ctx.classNameForOrDefault("Variant"))
 
-            // Collect fixed args pointers
-            val fixedArgPtrs = method.arguments.map { arg -> argVariantPointerExpression(arg) }
+            // Materialize a named, closeable local for every fixed argument's Variant wrapper
+            val fixedArgLocals = method.arguments.mapIndexed { index, arg ->
+                val localName = "fixedArg${index}Variant"
+                addStatement("val %N = %L", localName, argVariantConstructorExpression(arg))
+                localName
+            }
 
             // methodBindCall invocation
             addStatement("val error = %T.methodBindCall(", objectBinding)
@@ -291,7 +301,7 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
                 addStatement("%N,", propName)
                 addStatement("rawPtr,")
                 // Emit fixed arg pointers
-                fixedArgPtrs.forEach { add(it) }
+                fixedArgLocals.forEach { addStatement("%N.rawPtr,", it) }
                 // Emit vararg spread
                 if (method.isVararg) {
                     addStatement("*args.map·{·it.rawPtr·}.toTypedArray(),")
@@ -300,11 +310,20 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
             }
             addStatement(")")
 
+            fixedArgLocals.forEach { addStatement("%N.close()", it) }
+
             addStatement("%M(%S, error)", checkCallError, "${method.name} of $className")
 
             // Return value handling - use Variant converter methods for vararg return
             if (hasReturn && kotlinReturnType != null) {
-                add(buildReturnReadOfVariant(returnType, kotlinReturnType))
+                addStatement(
+                    "val result = %L",
+                    buildReturnReadOfVariant(returnType, kotlinReturnType, setterMode = true),
+                )
+                addStatement("retPtr.close()")
+                addStatement("return result")
+            } else {
+                addStatement("retPtr.close()")
             }
 
             endControlFlow()

@@ -185,22 +185,29 @@ fun argPointerExpression(
 }
 
 /**
- * Produces the **Variant pointer** expression for an argument passed to the FFI invoke call.
- * Doesn't require previous allocations of arguments
+ * Produces the **Variant constructor** expression (bare, no `.rawPtr`/trailing comma) for a fixed
+ * argument to a vararg method call.
+ *
+ * The caller is responsible for binding this to a local `val` and calling `.close()` on it once the
+ * `methodBindCall` has run: this [Variant] takes its own copy of the wrapped value (e.g. a
+ * [io.github.kingg22.godot.api.builtin.StringName]'s interned entry), and leaving it unclosed leaks
+ * that copy for the process lifetime — never inline `Variant(x).rawPtr` directly in a call argument
+ * list.
+ *
  * @throws IllegalStateException if the argument is an native structure
  */
 context(ctx: Context)
-fun argVariantPointerExpression(arg: MethodArg): CodeBlock {
+fun argVariantConstructorExpression(arg: MethodArg): CodeBlock {
     val name = safeIdentifier(arg.name)
     val variantClass = ctx.classNameForOrDefault("Variant")
 
     return when {
         arg.type.startsWith("enum::") || arg.type.startsWith("bitfield::") ->
-            CodeBlock.ofStatement("%T(%N.value).rawPtr,", variantClass, name)
+            CodeBlock.of("%T(%N.value)", variantClass, name)
 
         ctx.isNativeStructure(arg.meta ?: arg.type) -> error("Unsupported native structure as Variant arg: $arg")
 
-        else -> CodeBlock.ofStatement("%T(%N).rawPtr,", variantClass, name)
+        else -> CodeBlock.of("%T(%N)", variantClass, name)
     }
 }
 
@@ -346,41 +353,49 @@ fun buildReturnRead(
  * generates Variant converter calls (`toInt(), toBool()`, etc.)
  * instead of CVar value access. Use this when the return buffer is a Variant
  * object returned from methodBindCall.
+ *
+ * When [setterMode] is `true` this returns a **bare expression** (`CodeBlock.of`, no `return` prefix,
+ * no statement markers) meant to be embedded into a larger statement via `%L` — e.g.
+ * `addStatement("val result = %L", buildReturnReadOfVariant(..., setterMode = true))`. Passing the
+ * default (`false`) instead produces a self-contained `return <expr>` statement
+ * (`CodeBlock.ofStatement`) meant to be spliced in directly with `add(...)`; nesting that form inside
+ * another `addStatement` call fails at generation time ("current statement is closed") because both
+ * would open their own `«`/`»` markers.
  */
 context(ctx: Context)
 fun buildReturnReadOfVariant(returnType: String, kotlinType: TypeName, setterMode: Boolean = false): CodeBlock {
-    val preAppendReturn = if (setterMode) "" else "return "
+    fun emit(format: String, vararg args: Any?): CodeBlock =
+        if (setterMode) CodeBlock.of(format, *args) else CodeBlock.ofStatement("return $format", *args)
 
     // Variant return path - use Variant converter methods
     return when {
-        kotlinType == BOOLEAN -> CodeBlock.ofStatement("${preAppendReturn}retPtr.toBool()")
+        kotlinType == BOOLEAN -> emit("retPtr.toBool()")
 
-        kotlinType == INT -> CodeBlock.ofStatement("${preAppendReturn}retPtr.toInt().toInt()")
+        kotlinType == INT -> emit("retPtr.toInt().toInt()")
 
-        kotlinType == LONG -> CodeBlock.ofStatement("${preAppendReturn}retPtr.toInt()")
+        kotlinType == LONG -> emit("retPtr.toInt()")
 
-        kotlinType == DOUBLE -> CodeBlock.ofStatement("${preAppendReturn}retPtr.toFloat()")
+        kotlinType == DOUBLE -> emit("retPtr.toFloat()")
 
-        kotlinType == FLOAT -> CodeBlock.ofStatement("${preAppendReturn}retPtr.toFloat().toFloat()")
+        kotlinType == FLOAT -> emit("retPtr.toFloat().toFloat()")
 
-        kotlinType == STRING -> CodeBlock.ofStatement("${preAppendReturn}retPtr.toString().toKString()")
+        kotlinType == STRING -> emit("retPtr.toString().toKString()")
 
         returnType.startsWith("enum::") -> {
             val godotEnum = ctx.classNameForOrDefault("GodotEnum")
-            CodeBlock.ofStatement("$preAppendReturn%T.fromValue<%T>(retPtr.toInt())", godotEnum, kotlinType)
+            emit("%T.fromValue<%T>(retPtr.toInt())", godotEnum, kotlinType)
         }
 
-        returnType.startsWith("bitfield::") ->
-            CodeBlock.ofStatement("$preAppendReturn%T(retPtr.toLont())", kotlinType)
+        returnType.startsWith("bitfield::") -> emit("%T(retPtr.toLont())", kotlinType)
 
-        kotlinType == ctx.classNameForOrDefault("Variant") -> CodeBlock.ofStatement("${preAppendReturn}retPtr")
+        kotlinType == ctx.classNameForOrDefault("Variant") -> emit("retPtr")
 
         ctx.isBuiltin(returnType) -> {
             val converterName = "to${returnType.removePrefix("builtin::").replaceFirstChar(Char::uppercase)}"
-            CodeBlock.ofStatement("$preAppendReturn%T(retPtr.$converterName())", kotlinType)
+            emit("%T(retPtr.$converterName())", kotlinType)
         }
 
-        else -> CodeBlock.ofStatement("${preAppendReturn}retPtr.getValue<%T>()", kotlinType)
+        else -> emit("retPtr.getValue<%T>()", kotlinType)
     }
 }
 
