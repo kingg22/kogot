@@ -4,6 +4,7 @@ import io.github.kingg22.godot.api.GodotEnum
 import io.github.kingg22.godot.api.GodotError
 import io.github.kingg22.godot.api.annotations.Export
 import io.github.kingg22.godot.api.annotations.Godot
+import io.github.kingg22.godot.api.annotations.GodotNotification
 import io.github.kingg22.godot.api.annotations.RegisterSignal
 import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.Signal
@@ -11,6 +12,7 @@ import io.github.kingg22.godot.api.builtin.StringName
 import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.builtin.toVariant
+import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.api.core.node.Node2D
 import io.github.kingg22.godot.internal.binding.VariantBinding
 import io.github.kingg22.godot.internal.binding.allocConstTypePtrArray
@@ -24,7 +26,9 @@ import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.value
 
-@Godot class SpriteBench(nativePtr: COpaquePointer) : Node2D(nativePtr) {
+@Godot class SpriteBench(nativePtr: COpaquePointer) :
+    Node2D(nativePtr),
+    GodotNotification {
 
     @Export var health: Int = 100
 
@@ -47,6 +51,22 @@ import kotlinx.cinterop.value
 
     private val callable2 = Callable { id: Long ->
         println("Callable2: received $id")
+    }
+
+    /**
+     * Godot has no GC: release the native builtin handles this node holds for its whole lifetime when
+     * it is about to be freed, or they leak (`Orphan StringName: hint/punch …` at exit).
+     */
+    override fun _notification(what: Int) {
+        if (what == GodotObject.NOTIFICATION_PREDELETE.toInt()) {
+            println("[SpriteBench] NOTIFICATION_PREDELETE: releasing native handles")
+            hint.close()
+            punch.close()
+            callable1.close()
+            callable2.close()
+            hintStr.close()
+            punchStr.close()
+        }
     }
 
     override fun _ready() {
