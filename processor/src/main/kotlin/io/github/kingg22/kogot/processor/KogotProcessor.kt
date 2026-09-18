@@ -113,8 +113,8 @@ class KogotProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor 
                         DiagnosticMessage.error(
                             code = DiagnosticCode.INVALID_EXPORT_METHOD_TYPE,
                             message =
-                                "@ExportMethod '${function.name}' has unsupported return type " +
-                                    "'${returnType.qualifiedName}'",
+                            "@ExportMethod '${function.name}' has unsupported return type " +
+                                "'${returnType.qualifiedName}'",
                             location = DiagnosticLocation(classInfo.filePath, classInfo.lineNumber, 0),
                             help = "Supported types: primitives (Int, Float, String, etc.) and Godot builtin types",
                             note = "This is a compile error: binding generation is aborted for the whole " +
@@ -129,13 +129,13 @@ class KogotProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor 
                             DiagnosticMessage.error(
                                 code = DiagnosticCode.INVALID_EXPORT_METHOD_TYPE,
                                 message =
-                                    "@ExportMethod '${function.name}' has unsupported parameter type " +
-                                        "'${parameter.type.qualifiedName}' for '${parameter.name}'",
+                                "@ExportMethod '${function.name}' has unsupported parameter type " +
+                                    "'${parameter.type.qualifiedName}' for '${parameter.name}'",
                                 location = DiagnosticLocation(classInfo.filePath, classInfo.lineNumber, 0),
                                 help =
-                                    "Supported types: primitives (Int, Float, String, etc.) and Godot builtin types",
+                                "Supported types: primitives (Int, Float, String, etc.) and Godot builtin types",
                                 note = "This is a compile error: binding generation is aborted for the whole " +
-                                "build until it's fixed",
+                                    "build until it's fixed",
                             ),
                         )
                     }
@@ -145,12 +145,12 @@ class KogotProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor 
                             DiagnosticMessage.error(
                                 code = DiagnosticCode.UNSUPPORTED_METHOD_DEFAULT_ARGUMENT,
                                 message =
-                                    "@ExportMethod '${function.name}' parameter '${parameter.name}' has a " +
-                                        "default value, which is not supported yet",
+                                "@ExportMethod '${function.name}' parameter '${parameter.name}' has a " +
+                                    "default value, which is not supported yet",
                                 location = DiagnosticLocation(classInfo.filePath, classInfo.lineNumber, 0),
                                 help = "Remove the default value or call this method without @ExportMethod",
                                 note = "This is a compile error: binding generation is aborted for the whole " +
-                                "build until it's fixed",
+                                    "build until it's fixed",
                             ),
                         )
                     }
