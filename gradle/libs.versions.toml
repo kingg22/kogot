@@ -61,7 +61,7 @@ junit5 = "5.14.3"
 mockk = "1.14.11"
 
 # https://github.com/uber/NullAway/releases
-nullaway = "0.14.1"
+nullaway = "0.14.2"
 
 # https://github.com/tbroyer/gradle-nullaway-plugin/releases
 nullaway-gradle = "3.2.0"
