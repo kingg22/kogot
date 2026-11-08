@@ -1,9 +1,17 @@
 pluginManagement {
     repositories {
-        gradlePluginPortal()
-        mavenCentral()
+        gradlePluginPortal {
+            // Kotlin dev builds only live in the bootstrap/dev repos; skip them here.
+            content { excludeVersionByRegex("org\\.jetbrains\\.kotlin.*", ".*", ".*-dev-.*") }
+        }
+        mavenCentral {
+            // Kotlin dev builds only live in the bootstrap/dev repos; skip them here.
+            content { excludeVersionByRegex("org\\.jetbrains\\.kotlin.*", ".*", ".*-dev-.*") }
+        }
         // Kotlin bootstrap builds (kogot tracks a 2.5.20-dev compiler for the compiler-plugin-api artifact).
-        maven("https://redirector.kotlinlang.org/maven/bootstrap")
+        maven("https://redirector.kotlinlang.org/maven/bootstrap") {
+            mavenContent { includeVersionByRegex("org\\.jetbrains\\.kotlin.*", ".*", ".*-dev-.*") }
+        }
     }
 }
 
@@ -13,10 +21,18 @@ plugins {
 
 dependencyResolutionManagement {
     repositories {
-        mavenCentral()
-        gradlePluginPortal()
+        mavenCentral {
+            // Kotlin dev builds only live in the bootstrap/dev repos; skip them here.
+            content { excludeVersionByRegex("org\\.jetbrains\\.kotlin.*", ".*", ".*-dev-.*") }
+        }
+        gradlePluginPortal {
+            // Kotlin dev builds only live in the bootstrap/dev repos; skip them here.
+            content { excludeVersionByRegex("org\\.jetbrains\\.kotlin.*", ".*", ".*-dev-.*") }
+        }
         // Kotlin bootstrap builds (kogot tracks a 2.5.20-dev compiler for the compiler-plugin-api artifact).
-        maven("https://redirector.kotlinlang.org/maven/bootstrap")
+        maven("https://redirector.kotlinlang.org/maven/bootstrap") {
+            mavenContent { includeVersionByRegex("org\\.jetbrains\\.kotlin.*", ".*", ".*-dev-.*") }
+        }
     }
 
     // Single source of truth for every dependency coordinate in this repo, including

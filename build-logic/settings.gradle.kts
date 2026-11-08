@@ -1,9 +1,19 @@
 pluginManagement {
     repositories {
-        mavenCentral()
-        gradlePluginPortal()
-        maven("https://redirector.kotlinlang.org/maven/bootstrap")
-        maven("https://redirector.kotlinlang.org/maven/dev")
+        mavenCentral {
+            // Kotlin dev builds only live in the bootstrap/dev repos; skip them here.
+            content { excludeVersionByRegex("org\\.jetbrains\\.kotlin.*", ".*", ".*-dev-.*") }
+        }
+        gradlePluginPortal {
+            // Kotlin dev builds only live in the bootstrap/dev repos; skip them here.
+            content { excludeVersionByRegex("org\\.jetbrains\\.kotlin.*", ".*", ".*-dev-.*") }
+        }
+        maven("https://redirector.kotlinlang.org/maven/bootstrap") {
+            mavenContent { includeVersionByRegex("org\\.jetbrains\\.kotlin.*", ".*", ".*-dev-.*") }
+        }
+        maven("https://redirector.kotlinlang.org/maven/dev") {
+            mavenContent { includeVersionByRegex("org\\.jetbrains\\.kotlin.*", ".*", ".*-dev-.*") }
+        }
     }
 }
 
@@ -19,10 +29,20 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
     // Use Maven Central as the default repository (where Gradle will download dependencies) in all subprojects.
     repositories {
-        mavenCentral()
-        gradlePluginPortal()
-        maven("https://redirector.kotlinlang.org/maven/bootstrap")
-        maven("https://redirector.kotlinlang.org/maven/dev")
+        mavenCentral {
+            // Kotlin dev builds only live in the bootstrap/dev repos; skip them here.
+            content { excludeVersionByRegex("org\\.jetbrains\\.kotlin.*", ".*", ".*-dev-.*") }
+        }
+        gradlePluginPortal {
+            // Kotlin dev builds only live in the bootstrap/dev repos; skip them here.
+            content { excludeVersionByRegex("org\\.jetbrains\\.kotlin.*", ".*", ".*-dev-.*") }
+        }
+        maven("https://redirector.kotlinlang.org/maven/bootstrap") {
+            mavenContent { includeVersionByRegex("org\\.jetbrains\\.kotlin.*", ".*", ".*-dev-.*") }
+        }
+        maven("https://redirector.kotlinlang.org/maven/dev") {
+            mavenContent { includeVersionByRegex("org\\.jetbrains\\.kotlin.*", ".*", ".*-dev-.*") }
+        }
     }
 }
 
