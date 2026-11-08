@@ -146,10 +146,13 @@ class KNativeStructureGenerator(private val typeResolver: TypeResolver, private 
                     .companionObjectBuilder()
                     .superclass(C_STRUCT_VAR_TYPE)
                     .addSuperclassConstructorParameter("size = %L, align = %L", layout.size, layout.align)
+                    // CStructVar.Type is deprecated (ERROR since Kotlin 2.5) but still required: sizeOf<T>() and
+                    // alignOf<T>() read it through the companion, and cinterop itself still emits it this way.
                     .addAnnotation(
                         AnnotationSpec
                             .builder(K_SUPPRESS)
                             .addMember("%S", "DEPRECATION")
+                            .addMember("%S", "DEPRECATION_ERROR")
                             .build(),
                     )
                     .build(),
