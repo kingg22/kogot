@@ -21,6 +21,7 @@ public fun anyToVariantOrNull(element: @MustBeVariant Any?): Variant? {
         is Unit -> Variant()
         is Boolean -> element.toVariant()
         is Int -> element.toVariant()
+        is Short -> element.toLong().toVariant()
         is Long -> element.toVariant()
         is Float -> element.toVariant()
         is Double -> element.toVariant()

@@ -112,8 +112,9 @@ class KotlinNativeCallableGenerator(private val packageRegistry: PackageRegistry
                 Creates a Godot [%T] from a Kotlin lambda with %L argument(s).
 
                 Every argument Godot passes is converted to the lambda's declared parameter type: Godot `INT` and
-                `FLOAT` values may be received as [Int]/[Short]/[Byte] and [Float], and `STRING` as [String].
-                Parameter and return types must be Variant compatible (see [%T]); the kogot compiler plugin checks it.
+                `FLOAT` values may be received as [Int]/[Short] and [Float], and `STRING` as [String].
+                Parameter and return types must be Variant compatible, with the same rules both ways (see [%T]);
+                the kogot compiler plugin checks it.
                 """.trimIndent(),
                 callable,
                 arity,

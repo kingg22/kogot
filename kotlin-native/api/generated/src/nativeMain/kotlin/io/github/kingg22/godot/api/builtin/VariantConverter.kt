@@ -47,8 +47,8 @@ public inline fun <reified T> Variant.Companion.from(element: @MustBeVariant T):
  *
  * Must prefer explicit convert methods over this operator.
  *
- * Supports [String] conversion from [GodotString].
- * [Int], [Float], [Short], [Byte] downcasting.
+ * Supports [String] conversion from [GodotString] and the narrowing conversions described in [MustBeVariant]:
+ * [Int] and [Short] from `INT`, [Float] from `FLOAT` (truncating like [Long.toInt] / [Double.toFloat]).
  */
 public inline fun <reified T> Variant.getValueOrNull(): T? {
     // Fast path - Redundant
@@ -59,14 +59,14 @@ public inline fun <reified T> Variant.getValueOrNull(): T? {
     // Fast path - Already the right type
     if (value is T) return value
 
-    // String case
+    // String and Unit cases: NIL also reads back as Unit, the value sent for it.
     if (T::class == String::class && value is GodotString) return value.toKString() as T
+    if (T::class == Unit::class && value == null) return Unit as T
 
-    // Downcast
-    if (T::class == Int::class && value is Number) return value.toInt() as T
-    if (T::class == Float::class && value is Number) return value.toFloat() as T
-    if (T::class == Short::class && value is Number) return value.toShort() as T
-    if (T::class == Byte::class && value is Number) return value.toByte() as T
+    // Narrowing, only from the matching Godot type (see MustBeVariant): INT is a Long, FLOAT a Double.
+    if (T::class == Int::class && value is Long) return value.toInt() as T
+    if (T::class == Short::class && value is Long) return value.toShort() as T
+    if (T::class == Float::class && value is Double) return value.toFloat() as T
 
     return null
 }

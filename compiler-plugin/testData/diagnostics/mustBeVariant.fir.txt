@@ -76,6 +76,7 @@ FILE: usage.kt
     }
     public final fun compatible(number: R|kotlin/Number|, any: R|kotlin/Any?|): R|kotlin/Unit| {
         R|io/github/kingg22/godot/api/builtin/anyToVariant|(Long(42))
+        R|io/github/kingg22/godot/api/builtin/anyToVariant|(Int(1).R|kotlin/Int.toShort|())
         R|io/github/kingg22/godot/api/builtin/anyToVariant|(String(hello kogot))
         R|io/github/kingg22/godot/api/builtin/anyToVariant|(Null(null))
         R|io/github/kingg22/godot/api/builtin/anyToVariant|(R|io/github/kingg22/godot/api/builtin/Vector2.Vector2|())
@@ -88,7 +89,7 @@ FILE: usage.kt
     }
     public final fun incompatible(unrelated: R|Unrelated|): R|kotlin/Unit| {
         R|io/github/kingg22/godot/api/builtin/anyToVariant|(R|/Player.Player|())
-        R|io/github/kingg22/godot/api/builtin/anyToVariant|(Int(1).R|kotlin/Int.toShort|())
+        R|io/github/kingg22/godot/api/builtin/anyToVariant|(Int(1).R|kotlin/Int.toByte|())
         R|io/github/kingg22/godot/api/builtin/anyToVariant|(Q|Team|.R|/Team.RED|)
         R|io/github/kingg22/godot/api/builtin/anyToVariant|(R|<local>/unrelated|)
         R|io/github/kingg22/godot/api/builtin/from|<R|Player|>(R|/Player.Player|())

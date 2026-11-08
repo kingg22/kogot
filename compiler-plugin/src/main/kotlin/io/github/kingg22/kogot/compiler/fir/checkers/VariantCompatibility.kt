@@ -28,12 +28,16 @@ internal object KogotClassIds {
     val MUST_BE_VARIANT = builtin("MustBeVariant")
     val GODOT_OBJECT = ClassId(CORE_PACKAGE, Name.identifier("GodotObject"))
 
-    /** Final types accepted as-is by `anyToVariantOrNull` (kept in sync with `ConvertToVariant.kt`). */
+    /**
+     * Final types convertible to and from a Variant, the same rules both ways (kept in sync with `anyToVariantOrNull`
+     * in `ConvertToVariant.kt` and `getValueOrNull` in `VariantConverter.kt`; see the `MustBeVariant` KDoc).
+     */
     val VARIANT_TYPES: Set<ClassId> = setOf(
         StandardClassIds.Nothing, // `null` literal -> NIL
         StandardClassIds.Unit,
         StandardClassIds.Boolean,
-        StandardClassIds.Int,
+        StandardClassIds.Short, // INT, widened / narrowed
+        StandardClassIds.Int, // INT, widened / narrowed
         StandardClassIds.Long,
         StandardClassIds.Float,
         StandardClassIds.Double,

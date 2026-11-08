@@ -37,6 +37,7 @@ fun <@MustBeVariant T> propagates(value: T) = <!MUST_BE_VARIANT_CHECKED!>anyToVa
 
 fun compatible(number: Number, any: Any?) {
     <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(42L)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(1.toShort())
     <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>("hello kogot")
     <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(null)
     <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(Vector2())
@@ -51,7 +52,7 @@ fun compatible(number: Number, any: Any?) {
 
 fun incompatible(unrelated: Unrelated) {
     <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!>Player()<!>)
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!>1.toShort()<!>)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!>1.toByte()<!>)
     <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!>Team.RED<!>)
     <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!>unrelated<!>)
     <!MUST_BE_VARIANT_CHECKED!>from<!>(<!NOT_VARIANT_COMPATIBLE!>Player()<!>)
