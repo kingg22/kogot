@@ -1,6 +1,5 @@
 package io.github.kingg22.kogot.compiler.fir.checkers
 
-import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.hasAnnotation
 import org.jetbrains.kotlin.fir.declarations.utils.isFinal
@@ -86,7 +85,8 @@ private fun classCompatibility(type: ConeClassLikeType, session: FirSession): Va
     if (type.classId in KogotClassIds.VARIANT_TYPES) return VariantCompatibility.COMPATIBLE
     val symbol = type.toRegularClassSymbol(session) ?: return VariantCompatibility.UNKNOWN
     if (symbol.isGodotObject(session)) return VariantCompatibility.COMPATIBLE
-    if (symbol.isFinal || symbol.classKind == ClassKind.ENUM_CLASS) return VariantCompatibility.INCOMPATIBLE
+    // Final classes (including enums and objects) cannot hide a Variant-compatible subtype.
+    if (symbol.isFinal) return VariantCompatibility.INCOMPATIBLE
 
     // Open type: compatible values may still hide behind it (e.g. `Number` holding an `Int`).
     val lookupTag = symbol.toLookupTag()

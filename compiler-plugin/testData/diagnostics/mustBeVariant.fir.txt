@@ -1,0 +1,96 @@
+FILE: api.kt
+    package io.github.kingg22.godot.api.builtin
+
+    @R|kotlin/annotation/Retention|(value = Q|kotlin/annotation/AnnotationRetention|.R|kotlin/annotation/AnnotationRetention.BINARY| [evaluated = Q|kotlin/annotation/AnnotationRetention|.R|kotlin/annotation/AnnotationRetention.BINARY|]) @R|kotlin/annotation/Target|(allowedTargets = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|, Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE_PARAMETER|) [evaluated = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|, Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE_PARAMETER|)]) public final annotation class MustBeVariant : R|kotlin/Annotation| {
+        public constructor(): R|io/github/kingg22/godot/api/builtin/MustBeVariant| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    public final class Variant : R|kotlin/Any| {
+        public constructor(): R|io/github/kingg22/godot/api/builtin/Variant| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    public final class Vector2 : R|kotlin/Any| {
+        public constructor(): R|io/github/kingg22/godot/api/builtin/Vector2| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    public final fun anyToVariant(element: R|@R|io/github/kingg22/godot/api/builtin/MustBeVariant|()  kotlin/Any?|): R|io/github/kingg22/godot/api/builtin/Variant| {
+        ^anyToVariant R|io/github/kingg22/godot/api/builtin/Variant.Variant|()
+    }
+    public final inline fun <reified T> from(element: R|@R|io/github/kingg22/godot/api/builtin/MustBeVariant|()  T|): R|io/github/kingg22/godot/api/builtin/Variant| {
+        ^from R|io/github/kingg22/godot/api/builtin/anyToVariant|(R|<local>/element|)
+    }
+    public final fun <@R|io/github/kingg22/godot/api/builtin/MustBeVariant|() T> variantOf(): R|io/github/kingg22/godot/api/builtin/Variant| {
+        ^variantOf R|io/github/kingg22/godot/api/builtin/Variant.Variant|()
+    }
+    public final fun notAnnotated(element: R|kotlin/Any?|): R|io/github/kingg22/godot/api/builtin/Variant| {
+        ^notAnnotated R|io/github/kingg22/godot/api/builtin/Variant.Variant|()
+    }
+FILE: core.kt
+    package io.github.kingg22.godot.api.core
+
+    public open class GodotObject : R|kotlin/Any| {
+        public constructor(): R|io/github/kingg22/godot/api/core/GodotObject| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    public final class Node : R|io/github/kingg22/godot/api/core/GodotObject| {
+        public constructor(): R|io/github/kingg22/godot/api/core/Node| {
+            super<R|io/github/kingg22/godot/api/core/GodotObject|>()
+        }
+
+    }
+FILE: usage.kt
+    public final class Player : R|kotlin/Any| {
+        public constructor(): R|Player| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    public abstract interface Unrelated : R|kotlin/Any| {
+    }
+    public final enum class Team : R|kotlin/Enum<Team>| {
+        private constructor(): R|Team| {
+            super<R|kotlin/Enum<Team>|>()
+        }
+
+        public final static enum entry RED: R|Team|
+        public final static fun values(): R|kotlin/Array<Team>| {
+        }
+
+        public final static fun valueOf(value: R|kotlin/String|): R|Team| {
+        }
+
+        public final static val entries: R|kotlin/enums/EnumEntries<Team>|
+            public static get(): R|kotlin/enums/EnumEntries<Team>|
+
+    }
+    public final fun <@R|io/github/kingg22/godot/api/builtin/MustBeVariant|() T> propagates(value: R|T|): R|io/github/kingg22/godot/api/builtin/Variant| {
+        ^propagates R|io/github/kingg22/godot/api/builtin/anyToVariant|(R|<local>/value|)
+    }
+    public final fun compatible(number: R|kotlin/Number|, any: R|kotlin/Any?|): R|kotlin/Unit| {
+        R|io/github/kingg22/godot/api/builtin/anyToVariant|(Long(42))
+        R|io/github/kingg22/godot/api/builtin/anyToVariant|(String(hello kogot))
+        R|io/github/kingg22/godot/api/builtin/anyToVariant|(Null(null))
+        R|io/github/kingg22/godot/api/builtin/anyToVariant|(R|io/github/kingg22/godot/api/builtin/Vector2.Vector2|())
+        R|io/github/kingg22/godot/api/builtin/anyToVariant|(R|io/github/kingg22/godot/api/core/Node.Node|())
+        R|io/github/kingg22/godot/api/builtin/from|<R|kotlin/Double|>(Double(3.5))
+        R|io/github/kingg22/godot/api/builtin/variantOf|<R|kotlin/Int|>()
+        R|io/github/kingg22/godot/api/builtin/anyToVariant|(R|<local>/number|)
+        R|io/github/kingg22/godot/api/builtin/anyToVariant|(R|<local>/any|)
+        R|io/github/kingg22/godot/api/builtin/notAnnotated|(R|/Player.Player|())
+    }
+    public final fun incompatible(unrelated: R|Unrelated|): R|kotlin/Unit| {
+        R|io/github/kingg22/godot/api/builtin/anyToVariant|(R|/Player.Player|())
+        R|io/github/kingg22/godot/api/builtin/anyToVariant|(Int(1).R|kotlin/Int.toShort|())
+        R|io/github/kingg22/godot/api/builtin/anyToVariant|(Q|Team|.R|/Team.RED|)
+        R|io/github/kingg22/godot/api/builtin/anyToVariant|(R|<local>/unrelated|)
+        R|io/github/kingg22/godot/api/builtin/from|<R|Player|>(R|/Player.Player|())
+        R|io/github/kingg22/godot/api/builtin/variantOf|<R|Player|>()
+    }
