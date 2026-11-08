@@ -84,6 +84,20 @@ tasks.test {
         systemProperty("kotlin.test.update.test.data", it)
     }
 
+    // Shared Godot API stand-in added to every diagnostics test, and the real converters it must stay in sync with.
+    val apiStubDir = layout.projectDirectory.dir("testData/api")
+    inputs.dir(apiStubDir).withPropertyName("godotApiStub").withPathSensitivity(PathSensitivity.RELATIVE)
+    systemProperty("kogot.test.godotApiStubDir", apiStubDir.asFile.absolutePath)
+    val runtimeBuiltins = "kotlin-native/api/generated/src/nativeMain/kotlin/io/github/kingg22/godot/api/builtin"
+    mapOf(
+        "kogot.test.convertToVariant" to "$runtimeBuiltins/internal/ConvertToVariant.kt",
+        "kogot.test.variantConverter" to "$runtimeBuiltins/VariantConverter.kt",
+    ).forEach { (property, path) ->
+        val file = rootProject.layout.projectDirectory.file(path)
+        inputs.file(file).withPropertyName(property).withPathSensitivity(PathSensitivity.RELATIVE)
+        systemProperty(property, file.asFile.absolutePath)
+    }
+
     systemProperty("idea.ignore.disabled.plugins", "true")
     systemProperty("idea.home.path", rootDir)
 }

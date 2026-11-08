@@ -1,5 +1,7 @@
 package io.github.kingg22.kogot.compiler.fir.checkers
 
+import org.jetbrains.kotlin.builtins.StandardNames
+import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.hasAnnotation
 import org.jetbrains.kotlin.fir.declarations.utils.isFinal
@@ -8,10 +10,13 @@ import org.jetbrains.kotlin.fir.resolve.isSubclassOf
 import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.resolve.typeParameterSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType
+import org.jetbrains.kotlin.fir.types.ConeIntersectionType
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.classId
+import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.isAny
 import org.jetbrains.kotlin.fir.types.isNullableAny
 import org.jetbrains.kotlin.fir.types.lowerBoundIfFlexible
@@ -70,19 +75,35 @@ internal fun ConeKotlinType.variantCompatibility(session: FirSession): VariantCo
     if (type.isAny || type.isNullableAny) return VariantCompatibility.UNKNOWN
 
     return when (type) {
-        // A type parameter that already carries the contract propagates it to its callers.
-        is ConeTypeParameterType ->
-            if (type.lookupTag.typeParameterSymbol.hasAnnotation(KogotClassIds.MUST_BE_VARIANT, session)) {
-                VariantCompatibility.COMPATIBLE
-            } else {
-                VariantCompatibility.UNKNOWN
-            }
+        is ConeTypeParameterType -> typeParameterCompatibility(type.lookupTag.typeParameterSymbol, session)
 
         is ConeClassLikeType -> classCompatibility(type, session)
 
-        // Intersection, captured and error types: leave them to the runtime check.
+        // Smart casts (`Any & Byte`): the value is all of them at once.
+        is ConeIntersectionType -> combineAll(type.intersectedTypes.map { it.variantCompatibility(session) })
+
+        // Captured and error types: leave them to the runtime check.
         else -> VariantCompatibility.UNKNOWN
     }
+}
+
+/**
+ * A type parameter that already carries the contract propagates it to its callers; otherwise its upper bounds decide
+ * (all must hold at once): `T : Node2D` is compatible, `T : Regex` is not, an unbounded `T` is left to the runtime.
+ */
+private fun typeParameterCompatibility(
+    typeParameter: FirTypeParameterSymbol,
+    session: FirSession,
+): VariantCompatibility {
+    if (typeParameter.hasAnnotation(KogotClassIds.MUST_BE_VARIANT, session)) return VariantCompatibility.COMPATIBLE
+    return combineAll(typeParameter.resolvedBounds.map { it.coneType.variantCompatibility(session) })
+}
+
+/** Compatibility of a value that is all of these types at once (type parameter bounds, intersection types). */
+private fun combineAll(parts: Collection<VariantCompatibility>): VariantCompatibility = when {
+    VariantCompatibility.INCOMPATIBLE in parts -> VariantCompatibility.INCOMPATIBLE
+    VariantCompatibility.COMPATIBLE in parts -> VariantCompatibility.COMPATIBLE
+    else -> VariantCompatibility.UNKNOWN
 }
 
 private fun classCompatibility(type: ConeClassLikeType, session: FirSession): VariantCompatibility {
@@ -92,7 +113,15 @@ private fun classCompatibility(type: ConeClassLikeType, session: FirSession): Va
     // Final classes (including enums and objects) cannot hide a Variant-compatible subtype.
     if (symbol.isFinal) return VariantCompatibility.INCOMPATIBLE
 
-    // Open type: compatible values may still hide behind it (e.g. `Number` holding an `Int`).
+    // A non-stdlib interface may be implemented by a GodotObject subclass (`class Enemy : Node2D(), Damageable`).
+    // Classes can't be: Kotlin has single class inheritance, so an unrelated open class never holds a GodotObject.
+    if (symbol.classKind == ClassKind.INTERFACE &&
+        !symbol.classId.packageFqName.startsWith(StandardNames.BUILT_INS_PACKAGE_NAME)
+    ) {
+        return VariantCompatibility.UNKNOWN
+    }
+
+    // Other open types: compatible values may still hide behind them (e.g. `Number` holding an `Int`).
     val lookupTag = symbol.toLookupTag()
     val mayHoldVariant = (KogotClassIds.VARIANT_TYPES + KogotClassIds.GODOT_OBJECT).any { classId ->
         classId.toLookupTag().toRegularClassSymbol(session)

@@ -13,9 +13,13 @@ import org.jetbrains.kotlin.fir.declarations.FirAnonymousFunction
 import org.jetbrains.kotlin.fir.declarations.hasAnnotation
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.expressions.FirAnonymousFunctionExpression
+import org.jetbrains.kotlin.fir.expressions.FirBlock
+import org.jetbrains.kotlin.fir.expressions.FirElvisExpression
 import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.expressions.FirReturnExpression
+import org.jetbrains.kotlin.fir.expressions.FirTryExpression
+import org.jetbrains.kotlin.fir.expressions.FirWhenExpression
 import org.jetbrains.kotlin.fir.expressions.resolvedArgumentMapping
 import org.jetbrains.kotlin.fir.references.toResolvedFunctionSymbol
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
@@ -139,7 +143,11 @@ private fun FirAnonymousFunction.returnedExpressions(): List<FirExpression> {
 
             override fun visitReturnExpression(returnExpression: FirReturnExpression) {
                 // Nested lambdas return to themselves; only keep returns that target this function.
-                if (returnExpression.target.labeledElement == function) returned += returnExpression.result
+                if (returnExpression.target.labeledElement ==
+                    function
+                ) {
+                    returned += returnExpression.result.resultLeaves()
+                }
                 returnExpression.acceptChildren(this)
             }
         },
@@ -149,3 +157,15 @@ private fun FirAnonymousFunction.returnedExpressions(): List<FirExpression> {
 
 private fun List<FirAnnotation>.hasMustBeVariant(session: FirSession): Boolean =
     hasAnnotation(KogotClassIds.MUST_BE_VARIANT, session)
+
+/**
+ * The expressions that may become this expression's value: `if`/`when`, `try`/`catch` and `?:` contribute every
+ * branch, since their own type is only the branches' common supertype (`Any` for `if (c) 1 else Regex("")`).
+ */
+private fun FirExpression.resultLeaves(): List<FirExpression> = when (this) {
+    is FirWhenExpression -> branches.flatMap { it.result.resultLeaves() }
+    is FirTryExpression -> (listOf(tryBlock) + catches.map { it.block }).flatMap { it.resultLeaves() }
+    is FirElvisExpression -> lhs.resultLeaves() + rhs.resultLeaves()
+    is FirBlock -> (statements.lastOrNull() as? FirExpression)?.resultLeaves().orEmpty()
+    else -> listOf(this)
+}
