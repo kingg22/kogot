@@ -9,8 +9,11 @@ name: Kotlin CI with Gradle
 
 on:
   push:
+    # Only long-lived branches: feature branches get CI through their PR (saves Actions minutes).
     branches:
-      - "**"
+      - main
+      - master
+      - dev
   pull_request:
     branches:
       - main
