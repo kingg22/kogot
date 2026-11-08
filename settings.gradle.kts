@@ -123,6 +123,9 @@ kogot {
 // processor
 include("processor")
 
+// K2 compiler plugin
+include("compiler-plugin")
+
 // codegen
 include(
     "codegen:api:common",
