@@ -1,27 +1,16 @@
 package io.github.kingg22.kogot.compiler.fir.checkers
 
 import io.github.kingg22.kogot.compiler.diagnostics.KogotDiagnostics
-import org.jetbrains.kotlin.AbstractKtSourceElement
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
 import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirFunctionCallChecker
 import org.jetbrains.kotlin.fir.declarations.hasAnnotation
-import org.jetbrains.kotlin.fir.expressions.FirAnonymousFunctionExpression
-import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.expressions.resolvedArgumentMapping
 import org.jetbrains.kotlin.fir.references.toResolvedFunctionSymbol
-import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
-import org.jetbrains.kotlin.fir.types.ConeClassLikeType
-import org.jetbrains.kotlin.fir.types.ConeKotlinType
-import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.coneType
-import org.jetbrains.kotlin.fir.types.customAnnotations
-import org.jetbrains.kotlin.fir.types.isSomeFunctionType
-import org.jetbrains.kotlin.fir.types.lowerBoundIfFlexible
-import org.jetbrains.kotlin.fir.types.resolvedType
 import org.jetbrains.kotlin.fir.types.toConeTypeProjection
 import org.jetbrains.kotlin.fir.types.type
 
@@ -50,12 +39,9 @@ object MustBeVariantCallChecker : FirFunctionCallChecker(MppCheckerKind.Common) 
         expression.resolvedArgumentMapping?.forEach { (argument, parameter) ->
             val declaredType = parameter.returnTypeRef.coneType
             val source = argument.source ?: expression.source
-            if (declaredType.customAnnotations.hasMustBeVariant(session)) {
-                validated = true
-                checkVariantValue(argument, "parameter '${parameter.name}'", source)
-            }
-            if (validateFunctionTypeArguments(declaredType, argument, source, parameter.name.asString())) {
-                validated = true
+            if (checkAgainstDeclaredType(declaredType, argument, "parameter '${parameter.name}'", source)) {
+                validated =
+                    true
             }
         }
 
@@ -63,44 +49,5 @@ object MustBeVariantCallChecker : FirFunctionCallChecker(MppCheckerKind.Common) 
             val source = expression.calleeReference.source ?: expression.source ?: return
             reporter.reportOn(source, KogotDiagnostics.MUST_BE_VARIANT_CHECKED, callee.name.asString())
         }
-    }
-
-    /**
-     * For a function-typed parameter (`(@MustBeVariant P) -> @MustBeVariant R`), checks each annotated type
-     * argument against the passed function's matching one. Returns whether any position carried a contract.
-     */
-    context(context: CheckerContext, reporter: DiagnosticReporter)
-    private fun validateFunctionTypeArguments(
-        declaredType: ConeKotlinType,
-        argument: FirExpression,
-        source: AbstractKtSourceElement?,
-        parameterName: String,
-    ): Boolean {
-        val session = context.session
-        val declared = declaredType.fullyExpandedType().lowerBoundIfFlexible()
-        val actual = argument.resolvedType.fullyExpandedType().lowerBoundIfFlexible()
-        if (declared !is ConeClassLikeType || !declared.isSomeFunctionType(session)) return false
-        if (actual !is ConeClassLikeType || actual.typeArguments.size != declared.typeArguments.size) return false
-
-        var validated = false
-        val lastIndex = declared.typeArguments.lastIndex
-        declared.typeArguments.forEachIndexed { index, declaredArgument ->
-            val declaredArgumentType = declaredArgument.type ?: return@forEachIndexed
-            if (!declaredArgumentType.customAnnotations.hasMustBeVariant(session)) return@forEachIndexed
-            // `(@MustBeVariant P1) -> R` with P1 a type parameter: already validated through its type argument.
-            if (declaredArgumentType.lowerBoundIfFlexible() is ConeTypeParameterType) return@forEachIndexed
-            validated = true
-            if (index == lastIndex && argument is FirAnonymousFunctionExpression) {
-                // A lambda's return type follows the expected one (e.g. `Any?`), not its body: check what it returns.
-                argument.anonymousFunction.returnedExpressions().forEach { returned ->
-                    checkVariantValue(returned, "the result of '$parameterName'", source)
-                }
-                return@forEachIndexed
-            }
-            val actualArgument = actual.typeArguments[index].type ?: return@forEachIndexed
-            val position = if (index == lastIndex) "the result" else "parameter ${index + 1}"
-            checkVariantType(actualArgument, source, "$position of '$parameterName'")
-        }
-        return validated
     }
 }

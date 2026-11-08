@@ -33,13 +33,13 @@ import org.jetbrains.kotlin.fir.types.type
  * stored there, not only on call arguments. These checkers validate values where they enter such a type.
  */
 
-/** `val x: @MustBeVariant Any? = value`: the initializer, for member, top-level and local properties alike. */
+/** `val x: @MustBeVariant Any? = value` (or a `() -> @MustBeVariant Any?` lambda): member, top-level and local. */
 object MustBeVariantPropertyChecker : FirPropertyChecker(MppCheckerKind.Common) {
     context(context: CheckerContext, reporter: DiagnosticReporter)
     override fun check(declaration: FirProperty) {
         val initializer = declaration.initializer ?: return
-        if (!declaration.returnTypeRef.coneType.customAnnotations.hasMustBeVariant(context.session)) return
-        checkVariantValue(initializer, "property '${declaration.name}'", declaration.source)
+        val position = "property '${declaration.name}'"
+        checkAgainstDeclaredType(declaration.returnTypeRef.coneType, initializer, position, declaration.source)
     }
 }
 
@@ -49,8 +49,8 @@ object MustBeVariantAssignmentChecker : FirVariableAssignmentChecker(MppCheckerK
     override fun check(expression: FirVariableAssignment) {
         val variable = (expression.lValue as? FirQualifiedAccessExpression)?.calleeReference?.toResolvedVariableSymbol()
             ?: return
-        if (!variable.resolvedReturnType.customAnnotations.hasMustBeVariant(context.session)) return
-        checkVariantValue(expression.rValue, "variable '${variable.name}'", expression.source)
+        val position = "variable '${variable.name}'"
+        checkAgainstDeclaredType(variable.resolvedReturnType, expression.rValue, position, expression.source)
     }
 }
 
@@ -63,12 +63,8 @@ object MustBeVariantReturnChecker : FirReturnExpressionChecker(MppCheckerKind.Co
     override fun check(expression: FirReturnExpression) {
         val function = expression.target.labeledElement
         if (function is FirAnonymousFunction) return
-        if (!function.returnTypeRef.coneType.customAnnotations.hasMustBeVariant(context.session)) return
-        checkVariantValue(
-            expression.result,
-            "the result of '${function.symbol.callableId.callableName}'",
-            expression.source,
-        )
+        val position = "the result of '${function.symbol.callableId.callableName}'"
+        checkAgainstDeclaredType(function.returnTypeRef.coneType, expression.result, position, expression.source)
     }
 }
 
