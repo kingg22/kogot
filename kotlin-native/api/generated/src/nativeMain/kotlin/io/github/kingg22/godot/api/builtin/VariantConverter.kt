@@ -40,7 +40,7 @@ public inline fun <reified T> T?.toVariantOrNull(): Variant? {
  * @see anyToVariant
  */
 @ExperimentalGodotKotlin
-public inline fun <reified T> Variant.Companion.from(element: @MustBeVariant T): Variant = anyToVariant(this)
+public inline fun <reified T> Variant.Companion.from(element: @MustBeVariant T): Variant = anyToVariant(element)
 
 /**
  * Syntactic sugar for [Variant.value] with type checking and inferred return type.
