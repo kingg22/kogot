@@ -25,5 +25,9 @@ dependencies {
     add("kspLinuxX64", projects.processor)
     add("kspMacosArm64", projects.processor)
     add("kspMingwX64", projects.processor)
+
+    // kogot K2 compiler plugin (proof of concept): validates @MustBeVariant contracts at call sites.
+    add("kotlinCompilerPluginClasspath", projects.compilerPlugin)
+    add("kotlinNativeCompilerPluginClasspath", projects.compilerPlugin)
     // put KSP on nativeMain source set when have more than one target
 }
