@@ -32,13 +32,24 @@ fun literals() {
     <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!>1u<!>)
 }
 
-fun knownLimits(variant: Variant) {
-    // Type arguments of builtins are not checked: GodotArray<Regex> is still an ARRAY.
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(GodotArray<Regex>())
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(Dictionary<Regex, Char>())
-    // Reading a @MustBeVariant value and referencing (not calling) an annotated function declare no contract.
+fun typedContainers(variant: Variant) {
+    // Godot typed containers: their element types must be Variant compatible too.
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!>GodotArray<Regex>()<!>)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!>Dictionary<String, Char>()<!>)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!>GodotArray<GodotArray<Byte>>()<!>)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(GodotArray<GodotArray<Vector2>>())
+    // Untyped Godot containers hold any Variant.
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(GodotArray<Any?>())
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(Dictionary<Any?, Any?>())
+    <!MUST_BE_VARIANT_CHECKED!>variantOf<!><GodotArray<*>>()
+}
+
+fun outsideCalls(variant: Variant) {
+    // Reading a @MustBeVariant value declares no new contract: it is already compatible wherever it is passed.
     val read = variant.value
-    val reference = ::anyToVariant
-    // APIs without the annotation are not checked.
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(variant.value)
+    // A reference bypasses the contract of every call made through it.
+    val reference = <!MUST_BE_VARIANT_UNCHECKED_REFERENCE!>::anyToVariant<!>
+    // APIs without the annotation declare no contract.
     notAnnotated(1.toByte())
 }

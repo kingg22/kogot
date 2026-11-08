@@ -1,0 +1,17 @@
+/unknownTypeWarnings.kt:8:34: info: Hello kogot: validated the @MustBeVariant contract of 'anyToVariant'.
+
+/unknownTypeWarnings.kt:8:47: warning: The value for parameter 'element' has the open type 'Any?': whether it is Variant compatible is only known at runtime. Annotate the type of parameter 'value' with @MustBeVariant to check its callers instead.
+
+/unknownTypeWarnings.kt:9:54: info: Hello kogot: validated the @MustBeVariant contract of 'anyToVariant'.
+
+/unknownTypeWarnings.kt:12:31: info: Hello kogot: validated the @MustBeVariant contract of 'variantOf'.
+
+/unknownTypeWarnings.kt:12:41: warning: The value for type parameter 'T' has the open type 'T (of fun <T> fromTypeParameter)': whether it is Variant compatible is only known at runtime. Annotate type parameter 'T' with @MustBeVariant to check its callers instead.
+
+/unknownTypeWarnings.kt:13:51: info: Hello kogot: validated the @MustBeVariant contract of 'variantOf'.
+
+/unknownTypeWarnings.kt:17:5: info: Hello kogot: validated the @MustBeVariant contract of 'anyToVariant'.
+
+/unknownTypeWarnings.kt:17:18: warning: The value for parameter 'element' has the open type 'Any': whether it is Variant compatible is only known at runtime. Use a concrete type, or suppress with @Suppress("MUST_BE_VARIANT_UNKNOWN_TYPE") if the runtime check is intended.
+
+/unknownTypeWarnings.kt:22:5: info: Hello kogot: validated the @MustBeVariant contract of 'anyToVariant'.

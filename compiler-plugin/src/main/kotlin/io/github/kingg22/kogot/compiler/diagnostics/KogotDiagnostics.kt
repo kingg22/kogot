@@ -1,7 +1,9 @@
 package io.github.kingg22.kogot.compiler.diagnostics
 
+import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactory0
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactory1
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactory2
+import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactory3
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactoryToRendererMap
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticsContainer
 import org.jetbrains.kotlin.diagnostics.Severity
@@ -42,6 +44,36 @@ object KogotDiagnostics : KtDiagnosticsContainer() {
         KogotDiagnosticRenderers,
     )
 
+    /**
+     * The value's static type (`Any?`, an unbounded `T`, an interface...) may or may not be Variant compatible: it is
+     * only checked at runtime. Args: type, position, how to fix it. Suppressible by name.
+     */
+    val MUST_BE_VARIANT_UNKNOWN_TYPE: KtDiagnosticFactory3<ConeKotlinType, String, String> = KtDiagnosticFactory3(
+        "MUST_BE_VARIANT_UNKNOWN_TYPE",
+        Severity.WARNING,
+        SourceElementPositioningStrategies.DEFAULT,
+        KtElement::class,
+        KogotDiagnosticRenderers,
+    )
+
+    /** A reference (`::anyToVariant`) to a function with a `@MustBeVariant` contract: calls through it are unchecked. */
+    val MUST_BE_VARIANT_UNCHECKED_REFERENCE: KtDiagnosticFactory1<String> = KtDiagnosticFactory1(
+        "MUST_BE_VARIANT_UNCHECKED_REFERENCE",
+        Severity.WARNING,
+        SourceElementPositioningStrategies.DEFAULT,
+        KtElement::class,
+        KogotDiagnosticRenderers,
+    )
+
+    /** `List<@MustBeVariant Any?>`: nothing checks the values of a non-Godot generic type, so the annotation is inert. */
+    val MUST_BE_VARIANT_NO_EFFECT: KtDiagnosticFactory0 = KtDiagnosticFactory0(
+        "MUST_BE_VARIANT_NO_EFFECT",
+        Severity.WARNING,
+        SourceElementPositioningStrategies.DEFAULT,
+        KtElement::class,
+        KogotDiagnosticRenderers,
+    )
+
     override fun getRendererFactory(): BaseDiagnosticRendererFactory = KogotDiagnosticRenderers
 }
 
@@ -58,6 +90,26 @@ private object KogotDiagnosticRenderers : BaseDiagnosticRendererFactory() {
             "Type ''{0}'' is not Variant compatible, but {1} requires a @MustBeVariant type.",
             FirDiagnosticRenderers.RENDER_TYPE,
             CommonRenderers.STRING,
+        )
+        map.put(
+            KogotDiagnostics.MUST_BE_VARIANT_UNKNOWN_TYPE,
+            "The value for {1} has the open type ''{0}'': whether it is Variant compatible " +
+                "is only known at runtime. {2}",
+            FirDiagnosticRenderers.RENDER_TYPE,
+            CommonRenderers.STRING,
+            CommonRenderers.STRING,
+        )
+        map.put(
+            KogotDiagnostics.MUST_BE_VARIANT_UNCHECKED_REFERENCE,
+            "Calls through a reference to ''{0}'' bypass its @MustBeVariant contract " +
+                "and are only checked at runtime. " +
+                "Call it directly, or suppress with @Suppress(\"MUST_BE_VARIANT_UNCHECKED_REFERENCE\").",
+            CommonRenderers.STRING,
+        )
+        map.put(
+            KogotDiagnostics.MUST_BE_VARIANT_NO_EFFECT,
+            "@MustBeVariant has no effect on a type argument of a non-Godot type: nothing checks the values stored " +
+                "in it. Annotate the property, parameter or return type itself, or use GodotArray / Dictionary.",
         )
     }
 }

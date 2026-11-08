@@ -7,9 +7,10 @@ import org.jetbrains.kotlin.fir.declarations.hasAnnotation
 import org.jetbrains.kotlin.fir.declarations.utils.isFinal
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
 import org.jetbrains.kotlin.fir.resolve.isSubclassOf
+import org.jetbrains.kotlin.fir.resolve.toClassSymbol
 import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.resolve.typeParameterSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType
 import org.jetbrains.kotlin.fir.types.ConeIntersectionType
@@ -17,10 +18,12 @@ import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.classId
 import org.jetbrains.kotlin.fir.types.coneType
+import org.jetbrains.kotlin.fir.types.customAnnotations
 import org.jetbrains.kotlin.fir.types.isAny
 import org.jetbrains.kotlin.fir.types.isNullableAny
 import org.jetbrains.kotlin.fir.types.lowerBoundIfFlexible
 import org.jetbrains.kotlin.fir.types.toLookupTag
+import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
@@ -56,6 +59,9 @@ internal object KogotClassIds {
         "PackedStringArray", "PackedVector2Array", "PackedVector3Array", "PackedVector4Array", "PackedColorArray",
     ).map(::builtin)
 
+    /** Generic builtins whose type arguments are element types: Godot typed arrays and dictionaries. */
+    val TYPED_CONTAINERS: Set<ClassId> = setOf(builtin("GodotArray"), builtin("Dictionary"))
+
     private fun builtin(name: String) = ClassId(BUILTIN_PACKAGE, Name.identifier(name))
 }
 
@@ -71,6 +77,8 @@ internal enum class VariantCompatibility {
 }
 
 internal fun ConeKotlinType.variantCompatibility(session: FirSession): VariantCompatibility {
+    // A value whose type already carries the contract (`val x: @MustBeVariant Any?`) was checked where it was set.
+    if (customAnnotations.hasAnnotation(KogotClassIds.MUST_BE_VARIANT, session)) return VariantCompatibility.COMPATIBLE
     val type = fullyExpandedType(session).lowerBoundIfFlexible()
     if (type.isAny || type.isNullableAny) return VariantCompatibility.UNKNOWN
 
@@ -107,8 +115,10 @@ private fun combineAll(parts: Collection<VariantCompatibility>): VariantCompatib
 }
 
 private fun classCompatibility(type: ConeClassLikeType, session: FirSession): VariantCompatibility {
+    if (type.classId in KogotClassIds.TYPED_CONTAINERS) return containerCompatibility(type, session)
     if (type.classId in KogotClassIds.VARIANT_TYPES) return VariantCompatibility.COMPATIBLE
-    val symbol = type.toRegularClassSymbol(session) ?: return VariantCompatibility.UNKNOWN
+    // toClassSymbol, not toRegularClassSymbol: anonymous objects (`object : Node2D() {}`) are class symbols too.
+    val symbol = type.toClassSymbol(session) ?: return VariantCompatibility.UNKNOWN
     if (symbol.isGodotObject(session)) return VariantCompatibility.COMPATIBLE
     // Final classes (including enums and objects) cannot hide a Variant-compatible subtype.
     if (symbol.isFinal) return VariantCompatibility.INCOMPATIBLE
@@ -130,5 +140,20 @@ private fun classCompatibility(type: ConeClassLikeType, session: FirSession): Va
     return if (mayHoldVariant) VariantCompatibility.UNKNOWN else VariantCompatibility.INCOMPATIBLE
 }
 
-private fun FirRegularClassSymbol.isGodotObject(session: FirSession): Boolean =
+/**
+ * `GodotArray<T>` / `Dictionary<K, V>` are Godot typed containers: their elements must be Variant compatible too.
+ * Open element types (`GodotArray<Any?>`, star projections) are Godot's untyped containers, which hold any Variant.
+ */
+private fun containerCompatibility(type: ConeClassLikeType, session: FirSession): VariantCompatibility {
+    val elements = type.typeArguments.mapNotNull { it.type?.variantCompatibility(session) }
+    return if (VariantCompatibility.INCOMPATIBLE in
+        elements
+    ) {
+        VariantCompatibility.INCOMPATIBLE
+    } else {
+        VariantCompatibility.COMPATIBLE
+    }
+}
+
+private fun FirClassSymbol<*>.isGodotObject(session: FirSession): Boolean =
     isSubclassOf(KogotClassIds.GODOT_OBJECT.toLookupTag(), session, isStrict = false, lookupInterfaces = false)

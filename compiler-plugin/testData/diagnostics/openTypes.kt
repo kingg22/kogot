@@ -23,21 +23,21 @@ fun accepted(
     userFunInterface: UserFunInterface,
     userSealedInterface: UserSealedInterface,
 ) {
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(any)
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(nullableAny)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_UNKNOWN_TYPE!>any<!>)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_UNKNOWN_TYPE!>nullableAny<!>)
     // Number may hold an Int/Long/Short/Float/Double, Comparable and CharSequence a String...
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(number)
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(comparable)
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(charSequence)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_UNKNOWN_TYPE!>number<!>)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_UNKNOWN_TYPE!>comparable<!>)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_UNKNOWN_TYPE!>charSequence<!>)
     // ...and every builtin is an AutoCloseable GodotNative.
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(autoCloseable)
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(godotNative)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_UNKNOWN_TYPE!>autoCloseable<!>)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_UNKNOWN_TYPE!>godotNative<!>)
     // User interfaces may be implemented by a GodotObject subclass.
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(userInterface)
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(userFunInterface)
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(userSealedInterface)
-    <!MUST_BE_VARIANT_CHECKED!>Callable<!> { value: Number -> value }
-    <!MUST_BE_VARIANT_CHECKED!>Callable<!> { any }
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_UNKNOWN_TYPE!>userInterface<!>)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_UNKNOWN_TYPE!>userFunInterface<!>)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_UNKNOWN_TYPE!>userSealedInterface<!>)
+    <!MUST_BE_VARIANT_CHECKED, MUST_BE_VARIANT_UNKNOWN_TYPE, MUST_BE_VARIANT_UNKNOWN_TYPE!>Callable<!> { value: Number -> value }
+    <!MUST_BE_VARIANT_CHECKED!>Callable<!> { <!MUST_BE_VARIANT_UNKNOWN_TYPE!>any<!> }
 }
 
 fun rejected(unrelatedOpen: UnrelatedOpen, unrelatedAbstract: UnrelatedAbstract) {

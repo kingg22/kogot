@@ -54,7 +54,7 @@ fun callables(boss: Boss) {
 
 // A user interface may be implemented by a GodotObject subclass (Enemy, Player): accepted, checked at runtime.
 fun interfaces(damageable: Damageable, nullableDamageable: Damageable?) {
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(damageable)
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(nullableDamageable)
-    <!MUST_BE_VARIANT_CHECKED!>Callable<!> { target: Damageable -> }
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_UNKNOWN_TYPE!>damageable<!>)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_UNKNOWN_TYPE!>nullableDamageable<!>)
+    <!MUST_BE_VARIANT_CHECKED, MUST_BE_VARIANT_UNKNOWN_TYPE!>Callable<!> { target: Damageable -> }
 }
