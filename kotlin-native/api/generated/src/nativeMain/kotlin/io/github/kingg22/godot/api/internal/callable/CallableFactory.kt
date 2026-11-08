@@ -24,11 +24,18 @@ public object CallableFactory {
 
     /** Creates a custom [Callable] that receives Godot's raw argument pointers. */
     @UsedFromCodegenGeneratedCode
-    public fun create(arity: Int, invoker: (arguments: Array<GDExtensionConstVariantPtr?>) -> Any?): Callable {
-        val callable = Callable(null)
+    public fun create(arity: Int, invoker: (arguments: Array<GDExtensionConstVariantPtr?>) -> Any?): Callable =
+        Callable(null).also { create(it, arity, invoker) }
+
+    /** Initializes the empty [callable] (e.g. from a `Callable` constructor) as a custom callable. */
+    @UsedFromCodegenGeneratedCode
+    public fun create(
+        callable: Callable,
+        arity: Int,
+        invoker: (arguments: Array<GDExtensionConstVariantPtr?>) -> Any?,
+    ) {
         check(callable.isNull()) { "Callable must be null to create a custom callable" }
         val callableCustomInfo2 = CallableBinding.createCustomInfo2(KotlinCallable(arity.toLong(), invoker))
         CallableBinding.createCustom2(callableCustomInfo2, callable.rawPtr)
-        return callable
     }
 }

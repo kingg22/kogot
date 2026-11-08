@@ -33,7 +33,7 @@ private const val SPRITE_COUNT = 5
     private var frameIndex = 0
     private var windowSize: Vector2 = Vector2.ZERO
 
-    private val callable = Callable { ->
+    private val callable = Callable {
         println("Hello from Kotlin inside a Callable!")
     }
 

@@ -230,6 +230,8 @@ class NativeBuiltinClassGenerator(
             )
         }
 
+        if (builtinClass.name == "Callable") classBuilder.addFunction(body.callableCustomConstructorFor())
+
         // ── Operators ────────────────────────────────────────────────────────
         classBuilder.addFunctions(generateOperators(builtinClass, genericConfig))
 

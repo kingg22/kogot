@@ -12,7 +12,8 @@ private val K_PUBLISHED_API = ClassName("kotlin", "PublishedApi")
 private val ANY_NULLABLE = ANY.copy(nullable = true)
 
 /**
- * Generates the typed `Callable { ... }` factories (one overload per arity, 0..[MAX_CALLABLE_ARITY]).
+ * Generates the typed `Callable { ... }` factories (one overload per arity, 1..[MAX_CALLABLE_ARITY]; zero arguments
+ * is a `Callable` constructor generated with the API).
  *
  * Each overload is `inline` with `reified` parameter types, so the call site knows the lambda's declared types
  * and converts every Godot argument to them (e.g. a Godot `INT`, always a [Long], into an [Int] parameter).
@@ -38,7 +39,9 @@ class KotlinNativeCallableGenerator(private val packageRegistry: PackageRegistry
                 addFunction(callableOf())
                 addFunction(toCallableArgument())
                 addFunction(copyForCallable())
-                (0..MAX_CALLABLE_ARITY).forEach { arity -> addFunction(factory(arity)) }
+                // Zero arguments is a Callable constructor (generated with the API): a top-level overload would be
+                // ambiguous with arity 1 for lambdas without declared parameters (implicit `it`).
+                (1..MAX_CALLABLE_ARITY).forEach { arity -> addFunction(factory(arity)) }
             },
         )
     }
@@ -117,18 +120,17 @@ class KotlinNativeCallableGenerator(private val packageRegistry: PackageRegistry
                 mustBeVariant,
             )
             .addTypeVariables(parameterTypes + returnType)
-            .apply { if (arity > 0) addModifiers(KModifier.INLINE) }
+            .addModifiers(KModifier.INLINE)
             .addParameter(
                 ParameterSpec
                     .builder("lambda", lambdaType)
-                    .apply { if (arity > 0) addModifiers(KModifier.NOINLINE) }
+                    .addModifiers(KModifier.NOINLINE)
                     .build(),
             )
             .returns(callable)
             .addStatement(
-                "return callableOf(%L) { %Llambda(%L) }",
+                "return callableOf(%L) { args -> lambda(%L) }",
                 arity,
-                if (arity > 0) "args -> " else "",
                 (0 until arity).joinToString(", ") { "args[$it].toCallableArgument()" },
             )
             .build()

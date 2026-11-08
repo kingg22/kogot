@@ -45,7 +45,7 @@ import kotlinx.cinterop.value
     @RegisterSignal(RegisterSignal.Param(Variant.Type.INT, "value"))
     private val punch by lazy { Signal(this, punchStr) }
 
-    private val callable1 = Callable { ->
+    private val callable1 = Callable {
         println("Callable1: received")
     }
 

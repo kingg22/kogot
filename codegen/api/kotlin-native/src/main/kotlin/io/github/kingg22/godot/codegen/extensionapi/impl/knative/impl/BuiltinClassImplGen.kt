@@ -255,6 +255,51 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
         }
     }
 
+    /**
+     * `Callable { ... }` for zero-argument lambdas. Typed factories for 1+ arguments are top-level functions
+     * (see `KotlinNativeCallableGenerator`); this one must be a constructor: as a top-level overload it would be
+     * ambiguous with the one-argument factory for lambdas without declared parameters (implicit `it`).
+     */
+    context(context: Context)
+    fun callableCustomConstructorFor(): FunSpec {
+        val callable = context.classNameForOrDefault("Callable")
+        // Same package as Callable (api.builtin); the compiler plugin reads it from the lambda's return type.
+        val mustBeVariant = ClassName(callable.packageName, "MustBeVariant")
+        return FunSpec
+            .constructorBuilder()
+            .callThisConstructor("null")
+            .addKdoc(
+                """
+                Creates a Godot Callable from a Kotlin lambda without arguments.
+
+                The lambda's result must be [Variant type compatible][MustBeVariant]; the kogot compiler plugin checks it.
+                Lambdas with arguments use the typed `Callable { a: Int, b: String -> ... }` factories.
+
+                Usage:
+                ```
+                val callable = Callable { println("Hello!") }
+                val result: Variant = callable.call() // sync
+                callable.callDeferred() // async
+                ```
+                """.trimIndent(),
+            )
+            .addParameter(
+                "lambda",
+                LambdaTypeName.get(
+                    returnType = ANY.copy(
+                        nullable = true,
+                        annotations = listOf(AnnotationSpec.builder(mustBeVariant).build()),
+                    ),
+                ),
+            )
+            .addStatement("@%T(%T::class)", K_OPT_IN, implPackageRegistry.classNameForOrDefault("InternalBinding"))
+            .addStatement(
+                "%T.create(this, 0) { lambda() }",
+                implPackageRegistry.classNameForOrDefault("CallableFactory"),
+            )
+            .build()
+    }
+
     // ── Top-level fptr lazy properties ────────────────────────────────────────
 
     /**
