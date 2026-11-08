@@ -14,7 +14,7 @@ import kotlin.reflect.KProperty
  * @see anyToVariant
  */
 @ExperimentalGodotKotlin
-public inline fun <reified T> T?.toVariant(): Variant {
+public inline fun <@MustBeVariant reified T> T?.toVariant(): Variant {
     contract { returns() implies (this@toVariant != null) }
     return anyToVariant(this)
 }
@@ -27,7 +27,7 @@ public inline fun <reified T> T?.toVariant(): Variant {
  * @see anyToVariantOrNull
  */
 @ExperimentalGodotKotlin
-public inline fun <reified T> T?.toVariantOrNull(): Variant? {
+public inline fun <@MustBeVariant reified T> T?.toVariantOrNull(): Variant? {
     contract { returns() implies (this@toVariantOrNull != null) }
     return anyToVariantOrNull(this)
 }
@@ -50,7 +50,7 @@ public inline fun <reified T> Variant.Companion.from(element: @MustBeVariant T):
  * Supports [String] conversion from [GodotString] and the narrowing conversions described in [MustBeVariant]:
  * [Int] and [Short] from `INT`, [Float] from `FLOAT` (truncating like [Long.toInt] / [Double.toFloat]).
  */
-public inline fun <reified T> Variant.getValueOrNull(): T? {
+public inline fun <@MustBeVariant reified T> Variant.getValueOrNull(): T? {
     // Fast path - Redundant
     if (T::class == Variant::class) return this as T
 
@@ -76,12 +76,11 @@ public inline fun <reified T> Variant.getValueOrNull(): T? {
  *
  * Must prefer explicit convert methods over this operator.
  *
- * Supports [String] conversion from [GodotString].
- * [Int], [Float], [Short], [Byte] downcasting.
+ * Supports the same conversions as [getValueOrNull]; [T] must be Variant compatible (see [MustBeVariant]).
  *
  * @throws [ClassCastException] if the value is not of the expected type.
  */
-public inline fun <reified T> Variant.getValue(): T = getValueOrNull()
+public inline fun <@MustBeVariant reified T> Variant.getValue(): T = getValueOrNull()
     ?: run {
         val value = this.value
         throw ClassCastException("Expected ${T::class} but got ${value?.let { it::class }}, for variant value: $value")
@@ -94,5 +93,5 @@ public inline fun <reified T> Variant.getValue(): T = getValueOrNull()
  * @see Variant.getValueOrNull
  */
 @ExperimentalGodotKotlin
-public inline operator fun <@MustBeVariant reified T> Variant.getValue(thisRef: T?, property: KProperty<*>): T =
+public inline operator fun <@MustBeVariant reified T> Variant.getValue(thisRef: Any?, property: KProperty<*>): T =
     getValue()

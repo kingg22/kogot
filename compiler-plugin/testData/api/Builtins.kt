@@ -77,4 +77,14 @@ fun <@MustBeVariant T> variantOf(): Variant = Variant()
 /** Return position only: reading a value declares no call-site contract. */
 val Variant.value: @MustBeVariant Any? get() = null
 
+inline fun <@MustBeVariant reified T> T?.toVariant(): Variant = Variant()
+
+inline fun <@MustBeVariant reified T> Variant.getValueOrNull(): T? = null
+
+inline fun <@MustBeVariant reified T> Variant.getValue(): T = TODO()
+
+/** `val x: T by variant`, for members, top-level and local properties. */
+inline operator fun <@MustBeVariant reified T> Variant.getValue(thisRef: Any?, property: kotlin.reflect.KProperty<*>): T =
+    TODO()
+
 fun notAnnotated(element: Any?): Variant = Variant()
