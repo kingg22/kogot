@@ -116,17 +116,12 @@ class RuntimeTypeResolver(interfaceModel: GDExtensionInterface, packageName: Str
         val pointerCount: Int
 
         constructor(rawType: String) {
-            var normalized = rawType.trim()
-            normalized = normalized.removePrefix("const ").trim()
+            val normalized = rawType.trim().removePrefix("const ").trim()
+            // Strip trailing `*` (and the whitespace between them, e.g. `T * *`), counting the stars.
+            val withoutPointers = normalized.trimEnd { it == '*' || it.isWhitespace() }
 
-            var pointerCount = 0
-            while (normalized.endsWith("*")) {
-                pointerCount++
-                normalized = normalized.dropLast(1).trimEnd()
-            }
-
-            baseType = normalized.removePrefix("const ").trim()
-            this.pointerCount = pointerCount
+            baseType = withoutPointers.removePrefix("const ").trim()
+            pointerCount = normalized.substring(withoutPointers.length).count { it == '*' }
         }
 
         operator fun component1() = baseType
