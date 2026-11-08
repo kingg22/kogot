@@ -23,10 +23,10 @@ fun onLocalType() {
     val local: @MustBeVariant Any? = 1
 }
 
-// Only function types and Godot typed containers give a type argument a meaning.
+// Annotated type arguments are contracts too, checked wherever a value enters them (see collections.kt).
 fun onTypeArguments(
     action: () -> @MustBeVariant Any?,
     array: GodotArray<@MustBeVariant Any?>,
-    list: <!MUST_BE_VARIANT_NO_EFFECT!>List<@MustBeVariant Any?><!>,
-    map: <!MUST_BE_VARIANT_NO_EFFECT!>Map<String, @MustBeVariant Any?><!>,
+    list: List<@MustBeVariant Any?>,
+    map: Map<String, @MustBeVariant Any?>,
 ) {}

@@ -23,9 +23,15 @@ import org.jetbrains.kotlin.fir.expressions.FirWhenExpression
 import org.jetbrains.kotlin.fir.expressions.resolvedArgumentMapping
 import org.jetbrains.kotlin.fir.references.toResolvedFunctionSymbol
 import org.jetbrains.kotlin.fir.references.toResolvedValueParameterSymbol
+import org.jetbrains.kotlin.fir.resolve.createSubstitutionForSupertype
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
+import org.jetbrains.kotlin.fir.resolve.substitution.substitutorByMap
+import org.jetbrains.kotlin.fir.resolve.toClassSymbol
+import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.resolve.typeParameterSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirAnonymousFunctionSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
+import org.jetbrains.kotlin.fir.types.ConeClassLikeLookupTag
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
@@ -49,8 +55,9 @@ internal fun checkVariantValue(value: FirExpression, position: String, fallbackS
 }
 
 /**
- * Checks [value] against a [declaredType] that may carry the contract directly (`@MustBeVariant Any?`) or in a function
- * type (`() -> @MustBeVariant Any?`). Returns whether the declared type carried any contract.
+ * Checks [value] against a [declaredType] that may carry the contract directly (`@MustBeVariant Any?`) or in any of its
+ * type arguments, at any depth: function types (`() -> @MustBeVariant Any?`), collections
+ * (`List<@MustBeVariant Any?>`), or any other generic type. Returns whether the declared type carried any contract.
  */
 @IgnorableReturnValue
 context(context: CheckerContext, reporter: DiagnosticReporter)
@@ -60,52 +67,143 @@ internal fun checkAgainstDeclaredType(
     position: String,
     source: AbstractKtSourceElement?,
 ): Boolean {
-    var checked = false
-    if (declaredType.customAnnotations.hasMustBeVariant(context.session)) {
-        checked = true
+    val session = context.session
+    if (declaredType.customAnnotations.hasMustBeVariant(session)) {
         checkVariantValue(value, position, source)
+        return true
     }
-    if (checkFunctionTypeArguments(declaredType, value, position, source)) checked = true
-    return checked
+    val declared = declaredType.fullyExpandedType().lowerBoundIfFlexible() as? ConeClassLikeType ?: return false
+    if (!declared.hasTypeArgumentContract(session)) return false
+
+    if (value is FirAnonymousFunctionExpression && declared.isSomeFunctionType(session)) {
+        checkLambda(declared, value, position, source)
+    } else {
+        value.resultLeaves().forEach { leaf ->
+            val leafSource = leaf.source ?: source
+            val type = (leaf as? FirFunctionCall)?.checkWithExpectedType(declared) ?: leaf.resolvedType
+            checkTypeArguments(declared, type, leafSource, position)
+        }
+    }
+    return true
 }
 
 /**
- * For a function type (`(@MustBeVariant P) -> @MustBeVariant R`), checks each annotated type argument against the
- * passed function's matching one. Returns whether any position carried a contract.
+ * `val list: List<@MustBeVariant Any?> = listOf(1L, Regex(""))`: Kotlin infers `T` from the arguments (`Any`), not
+ * from the annotated expected type, so the type parameters the result binds to a contract are checked through the
+ * call's own arguments instead (`Regex("")` is reported, not the whole call). Returns the call's type with those
+ * bindings, or null when none applies.
  */
 context(context: CheckerContext, reporter: DiagnosticReporter)
-private fun checkFunctionTypeArguments(
-    declaredType: ConeKotlinType,
-    value: FirExpression,
+private fun FirFunctionCall.checkWithExpectedType(expected: ConeClassLikeType): ConeKotlinType? {
+    val callee = calleeReference.toResolvedFunctionSymbol() ?: return null
+    val session = context.session
+    val typeParameters = callee.typeParameterSymbols
+        .filterNot { it.hasAnnotation(KogotClassIds.MUST_BE_VARIANT, session) }
+        .toSet()
+    val bindings = mutableMapOf<FirTypeParameterSymbol, ConeKotlinType>()
+    bindContracts(callee.resolvedReturnType, expected, typeParameters, session, bindings)
+    if (bindings.isEmpty()) return null
+    checkCallArguments(this, bindings)
+    return substitutorByMap(bindings, session).substituteOrSelf(callee.resolvedReturnType)
+}
+
+/** Whether this type carries the contract, as a whole or in a type argument at any depth. */
+internal fun ConeKotlinType.hasContract(session: FirSession): Boolean {
+    val type = fullyExpandedType(session).lowerBoundIfFlexible()
+    return when {
+        type.customAnnotations.hasMustBeVariant(session) -> type !is ConeTypeParameterType
+        type is ConeClassLikeType -> type.hasTypeArgumentContract(session)
+        else -> false
+    }
+}
+
+/**
+ * Whether a type argument of this type, at any depth, carries the contract. `@MustBeVariant P1` with `P1` a type
+ * parameter of the callee is excluded: it is validated through the call's type argument instead.
+ */
+private fun ConeClassLikeType.hasTypeArgumentContract(session: FirSession): Boolean =
+    typeArguments.any { it.type?.hasContract(session) == true }
+
+/**
+ * A lambda's types are its declared parameter types plus its result, which follows the expected type (e.g. `Any?`)
+ * rather than its body: the values it returns are checked instead.
+ */
+context(context: CheckerContext, reporter: DiagnosticReporter)
+private fun checkLambda(
+    declared: ConeClassLikeType,
+    lambda: FirAnonymousFunctionExpression,
     position: String,
     source: AbstractKtSourceElement?,
-): Boolean {
+) {
     val session = context.session
-    val declared = declaredType.fullyExpandedType().lowerBoundIfFlexible()
-    val actual = value.resolvedType.fullyExpandedType().lowerBoundIfFlexible()
-    if (declared !is ConeClassLikeType || !declared.isSomeFunctionType(session)) return false
-    if (actual !is ConeClassLikeType || actual.typeArguments.size != declared.typeArguments.size) return false
+    val result = declared.typeArguments.last().type?.lowerBoundIfFlexible()
+    if (result != null && result !is ConeTypeParameterType) {
+        val resultPosition = "the result of $position"
+        if (result.customAnnotations.hasMustBeVariant(session)) {
+            lambda.anonymousFunction.returnedExpressions().forEach { checkVariantValue(it, resultPosition, source) }
+        } else if (result is ConeClassLikeType && result.hasTypeArgumentContract(session)) {
+            lambda.anonymousFunction.returnedExpressions().forEach {
+                checkAgainstDeclaredType(result, it, resultPosition, source)
+            }
+        }
+    }
+    // Parameters only: the lambda's result type argument is the expected one, already checked above.
+    checkTypeArguments(declared, lambda.resolvedType, lambda.source ?: source, position, skipLast = true)
+}
 
-    var checked = false
+/**
+ * Checks [actual]'s type arguments against [declared]'s annotated ones, reading [actual] as [declared]'s class first
+ * (an `ArrayList<Regex>` passed as `List<@MustBeVariant Any?>` is checked as `List<Regex>`).
+ */
+context(context: CheckerContext, reporter: DiagnosticReporter)
+private fun checkTypeArguments(
+    declared: ConeClassLikeType,
+    actual: ConeKotlinType,
+    source: AbstractKtSourceElement?,
+    position: String,
+    skipLast: Boolean = false,
+) {
+    val session = context.session
+    val projected = actual.asSupertype(declared.lookupTag, session) ?: return
+    if (projected.typeArguments.size != declared.typeArguments.size) return
     val lastIndex = declared.typeArguments.lastIndex
     declared.typeArguments.forEachIndexed { index, declaredArgument ->
-        val declaredArgumentType = declaredArgument.type ?: return@forEachIndexed
-        if (!declaredArgumentType.customAnnotations.hasMustBeVariant(session)) return@forEachIndexed
-        // `(@MustBeVariant P1) -> R` with P1 a type parameter of the callee: validated through its type argument.
-        if (declaredArgumentType.lowerBoundIfFlexible() is ConeTypeParameterType) return@forEachIndexed
-        checked = true
-        if (index == lastIndex && value is FirAnonymousFunctionExpression) {
-            // A lambda's return type follows the expected one (e.g. `Any?`), not its body: check what it returns.
-            value.anonymousFunction.returnedExpressions().forEach { returned ->
-                checkVariantValue(returned, "the result of $position", source)
-            }
-            return@forEachIndexed
+        if (skipLast && index == lastIndex) return@forEachIndexed
+        val declaredType = declaredArgument.type?.fullyExpandedType()?.lowerBoundIfFlexible()
+            ?: return@forEachIndexed
+        if (declaredType is ConeTypeParameterType) return@forEachIndexed
+        // `List<*>` holds anything.
+        val actualType = projected.typeArguments[index].type ?: session.builtinTypes.nullableAnyType.coneType
+        val part = declared.describeTypeArgument(index, session)
+        when {
+            declaredType.customAnnotations.hasMustBeVariant(session) ->
+                checkVariantType(actualType, source, "$part of $position")
+
+            declaredType is ConeClassLikeType && declaredType.hasTypeArgumentContract(session) ->
+                checkTypeArguments(declaredType, actualType, source, "$part of $position")
         }
-        val actualArgument = actual.typeArguments[index].type ?: return@forEachIndexed
-        val part = if (index == lastIndex) "the result" else "parameter ${index + 1}"
-        checkVariantType(actualArgument, value.source ?: source, "$part of $position")
     }
-    return checked
+}
+
+/** `parameter 1` / `the result` for function types, `type argument 'E'` for any other generic type. */
+private fun ConeClassLikeType.describeTypeArgument(index: Int, session: FirSession): String = when {
+    isSomeFunctionType(session) -> if (index == typeArguments.lastIndex) "the result" else "parameter ${index + 1}"
+
+    else -> {
+        val name = lookupTag.toSymbol(session)?.typeParameterSymbols?.getOrNull(index)?.name
+        if (name != null) "type argument '$name'" else "type argument ${index + 1}"
+    }
+}
+
+/** This type seen as [target] through its supertypes (`ArrayList<Regex>` as `List<Regex>`), if it is one. */
+internal fun ConeKotlinType.asSupertype(target: ConeClassLikeLookupTag, session: FirSession): ConeClassLikeType? {
+    val type = fullyExpandedType(session).lowerBoundIfFlexible() as? ConeClassLikeType ?: return null
+    if (type.lookupTag == target) return type
+    val symbol = type.lookupTag.toClassSymbol(session) ?: return null
+    val substitutor = createSubstitutionForSupertype(type, session)
+    return symbol.resolvedSuperTypes.firstNotNullOfOrNull { supertype ->
+        substitutor.substituteOrSelf(supertype).asSupertype(target, session)
+    }
 }
 
 /**

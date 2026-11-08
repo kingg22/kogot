@@ -1,6 +1,7 @@
 package io.github.kingg22.kogot.compiler.fir.checkers
 
 import io.github.kingg22.kogot.compiler.diagnostics.KogotDiagnostics
+import org.jetbrains.kotlin.KtFakeSourceElementKind
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
 import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
@@ -9,9 +10,9 @@ import org.jetbrains.kotlin.fir.analysis.checkers.declaration.FirPropertyChecker
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirCallableReferenceAccessChecker
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirReturnExpressionChecker
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirVariableAssignmentChecker
-import org.jetbrains.kotlin.fir.analysis.checkers.type.FirTypeChecker
 import org.jetbrains.kotlin.fir.declarations.FirAnonymousFunction
 import org.jetbrains.kotlin.fir.declarations.FirProperty
+import org.jetbrains.kotlin.fir.declarations.FirPropertyAccessor
 import org.jetbrains.kotlin.fir.declarations.hasAnnotation
 import org.jetbrains.kotlin.fir.expressions.FirCallableReferenceAccess
 import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
@@ -19,25 +20,25 @@ import org.jetbrains.kotlin.fir.expressions.FirReturnExpression
 import org.jetbrains.kotlin.fir.expressions.FirVariableAssignment
 import org.jetbrains.kotlin.fir.references.toResolvedFunctionSymbol
 import org.jetbrains.kotlin.fir.references.toResolvedVariableSymbol
-import org.jetbrains.kotlin.fir.types.ConeClassLikeType
-import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
-import org.jetbrains.kotlin.fir.types.classId
+import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.customAnnotations
-import org.jetbrains.kotlin.fir.types.isSomeFunctionType
-import org.jetbrains.kotlin.fir.types.lowerBoundIfFlexible
-import org.jetbrains.kotlin.fir.types.type
 
 /*
  * `@MustBeVariant` on a type (a property, local variable or function return type) is a contract on every value
  * stored there, not only on call arguments. These checkers validate values where they enter such a type.
  */
 
-/** `val x: @MustBeVariant Any? = value` (or a `() -> @MustBeVariant Any?` lambda): member, top-level and local. */
+/**
+ * `val x: @MustBeVariant Any? = value` (or `List<@MustBeVariant Any?>`, `() -> @MustBeVariant Any?`...): member,
+ * top-level and local.
+ */
 object MustBeVariantPropertyChecker : FirPropertyChecker(MppCheckerKind.Common) {
     context(context: CheckerContext, reporter: DiagnosticReporter)
     override fun check(declaration: FirProperty) {
         val initializer = declaration.initializer ?: return
+        // `val x = listOf<@MustBeVariant Any?>(...)`: an inferred type is the initializer's own, checked at its call.
+        if (declaration.returnTypeRef.isInferred()) return
         val position = "property '${declaration.name}'"
         checkAgainstDeclaredType(declaration.returnTypeRef.coneType, initializer, position, declaration.source)
     }
@@ -63,6 +64,12 @@ object MustBeVariantReturnChecker : FirReturnExpressionChecker(MppCheckerKind.Co
     override fun check(expression: FirReturnExpression) {
         val function = expression.target.labeledElement
         if (function is FirAnonymousFunction) return
+        // A getter's type ref is always a copy: whether it was written is known from its property.
+        val typeRef = when (function) {
+            is FirPropertyAccessor -> function.propertySymbol.resolvedReturnTypeRef
+            else -> function.returnTypeRef
+        }
+        if (typeRef.isInferred()) return
         val position = "the result of '${function.symbol.callableId.callableName}'"
         checkAgainstDeclaredType(function.returnTypeRef.coneType, expression.result, position, expression.source)
     }
@@ -76,25 +83,15 @@ object MustBeVariantReferenceChecker : FirCallableReferenceAccessChecker(MppChec
         val session = context.session
         val hasContract =
             function.typeParameterSymbols.any { it.hasAnnotation(KogotClassIds.MUST_BE_VARIANT, session) } ||
-                function.valueParameterSymbols.any { it.resolvedReturnType.customAnnotations.hasMustBeVariant(session) }
+                function.valueParameterSymbols.any {
+                    val type = it.resolvedReturnType
+                    type.customAnnotations.hasMustBeVariant(session) || type.hasContract(session)
+                }
         if (!hasContract) return
         val source = expression.source ?: return
         reporter.reportOn(source, KogotDiagnostics.MUST_BE_VARIANT_UNCHECKED_REFERENCE, function.name.asString())
     }
 }
 
-/**
- * `List<@MustBeVariant Any?>`: only function types (`() -> @MustBeVariant Any?`) and Godot typed containers give a
- * type argument a meaning; anywhere else the annotation silently does nothing, so it is reported.
- */
-object MustBeVariantTypeArgumentChecker : FirTypeChecker<FirResolvedTypeRef>(MppCheckerKind.Common) {
-    context(context: CheckerContext, reporter: DiagnosticReporter)
-    override fun check(typeRef: FirResolvedTypeRef) {
-        val session = context.session
-        val type = typeRef.coneType.lowerBoundIfFlexible() as? ConeClassLikeType ?: return
-        if (type.isSomeFunctionType(session) || type.classId in KogotClassIds.TYPED_CONTAINERS) return
-        if (type.typeArguments.none { it.type?.customAnnotations?.hasMustBeVariant(session) == true }) return
-        val source = typeRef.source ?: return
-        reporter.reportOn(source, KogotDiagnostics.MUST_BE_VARIANT_NO_EFFECT)
-    }
-}
+/** A type written by nobody: inferred from an initializer or expression body. */
+private fun FirTypeRef.isInferred(): Boolean = source?.kind == KtFakeSourceElementKind.ImplicitTypeRef

@@ -1,6 +1,5 @@
 package io.github.kingg22.kogot.compiler.diagnostics
 
-import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactory0
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactory1
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactory2
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactory3
@@ -65,15 +64,6 @@ object KogotDiagnostics : KtDiagnosticsContainer() {
         KogotDiagnosticRenderers,
     )
 
-    /** `List<@MustBeVariant Any?>`: nothing checks the values of a non-Godot generic type, so the annotation is inert. */
-    val MUST_BE_VARIANT_NO_EFFECT: KtDiagnosticFactory0 = KtDiagnosticFactory0(
-        "MUST_BE_VARIANT_NO_EFFECT",
-        Severity.WARNING,
-        SourceElementPositioningStrategies.DEFAULT,
-        KtElement::class,
-        KogotDiagnosticRenderers,
-    )
-
     override fun getRendererFactory(): BaseDiagnosticRendererFactory = KogotDiagnosticRenderers
 }
 
@@ -105,11 +95,6 @@ private object KogotDiagnosticRenderers : BaseDiagnosticRendererFactory() {
                 "and are only checked at runtime. " +
                 "Call it directly, or suppress with @Suppress(\"MUST_BE_VARIANT_UNCHECKED_REFERENCE\").",
             CommonRenderers.STRING,
-        )
-        map.put(
-            KogotDiagnostics.MUST_BE_VARIANT_NO_EFFECT,
-            "@MustBeVariant has no effect on a type argument of a non-Godot type: nothing checks the values stored " +
-                "in it. Annotate the property, parameter or return type itself, or use GodotArray / Dictionary.",
         )
     }
 }
