@@ -50,6 +50,17 @@ object KogotConventions {
     // --- kogot's own published artifact names, resolved under kogotGroup:kogotVersion --------
     const val ARTIFACT_ANNOTATIONS = "kogot-annotations"
     const val ARTIFACT_PROCESSOR = "kogot-processor"
+    const val ARTIFACT_COMPILER_PLUGIN = "kogot-compiler-plugin"
+
+    // --- kogot K2 compiler plugin ----------------------------------------------------------------
+    /**
+     * Gradle plugin id of [io.github.kingg22.kogot.gradle.compiler.KogotCompilerGradlePlugin] and compiler
+     * plugin id it passes to kotlinc. Must match `KogotCompilerPluginRegistrar.PLUGIN_ID` in `:compiler-plugin`
+     * (a separate build, so the constant cannot be shared).
+     */
+    const val COMPILER_PLUGIN_ID = "io.github.kingg22.kogot.compiler"
+    const val COMPILER_EXTENSION_NAME = "kogotCompiler"
+    const val PROP_COMPILER_PLUGIN_ENABLED = "kogot.compiler.enabled"
 
     // --- third-party / Gradle identifiers ------------------------------------------------------
     const val KSP_PLUGIN_ID = "com.google.devtools.ksp"

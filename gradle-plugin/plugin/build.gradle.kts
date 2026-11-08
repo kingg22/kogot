@@ -87,6 +87,14 @@ gradlePlugin {
             displayName = property("DISPLAY_NAME").toString()
             tags.set(listOf("godot", "gdextension", "kotlin-native", "kogot"))
         }
+        create("kogotCompiler") {
+            id = "io.github.kingg22.kogot.compiler"
+            implementationClass = "io.github.kingg22.kogot.gradle.compiler.KogotCompilerGradlePlugin"
+            version = property("VERSION").toString()
+            description = "Applies the kogot K2 compiler plugin (FIR checkers such as @MustBeVariant validation)"
+            displayName = "Kogot Compiler Plugin"
+            tags.set(listOf("godot", "kotlin-native", "kogot", "compiler-plugin"))
+        }
     }
 }
 
