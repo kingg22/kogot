@@ -22,22 +22,23 @@ import kotlinx.cinterop.*
  * The initialization of `CallableFactory` link properties of this class. Must not be invoked before that happens,
  * otherwise the binding throws errors with null values.
  *
- * Currently missing correct support to convert arguments to kotlin types. So must use `Any?` or exact `Variant` types,
- * `Variant` itself as argument is not supported.
+ * Arguments reach the [KotlinCallable] as raw pointers; the typed `Callable { ... }` factories convert them.
  *
  * Currently, all callables are `static` for Godot, missing linking to the object. This can lead to incorrect freeing.
  */
 @InternalBinding
 public object CallableBinding {
     public var onError: (message: String) -> Unit = ::println
-    public var onVariantToKotlin: (GDExtensionConstVariantPtr?) -> Any? = { null }
     public var onToVariant: (Any?) -> GodotNative? = { null }
 
     // Create the GDExtensionCallableCustomInfo2 struct using cValue
-    public fun createCustomInfo2(lambda: Function<*>, objectId: ULong = 0uL): CValue<GDExtensionCallableCustomInfo2> =
+    public fun createCustomInfo2(
+        callable: KotlinCallable,
+        objectId: ULong = 0uL,
+    ): CValue<GDExtensionCallableCustomInfo2> =
         createCustomInfo2(
-            // Create a KotlinCallable wrapper and store it in a StableRef on userdata
-            storeKotlinFunctionAsKotlinCallable(lambda),
+            // Store the KotlinCallable in a StableRef on userdata
+            StableRef.create(callable).asCPointer(),
             createCustomCall(),
             objectId,
         )
@@ -87,13 +88,9 @@ public object CallableBinding {
             return@staticCFunction
         }
 
-        // FIXME validate arguments order is preserved
-        val arguments = Array(argumentCount.toInt()) { i ->
-            // FIXME requires apropiate conversion to Kotlin types. Requires supports downcast, Variant, KString
-            onVariantToKotlin(arguments?.get(i))
-        }
+        val arguments = Array(argumentCount.toInt()) { i -> arguments?.get(i) }
 
-        val result: Any? = runCatching { callable.invoke(arguments) }.getOrElse { exception ->
+        val result: Any? = runCatching { callable.call(arguments) }.getOrElse { exception ->
             onError(
                 "[kogot]: Error calling callable ${callable.arity()} args, fallback to null: $exception",
             )
@@ -122,10 +119,6 @@ public object CallableBinding {
             )
         }
     }
-
-    /** Wraps a [Kotlin function][Function] into a [KotlinCallable] using [StableRef] */
-    public fun storeKotlinFunctionAsKotlinCallable(lambda: Function<*>): COpaquePointer =
-        StableRef.create(wrapLambda(lambda)).asCPointer()
 
     /**
      * Creates a [GDExtensionCallableCustomInfo2] struct.

@@ -4,146 +4,133 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.services.PackageRegistry
-import io.github.kingg22.godot.codegen.types.K_CHECK
-import io.github.kingg22.godot.codegen.types.K_ERROR
 import io.github.kingg22.godot.codegen.types.K_SUPPRESS
 
-private const val MIN_FUNCTION_ARITY = 0
-private const val MAX_FUNCTION_ARITY = 23
-private val K_FUNCTION = ClassName("kotlin", "Function")
-private val K_FUNCTIONS = buildMap {
-    (MIN_FUNCTION_ARITY..MAX_FUNCTION_ARITY).forEach { i ->
-        put(i, ClassName("kotlin", "Function$i"))
-    }
-}
+private const val MAX_CALLABLE_ARITY = 23
+private val K_OPT_IN = ClassName("kotlin", "OptIn")
+private val K_PUBLISHED_API = ClassName("kotlin", "PublishedApi")
 private val ANY_NULLABLE = ANY.copy(nullable = true)
 
-class KotlinNativeCallableGenerator(private val packageName: String, private val packageRegistry: PackageRegistry) {
+/**
+ * Generates the typed `Callable { ... }` factories (one overload per arity, 0..[MAX_CALLABLE_ARITY]).
+ *
+ * Each overload is `inline` with `reified` parameter types, so the call site knows the lambda's declared types
+ * and converts every Godot argument to them (e.g. a Godot `INT`, always a [Long], into an [Int] parameter).
+ * Type parameters carry `@MustBeVariant`, so the kogot compiler plugin validates them at the call site.
+ */
+class KotlinNativeCallableGenerator(private val packageRegistry: PackageRegistry) {
+    private val callable = packageRegistry.classNameForOrDefault("Callable")
+    private val variant = packageRegistry.classNameForOrDefault("Variant")
+    private val mustBeVariant = packageRegistry.classNameForOrDefault("MustBeVariant")
+    private val getValue = MemberName(packageRegistry.packageForOrDefault("getValue"), "getValue")
+    private val callableFactory = packageRegistry.classNameForOrDefault("CallableFactory")
+    private val internalBinding = packageRegistry.classNameForOrDefault("InternalBinding")
+
+    /** `(Array<Variant>) -> Any?`: the arguments every factory hands to [callableOf]. */
+    private val invokerType = LambdaTypeName.get(
+        parameters = arrayOf(ARRAY.parameterizedBy(variant)),
+        returnType = ANY_NULLABLE,
+    )
 
     fun generate(): Sequence<FileSpec> = sequence {
-        yield(generateCallables())
-        yield(generateHelpers())
+        yield(
+            createFile("CallableFactories", packageRegistry.packageForOrDefault("Callable")) {
+                addFunction(callableOf())
+                addFunction(toCallableArgument())
+                addFunction(copyForCallable())
+                (0..MAX_CALLABLE_ARITY).forEach { arity -> addFunction(factory(arity)) }
+            },
+        )
     }
 
-    private fun generateCallables(): FileSpec = createFile(
-        "Callables",
-        packageRegistry.packageForOrDefault("KotlinCallable"),
-    ) {
-        (MIN_FUNCTION_ARITY..MAX_FUNCTION_ARITY).forEach { arity ->
-            val kotlinFunction = K_FUNCTIONS.getValue(arity).parameterizedBy(
-                List(arity + 1) { ANY_NULLABLE },
+    /** Non-inline bridge: owns the argument Variants (closed after the call) and hides the FFI types. */
+    private fun callableOf() = FunSpec
+        .builder("callableOf")
+        .addModifiers(KModifier.INTERNAL)
+        .addAnnotation(K_PUBLISHED_API)
+        .addAnnotation(AnnotationSpec.builder(K_OPT_IN).addMember("%T::class", internalBinding).build())
+        .addParameter("arity", INT)
+        .addParameter("invoker", invokerType)
+        .returns(callable)
+        .beginControlFlow("return %T.create(arity) { pointers ->", callableFactory)
+        .addStatement("val arguments = Array(pointers.size) { i -> pointers[i]?.let(::%T) ?: %T() }", variant, variant)
+        .beginControlFlow("try")
+        .addStatement("invoker(arguments)")
+        .nextControlFlow("finally")
+        .addStatement("arguments.forEach(%T::close)", variant)
+        .endControlFlow()
+        .endControlFlow()
+        .build()
+
+    /** Converts one argument to the lambda's declared type; `Variant` parameters get their own copy. */
+    private fun toCallableArgument(): FunSpec {
+        val t = TypeVariableName("T").copy(reified = true)
+        return FunSpec
+            .builder("toCallableArgument")
+            .addModifiers(KModifier.INTERNAL, KModifier.INLINE)
+            .addAnnotation(K_PUBLISHED_API)
+            .addAnnotation(AnnotationSpec.builder(K_SUPPRESS).addMember("%S", "UNCHECKED_CAST").build())
+            .addTypeVariable(t)
+            .receiver(variant)
+            .returns(t)
+            .addStatement(
+                "return when {\n⇥%T::class == %T::class -> copyForCallable() as T\nisNil() && null is T -> null as T\nelse -> %M<T>()\n⇤}",
+                t,
+                variant,
+                getValue,
             )
-
-            val callableTypeSpec = TypeSpec
-                .classBuilder("Callable$arity")
-                .addModifiers(KModifier.VALUE)
-                .addAnnotation(packageRegistry.classNameForOrDefault("InternalBinding"))
-                .addSuperinterface(packageRegistry.classNameForOrDefault("KotlinCallable"))
-                .addSuperinterface(kotlinFunction, delegate = CodeBlock.of("lambda"))
-                .addProperty(PropertySpec.builder("lambda", kotlinFunction).initializer("lambda").build())
-                .primaryConstructor(
-                    FunSpec
-                        .constructorBuilder()
-                        .addParameter("lambda", kotlinFunction)
-                        .build(),
-                )
-                .addFunction(
-                    FunSpec
-                        .builder("arity")
-                        .addModifiers(KModifier.OVERRIDE)
-                        .returns(LONG)
-                        .addCode("return %L", arity)
-                        .build(),
-                )
-                .addFunction(
-                    FunSpec
-                        .builder("toString")
-                        .addModifiers(KModifier.OVERRIDE)
-                        .returns(STRING)
-                        .addCode($$"return \"Callable%L(lambda=$lambda)\"", arity)
-                        .build(),
-                )
-                .build()
-
-            addType(callableTypeSpec)
-        }
+            .build()
     }
 
-    private fun generateHelpers(): FileSpec = createFile("Helpers", packageName) {
-        addFunction(
-            FunSpec
-                .builder("invoke")
-                .apply {
-                    addModifiers(KModifier.OPERATOR)
-                    receiver(packageRegistry.classNameForOrDefault("KotlinCallable"))
-                    addAnnotation(packageRegistry.classNameForOrDefault("InternalBinding"))
-                    val argsParameter = "args"
+    private fun copyForCallable() = FunSpec
+        .builder("copyForCallable")
+        .addModifiers(KModifier.INTERNAL)
+        .addAnnotation(K_PUBLISHED_API)
+        .addKdoc("The argument Variants are closed after the call, so a `Variant` parameter must own a copy.")
+        .receiver(variant)
+        .returns(variant)
+        .addStatement("return %T(rawPtr)", variant)
+        .build()
 
-                    addParameter(argsParameter, ARRAY.parameterizedBy(STAR))
-                    returns(ANY_NULLABLE)
+    private fun factory(arity: Int): FunSpec {
+        // KotlinPoet only emits TypeVariableName annotations at use sites, but the compiler plugin reads them from
+        // the declaration (`<@MustBeVariant reified P1>`). Prefixing the name emits the annotation in both places;
+        // no import is needed because MustBeVariant lives in the generated file's own package.
+        require(mustBeVariant.packageName == callable.packageName) { "MustBeVariant must share the factories' package" }
+        val annotated = "@${mustBeVariant.simpleName}"
+        val parameterTypes = (1..arity).map { i -> TypeVariableName("$annotated P$i").copy(reified = true) }
+        val returnType = TypeVariableName("$annotated R")
+        val lambdaType = LambdaTypeName.get(parameters = parameterTypes.toTypedArray(), returnType = returnType)
 
-                    addKdoc("Invokes the callable with the given arguments\n\n")
-                    addKdoc("**SAFETY:** Assumes the arguments are compatible with the callable's arity.")
+        return FunSpec
+            .builder("Callable")
+            .addKdoc(
+                """
+                Creates a Godot [%T] from a Kotlin lambda with %L argument(s).
 
-                    addCode(
-                        CodeBlock
-                            .builder()
-                            .addStatement("%M(%L.size.toLong() == this.arity())", K_CHECK, argsParameter)
-                            .beginControlFlow("return when (this)")
-                            .apply {
-                                (MIN_FUNCTION_ARITY..MAX_FUNCTION_ARITY).forEach { arity ->
-                                    addStatement(
-                                        "is %T -> this(%L)",
-                                        packageRegistry.classNameForOrDefault("Callable$arity"),
-                                        if (arity != 0) {
-                                            (MIN_FUNCTION_ARITY until arity).joinToString(",♢") { arg -> "args[$arg]" }
-                                        } else {
-                                            ""
-                                        },
-                                    )
-                                }
-                            }.endControlFlow()
-                            .build(),
-                    )
-                }.build(),
-        )
-
-        addFunction(
-            FunSpec
-                .builder("wrapLambda")
-                .apply {
-                    addAnnotation(packageRegistry.classNameForOrDefault("InternalBinding"))
-                    addAnnotation(
-                        AnnotationSpec
-                            .builder(K_SUPPRESS)
-                            .addMember("%S", "UNCHECKED_CAST")
-                            .addMember("%S", "USELESS_CAST")
-                            .build(),
-                    )
-                    addParameter("lambda", K_FUNCTION.parameterizedBy(STAR))
-                    returns(packageRegistry.classNameForOrDefault("KotlinCallable"))
-                    beginControlFlow("return when (lambda)")
-                        .apply {
-                            (MIN_FUNCTION_ARITY..MAX_FUNCTION_ARITY).forEach { arity ->
-                                val kotlinFunction = K_FUNCTIONS.getValue(arity)
-                                addStatement(
-                                    "is %T ->♢%T(lambda as %T)",
-                                    kotlinFunction.parameterizedBy(
-                                        List(arity + 1) { STAR },
-                                    ),
-                                    packageRegistry.classNameForOrDefault("Callable$arity"),
-                                    kotlinFunction.parameterizedBy(
-                                        List(arity) { ANY_NULLABLE } + STAR,
-                                    ),
-                                )
-                            }
-                            addStatement(
-                                $$"else -> %M(\"Unsupported lambda type: ${lambda::class}, too many arguments\")",
-                                K_ERROR,
-                            )
-                        }
-                    endControlFlow()
-                }.build(),
-        )
+                Every argument Godot passes is converted to the lambda's declared parameter type: Godot `INT` and
+                `FLOAT` values may be received as [Int]/[Short]/[Byte] and [Float], and `STRING` as [String].
+                Parameter and return types must be Variant compatible (see [%T]); the kogot compiler plugin checks it.
+                """.trimIndent(),
+                callable,
+                arity,
+                mustBeVariant,
+            )
+            .addTypeVariables(parameterTypes + returnType)
+            .apply { if (arity > 0) addModifiers(KModifier.INLINE) }
+            .addParameter(
+                ParameterSpec
+                    .builder("lambda", lambdaType)
+                    .apply { if (arity > 0) addModifiers(KModifier.NOINLINE) }
+                    .build(),
+            )
+            .returns(callable)
+            .addStatement(
+                "return callableOf(%L) { %Llambda(%L) }",
+                arity,
+                if (arity > 0) "args -> " else "",
+                (0 until arity).joinToString(", ") { "args[$it].toCallableArgument()" },
+            )
+            .build()
     }
 }

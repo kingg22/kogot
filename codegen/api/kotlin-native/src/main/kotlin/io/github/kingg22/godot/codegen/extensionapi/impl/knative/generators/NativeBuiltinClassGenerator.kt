@@ -218,20 +218,16 @@ class NativeBuiltinClassGenerator(
         classBuilder.addFunctions(constructorsSpecs)
 
         // ── Special constructors for String types ─────────────────────────────
-        when {
-            haveStringConstructor -> {
-                classBuilder.addFunction(
-                    FunSpec
-                        .constructorBuilder()
-                        .addParameter("value", STRING) // kotlin.String
-                        .addKdoc("Creates a %L from a Kotlin String.", kotlinName)
-                        .addCode(body.stringConstructorBodyFor(builtinClass))
-                        .let { body.configureStorageBackedSecondaryCtor(builtinClass, it) }
-                        .build(),
-                )
-            }
-
-            builtinClass.name == "Callable" -> classBuilder.addFunction(body.callableCustomConstructorFor())
+        if (haveStringConstructor) {
+            classBuilder.addFunction(
+                FunSpec
+                    .constructorBuilder()
+                    .addParameter("value", STRING) // kotlin.String
+                    .addKdoc("Creates a %L from a Kotlin String.", kotlinName)
+                    .addCode(body.stringConstructorBodyFor(builtinClass))
+                    .let { body.configureStorageBackedSecondaryCtor(builtinClass, it) }
+                    .build(),
+            )
         }
 
         // ── Operators ────────────────────────────────────────────────────────

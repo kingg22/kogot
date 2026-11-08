@@ -60,4 +60,11 @@ godotCodegen {
     backend = CodegenBackend.KOTLIN_NATIVE
     kind = CodegenKind.API
     this.packageName = "io.github.kingg22.godot"
+
+    combinations {
+        // Typed `Callable { ... }` factories: they need the builtin Callable/Variant, so they live here.
+        register("callable") {
+            kind = CodegenKind.CALLABLE
+        }
+    }
 }

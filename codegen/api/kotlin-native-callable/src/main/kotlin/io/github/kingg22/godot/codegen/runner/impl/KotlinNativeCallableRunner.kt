@@ -10,9 +10,6 @@ import io.github.kingg22.godot.codegen.utils.info
 class KotlinNativeCallableRunner : AbstractCodegenRunner(KOTLIN_NATIVE, CALLABLE) {
     override fun execute(config: CodegenConfig): Sequence<FileSpec> {
         logger.info { "---Generating Callable files---" }
-        return KotlinNativeCallableGenerator(
-            config.packageName,
-            NativeCallablePackageRegistry(config.packageName),
-        ).generate()
+        return KotlinNativeCallableGenerator(NativeCallablePackageRegistry(config.packageName)).generate()
     }
 }
