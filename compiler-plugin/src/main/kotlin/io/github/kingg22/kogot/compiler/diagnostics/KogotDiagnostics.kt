@@ -64,6 +64,15 @@ object KogotDiagnostics : KtDiagnosticsContainer() {
         KogotDiagnosticRenderers,
     )
 
+    /** A property delegated to `signal(...)` without `@RegisterSignal`: Godot never learns the signal. Args: name. */
+    val SIGNAL_NOT_REGISTERED: KtDiagnosticFactory1<String> = KtDiagnosticFactory1(
+        "SIGNAL_NOT_REGISTERED",
+        Severity.ERROR,
+        SourceElementPositioningStrategies.DECLARATION_NAME,
+        KtElement::class,
+        KogotDiagnosticRenderers,
+    )
+
     override fun getRendererFactory(): BaseDiagnosticRendererFactory = KogotDiagnosticRenderers
 }
 
@@ -94,6 +103,12 @@ private object KogotDiagnosticRenderers : BaseDiagnosticRendererFactory() {
             "Calls through a reference to ''{0}'' bypass its @MustBeVariant contract " +
                 "and are only checked at runtime. " +
                 "Call it directly, or suppress with @Suppress(\"MUST_BE_VARIANT_UNCHECKED_REFERENCE\").",
+            CommonRenderers.STRING,
+        )
+        map.put(
+            KogotDiagnostics.SIGNAL_NOT_REGISTERED,
+            "Signal ''{0}'' is not registered: annotate it with @RegisterSignal, " +
+                "or Godot rejects every emit and connect.",
             CommonRenderers.STRING,
         )
     }

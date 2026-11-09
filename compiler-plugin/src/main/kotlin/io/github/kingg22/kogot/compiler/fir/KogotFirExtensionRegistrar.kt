@@ -7,6 +7,8 @@ import io.github.kingg22.kogot.compiler.fir.checkers.MustBeVariantDefaultValueCh
 import io.github.kingg22.kogot.compiler.fir.checkers.MustBeVariantPropertyChecker
 import io.github.kingg22.kogot.compiler.fir.checkers.MustBeVariantReferenceChecker
 import io.github.kingg22.kogot.compiler.fir.checkers.MustBeVariantReturnChecker
+import io.github.kingg22.kogot.compiler.fir.checkers.SignalDeclarationCallChecker
+import io.github.kingg22.kogot.compiler.fir.checkers.SignalRegistrationPropertyChecker
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.declaration.DeclarationCheckers
 import org.jetbrains.kotlin.fir.analysis.checkers.declaration.FirDeclarationChecker
@@ -31,7 +33,8 @@ class KogotFirExtensionRegistrar : FirExtensionRegistrar() {
 /** Additional FIR checkers contributed by kogot. */
 class KogotFirCheckersExtension(session: FirSession) : FirAdditionalCheckersExtension(session) {
     override val expressionCheckers: ExpressionCheckers = object : ExpressionCheckers() {
-        override val functionCallCheckers: Set<FirFunctionCallChecker> = setOf(MustBeVariantCallChecker)
+        override val functionCallCheckers: Set<FirFunctionCallChecker> =
+            setOf(MustBeVariantCallChecker, SignalDeclarationCallChecker)
         override val variableAssignmentCheckers: Set<FirVariableAssignmentChecker> =
             setOf(MustBeVariantAssignmentChecker)
         override val returnExpressionCheckers: Set<FirReturnExpressionChecker> = setOf(MustBeVariantReturnChecker)
@@ -40,7 +43,8 @@ class KogotFirCheckersExtension(session: FirSession) : FirAdditionalCheckersExte
     }
 
     override val declarationCheckers: DeclarationCheckers = object : DeclarationCheckers() {
-        override val propertyCheckers: Set<FirPropertyChecker> = setOf(MustBeVariantPropertyChecker)
+        override val propertyCheckers: Set<FirPropertyChecker> =
+            setOf(MustBeVariantPropertyChecker, SignalRegistrationPropertyChecker)
         override val valueParameterCheckers: Set<FirDeclarationChecker<FirValueParameter>> =
             setOf(MustBeVariantDefaultValueChecker)
     }
