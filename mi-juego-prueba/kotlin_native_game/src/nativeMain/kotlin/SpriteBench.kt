@@ -4,6 +4,7 @@ import io.github.kingg22.godot.api.annotations.Export
 import io.github.kingg22.godot.api.annotations.Godot
 import io.github.kingg22.godot.api.annotations.GodotNotification
 import io.github.kingg22.godot.api.annotations.RegisterSignal
+import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.api.core.node.Node2D
@@ -72,6 +73,17 @@ typealias Moved = (position: Vector2, source: GodotObject?) -> Unit
 
             connections += moved.connect { position, source -> println("moved: $position by ${source != null}") }
             println("emit moved: ${moved.emit(Vector2(1.0, 2.0), this)}")
+
+            // Untyped Callable (e.g. a GDScript method): the connection keeps its own copy.
+            val raw = Callable { value: Long -> println("punch raw callable: $value") }
+            connections += punch.connect(raw)
+            raw.close()
+            println("emit punch 40: ${punch.emit(40L)}") // raw callable still runs
+            println("punch has connections: ${punch.hasConnections}")
+            punch.asSignal().use { builtin ->
+                // The array (and the Signal inside each connection) is ours too: close it, or it leaks the name.
+                builtin.getConnections().use { println("punch connections: ${it.size()}") }
+            }
         } catch (e: Exception) {
             println("[SpriteBench] failed: ${e.message}")
             e.printStackTrace()

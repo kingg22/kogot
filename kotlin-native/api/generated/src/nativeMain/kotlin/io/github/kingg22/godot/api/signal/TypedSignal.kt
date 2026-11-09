@@ -58,22 +58,59 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
         }
     }
 
+    /** `true` while anything is connected to this signal: Kotlin handlers, GDScript methods or editor connections. */
+    public val hasConnections: Boolean
+        get() {
+            checkOpen()
+            return signal.hasConnections()
+        }
+
     /**
-     * Connects [callable], taking ownership of it. Uses the builtin [Signal.connect] because it passes the flags
-     * with the width Godot reads.
+     * Connects any [callable], e.g. a GDScript method (`Callable(node, "on_hit".toStringName())`). Unlike the typed
+     * `connect`, its arguments are not checked at compile time: Godot reports a mismatch when the signal is emitted.
+     *
+     * The connection keeps its own copy, so [callable] stays owned by the caller.
+     *
+     * @throws IllegalStateException when Godot rejects the connection (e.g. it already exists without
+     * [GodotObject.ConnectFlags.REFERENCE_COUNTED]).
+     */
+    public fun connect(callable: Callable, vararg flags: GodotObject.ConnectFlags): SignalConnection =
+        connectOwned(Callable(callable), flags)
+
+    /**
+     * A copy of the builtin [Signal], for what [TypedSignal] does not wrap (e.g. [Signal.getConnections]) or to pass
+     * it where a Variant is expected. The caller owns and closes it.
+     */
+    public fun asSignal(): Signal {
+        checkOpen()
+        return Signal(signal)
+    }
+
+    /**
+     * Connects a typed handler's [callable], taking ownership of it.
      *
      * @throws IllegalArgumentException for [GodotObject.ConnectFlags.APPEND_SOURCE_OBJECT]: it adds an argument the
      * typed handler does not declare.
-     * @throws IllegalStateException when Godot rejects the connection (e.g. it already exists without
-     * [GodotObject.ConnectFlags.REFERENCE_COUNTED]).
+     * @throws IllegalStateException when Godot rejects the connection.
      */
     @PublishedApi
     @UsedFromCodegenGeneratedCode
     internal fun connectCallable(callable: Callable, flags: Array<out GodotObject.ConnectFlags>): SignalConnection {
+        if (GodotObject.ConnectFlags.APPEND_SOURCE_OBJECT in flags) {
+            callable.close()
+            throw IllegalArgumentException(
+                "APPEND_SOURCE_OBJECT adds an argument the typed handler of '$name' does not declare",
+            )
+        }
+        return connectOwned(callable, flags)
+    }
+
+    /**
+     * Connects [callable], taking ownership of it (closed when the connection is, or right away on failure). Uses the
+     * builtin [Signal.connect] because it passes the flags with the width Godot reads.
+     */
+    private fun connectOwned(callable: Callable, flags: Array<out GodotObject.ConnectFlags>): SignalConnection {
         try {
-            require(GodotObject.ConnectFlags.APPEND_SOURCE_OBJECT !in flags) {
-                "APPEND_SOURCE_OBJECT adds an argument the typed handler of '$name' does not declare"
-            }
             checkOpen()
             val mask = flags.toEnumMask().value
             val error = GodotEnum.fromValue<GodotError>(signal.connect(callable, mask))
