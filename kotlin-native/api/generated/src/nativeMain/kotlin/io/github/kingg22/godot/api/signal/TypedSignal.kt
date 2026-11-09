@@ -43,6 +43,12 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
     private var closed = false
 
     /**
+     * Live handles from [connect] with an untyped `Callable`. Typed handlers never need tracking: each `connect`
+     * builds its own custom callable, so no two handles share one.
+     */
+    private val untypedConnections = mutableListOf<SignalConnection>()
+
+    /**
      * Emits through [GodotObject.emitSignal], the only path that reports errors (the builtin [Signal.emit] drops
      * them). [variants] are the converted [values]: the ones created for this call are closed, a value that already
      * was a [Variant] stays owned by the caller.
@@ -71,11 +77,26 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
      *
      * The connection keeps its own copy, so [callable] stays owned by the caller.
      *
+     * Godot identifies a connection by its callable, so an earlier handle for an equal callable whose connection is
+     * gone (a `ONE_SHOT` that fired, a disconnect from GDScript) is released here: closing it later must not
+     * disconnect this new connection.
+     *
      * @throws IllegalStateException when Godot rejects the connection (e.g. it already exists without
      * [GodotObject.ConnectFlags.REFERENCE_COUNTED]).
      */
-    public fun connect(callable: Callable, vararg flags: GodotObject.ConnectFlags): SignalConnection =
-        connectOwned(Callable(callable), flags)
+    public fun connect(callable: Callable, vararg flags: GodotObject.ConnectFlags): SignalConnection {
+        val connection = connectOwned(Callable(callable), flags)
+        // Without REFERENCE_COUNTED, Godot only accepts an equal callable once its previous connection is gone, so
+        // every earlier handle for it is stale. With it, an earlier handle may still own one reference: keep it.
+        val referenceCounted = GodotObject.ConnectFlags.REFERENCE_COUNTED in flags
+        untypedConnections.removeAll { earlier ->
+            // A closed handle's callable is already freed: never compare it.
+            if (!earlier.isClosed && !referenceCounted && earlier.hasSameCallableAs(connection)) earlier.release()
+            earlier.isClosed
+        }
+        untypedConnections += connection
+        return connection
+    }
 
     /**
      * A copy of the builtin [Signal], for what [TypedSignal] does not wrap (e.g. [Signal.getConnections]) or to pass
@@ -126,6 +147,8 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
     override fun close() {
         if (closed) return
         closed = true
+        // The handles stay valid on their own; this signal just stops tracking them.
+        untypedConnections.clear()
         signal.close()
         nameHandle.close()
     }

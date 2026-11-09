@@ -295,6 +295,13 @@ private fun validateSignalParameter(
             "The type of parameter '$label' of signal '${property.name}' cannot be resolved",
             "Check its import; kotlinc reports the unresolved reference itself",
         )
+    } else if (type.qualifiedName == GodotPrimitives.BYTE) {
+        // Same rule as the compiler plugin: Byte is signed in Kotlin and unsigned in Godot.
+        report(
+            DiagnosticCode.INVALID_SIGNAL_PARAMETER_TYPE,
+            "Parameter '$label' of signal '${property.name}' is a Byte, which Godot treats as unsigned",
+            "Use Int (or Short) instead",
+        )
     } else if (!parameter.isGodotObject && !isValidExportType(type)) {
         report(
             DiagnosticCode.INVALID_SIGNAL_PARAMETER_TYPE,

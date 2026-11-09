@@ -513,8 +513,8 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
                         // NIL marks a Variant argument (any type) in a signal signature.
                         VARIANT_CLASS_NAME.canonicalName -> "NIL"
 
-                        // Narrow integers travel as INT; the resolver does not map them (it is shared with @Export).
-                        GodotPrimitives.SHORT, GodotPrimitives.BYTE -> "INT"
+                        // Short travels as INT; the resolver does not map it (it is shared with @Export).
+                        GodotPrimitives.SHORT -> "INT"
 
                         else -> typeResolver.resolve(parameter.type.qualifiedName)
                     }

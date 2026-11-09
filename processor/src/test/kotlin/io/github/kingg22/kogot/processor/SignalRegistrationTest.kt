@@ -169,12 +169,11 @@ class SignalRegistrationTest {
             "hit",
             SignalParameterInfo("items", type("kotlin.collections.List")),
             SignalParameterInfo("damage", type("kotlin.Long", nullable = true)),
+            // Rejected like the compiler plugin does: signed in Kotlin, unsigned in Godot.
+            SignalParameterInfo("small", type("kotlin.Byte")),
         )
 
-        assertEquals(
-            listOf(DiagnosticCode.INVALID_SIGNAL_PARAMETER_TYPE, DiagnosticCode.INVALID_SIGNAL_PARAMETER_TYPE),
-            godotClass(property).errorCodes(),
-        )
+        assertEquals(List(3) { DiagnosticCode.INVALID_SIGNAL_PARAMETER_TYPE }, godotClass(property).errorCodes())
     }
 
     @Test
