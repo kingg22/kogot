@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
 import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
+import org.jetbrains.kotlin.fir.analysis.checkers.declaration.FirDeclarationChecker
 import org.jetbrains.kotlin.fir.analysis.checkers.declaration.FirPropertyChecker
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirCallableReferenceAccessChecker
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirReturnExpressionChecker
@@ -13,6 +14,7 @@ import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirVariableAssignme
 import org.jetbrains.kotlin.fir.declarations.FirAnonymousFunction
 import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.FirPropertyAccessor
+import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.declarations.hasAnnotation
 import org.jetbrains.kotlin.fir.expressions.FirCallableReferenceAccess
 import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
@@ -41,6 +43,16 @@ object MustBeVariantPropertyChecker : FirPropertyChecker(MppCheckerKind.Common) 
         if (declaration.returnTypeRef.isInferred()) return
         val position = "property '${declaration.name}'"
         checkAgainstDeclaredType(declaration.returnTypeRef.coneType, initializer, position, declaration.source)
+    }
+}
+
+/** `fun f(x: @MustBeVariant Any? = value)`: callers that omit the argument pass the default, so it is checked here. */
+object MustBeVariantDefaultValueChecker : FirDeclarationChecker<FirValueParameter>(MppCheckerKind.Common) {
+    context(context: CheckerContext, reporter: DiagnosticReporter)
+    override fun check(declaration: FirValueParameter) {
+        val defaultValue = declaration.defaultValue ?: return
+        val position = "the default value of parameter '${declaration.name}'"
+        checkAgainstDeclaredType(declaration.returnTypeRef.coneType, defaultValue, position, declaration.source)
     }
 }
 

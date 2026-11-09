@@ -47,3 +47,11 @@ fun callers() {
     <!MUST_BE_VARIANT_CHECKED!>forward<!>(<!NOT_VARIANT_COMPATIBLE!>Regex("x")<!>)
     <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(expressionBody())
 }
+
+// Default values: callers that omit the argument pass them, so they are checked at the declaration.
+fun defaults(
+    valid: @MustBeVariant Any? = 1L,
+    invalid: @MustBeVariant Any? = <!NOT_VARIANT_COMPATIBLE!>Regex("")<!>,
+    list: List<@MustBeVariant Any?> = listOf(1L, <!NOT_VARIANT_COMPATIBLE!>Regex("")<!>),
+    unannotated: Any? = Regex(""),
+) {}
