@@ -22,15 +22,45 @@ on:
   workflow_dispatch:
 
 concurrency:
-    # github.sha on a pull_request event is the ephemeral merge commit, not the branch's real head
-    # commit, so keying on it alone doesn't dedupe a push + its own PR's synchronize event, which
-    # both fire for the same commit. pull_request.head.sha is that real commit and matches what
-    # github.sha is on the corresponding push event, so this collapses both into one group.
-    group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
-    cancel-in-progress: true
+    # One group per PR (or per branch for pushes): a new commit on a PR cancels the run of the commit
+    # it replaces. Pushes to long-lived branches are never cancelled, so every commit there keeps its
+    # result. Builds that already ran for the same content are skipped by the pre_job below.
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Skips the build when a successful run already exists for the same content (tree hash), from a PR or
+  # a push: e.g. the push to main after a squash/rebase merge of a PR that already passed, or a push and
+  # its PR's synchronize event for the same commit. Manual runs always build.
+  pre_job:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@b974a9395958c231af965b70070979a577efa578 # v5.3.2
+        with:
+          concurrent_skipping: same_content_newer
+          skip_after_successful_duplicate: 'true'
+          do_not_skip: '["workflow_dispatch", "schedule"]'
+
   build:
+    needs: pre_job
+    # Skip Renovate's and Dependabot's PRs and commits. Inside Actions the bots' logins are
+    # `renovate[bot]` / `dependabot[bot]` (`app/renovate` is only how the `gh` CLI prints them).
+    # `actor` covers the bots' own pushes, `pull_request.user` still matches when someone else
+    # re-runs or rebases the PR, `head_commit.author` covers push events.
+    # A skipped job counts as passing for required status checks.
+    if: >-
+      needs.pre_job.outputs.should_skip != 'true' &&
+      github.actor != 'renovate[bot]' &&
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.user.login != 'renovate[bot]' &&
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.head_commit.author.username != 'renovate[bot]' &&
+      github.event.head_commit.author.username != 'dependabot[bot]'
     timeout-minutes: 15
     runs-on: ubuntu-latest
     permissions:
