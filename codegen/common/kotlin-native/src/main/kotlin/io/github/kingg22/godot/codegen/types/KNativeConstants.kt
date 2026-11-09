@@ -59,6 +59,7 @@ val cinteropToKStrFromUtf16 = MemberName("kotlinx.cinterop", "toKStringFromUtf16
 val cinteropToKStrFromUtf32 = MemberName("kotlinx.cinterop", "toKStringFromUtf32", true)
 
 val GODOT_VIRTUAL_METHOD = ClassName("io.github.kingg22.godot.api.internal", "GodotVirtualMethod")
+val GODOT_CLASS = ClassName("io.github.kingg22.godot.api.internal", "GodotClass")
 
 val PRIMITIVE_NUMERIC_TYPES = setOf(
     "int8_t", "int8",

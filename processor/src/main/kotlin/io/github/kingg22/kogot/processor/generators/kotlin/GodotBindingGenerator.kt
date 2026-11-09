@@ -507,7 +507,8 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
         if (signal is SignalDeclaration.Typed) {
             // Inferred from `TypedSignal<(name: Type, ...) -> Unit>`; validation rejects explicit params here.
             signal.parameters.forEach { parameter ->
-                val variantType = if (parameter.isGodotObject) {
+                val godotClassName = parameter.godotClassName
+                val variantType = if (godotClassName != null) {
                     "OBJECT"
                 } else {
                     when (parameter.type.qualifiedName) {
@@ -520,13 +521,12 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
                         else -> typeResolver.resolve(parameter.type.qualifiedName)
                     }
                 }
-                builder.addStatement(
-                    "%T(%T.%L, %S),",
-                    REGISTER_SIGNAL_PARAM_CLASS_NAME,
-                    VARIANT_TYPE_CLASS_NAME,
-                    variantType,
-                    parameter.name,
+                val arguments = listOfNotNull(
+                    CodeBlock.of("%T.%L", VARIANT_TYPE_CLASS_NAME, variantType),
+                    CodeBlock.of("%S", parameter.name),
+                    godotClassName?.takeIf { it.isNotEmpty() }?.let { CodeBlock.of("className = %S", it) },
                 )
+                builder.addStatement("%T(%L),", REGISTER_SIGNAL_PARAM_CLASS_NAME, arguments.joinToCode(", "))
             }
         } else if (paramAnnotations.isNotEmpty()) {
             paramAnnotations.forEach { paramAnn ->

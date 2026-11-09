@@ -79,9 +79,17 @@ class SignalRegistrationTest {
                 SignalParameterInfo("raw", type("io.github.kingg22.godot.api.builtin.Variant", nullable = true)),
                 SignalParameterInfo(
                     "by",
-                    type("io.github.kingg22.godot.api.core.node.Node", nullable = true),
-                    isGodotObject = true,
+                    type("io.github.kingg22.godot.api.core.Node", nullable = true),
+                    godotClassName = "Node",
                 ),
+                // Kotlin name differs from the Godot one: the class name comes from @GodotClass.
+                SignalParameterInfo(
+                    "rpc",
+                    type("io.github.kingg22.godot.api.core.Jsonrpc"),
+                    godotClassName = "JSONRPC",
+                ),
+                // A GodotObject whose registered class is unknown: any object.
+                SignalParameterInfo("any", type("io.github.kingg22.game.Unregistered"), godotClassName = ""),
             ),
         )
 
@@ -93,7 +101,9 @@ class SignalRegistrationTest {
         assertTrue(code.contains("Param(Variant.Type.STRING, \"tag\")"), code)
         assertTrue(code.contains("Param(Variant.Type.VECTOR2, \"at\")"), code)
         assertTrue(code.contains("Param(Variant.Type.NIL, \"raw\")"), code)
-        assertTrue(code.contains("Param(Variant.Type.OBJECT, \"by\")"), code)
+        assertTrue(code.contains("Param(Variant.Type.OBJECT, \"by\", className = \"Node\")"), code)
+        assertTrue(code.contains("Param(Variant.Type.OBJECT, \"rpc\", className = \"JSONRPC\")"), code)
+        assertTrue(code.contains("Param(Variant.Type.OBJECT, \"any\")"), code)
         assertTrue(code.contains("name = \"hit\""), code)
     }
 

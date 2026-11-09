@@ -20,6 +20,7 @@ import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngineClass
 import io.github.kingg22.godot.codegen.types.API_STATUS_NON_EXTENSIBLE
+import io.github.kingg22.godot.codegen.types.GODOT_CLASS
 import io.github.kingg22.godot.codegen.types.GODOT_VIRTUAL_METHOD
 import io.github.kingg22.godot.codegen.utils.withExceptionContext
 
@@ -160,6 +161,8 @@ class NativeEngineClassGenerator(
         val builder = TypeSpec
             .classBuilder(className)
             .experimentalApiAnnotation(cls.name)
+            // The Kotlin name may differ (renameGodotClass); KSP reads the Godot one, e.g. for signal argument types.
+            .addAnnotation(AnnotationSpec.builder(GODOT_CLASS).addMember("%S", cls.name).build())
 
         // Modificadores de clase
         when {

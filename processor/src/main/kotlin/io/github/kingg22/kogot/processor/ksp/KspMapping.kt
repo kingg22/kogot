@@ -3,6 +3,7 @@ package io.github.kingg22.kogot.processor.ksp
 import com.google.devtools.ksp.getAllSuperTypes
 import com.google.devtools.ksp.getDeclaredFunctions
 import com.google.devtools.ksp.isConstructor
+import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.FileLocation
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
@@ -30,6 +31,8 @@ private const val GODOT_VIRTUAL_METHOD_FQN = "io.github.kingg22.godot.api.intern
 private const val TYPED_SIGNAL_FQN = "io.github.kingg22.godot.api.signal.TypedSignal"
 private const val BUILTIN_SIGNAL_FQN = "io.github.kingg22.godot.api.builtin.Signal"
 private const val GODOT_OBJECT_FQN = "io.github.kingg22.godot.api.core.GodotObject"
+private const val GODOT_CLASS_FQN = "io.github.kingg22.godot.api.internal.GodotClass"
+private const val GODOT_ANNOTATION_FQN = "io.github.kingg22.godot.api.annotations.Godot"
 
 /**
  * Extension to convert KSClassDeclaration to ClassInfo.
@@ -254,8 +257,30 @@ private fun KSTypeArgument.toSignalParameter(): SignalParameterInfo {
     return SignalParameterInfo(
         name = name.orEmpty(),
         type = resolved?.toTypeInfo() ?: TypeInfo(UNKNOWN, UNKNOWN),
-        isGodotObject = resolved?.isGodotObject() == true,
+        godotClassName = resolved?.takeIf { it.isGodotObject() }?.let { it.registeredGodotClassName().orEmpty() },
     )
+}
+
+/**
+ * The class Godot knows this type as: the nearest class in its hierarchy registered with Godot, a user `@Godot` class
+ * by its simple name or an engine class by its `@GodotClass` name. A Kotlin subclass that is not registered is seen
+ * by Godot as that ancestor.
+ */
+private fun KSType.registeredGodotClassName(): String? {
+    var current = declaration as? KSClassDeclaration
+    while (current != null) {
+        for (annotation in current.annotations) {
+            when (annotation.annotationType.resolve().declaration.qualifiedName?.asString()) {
+                GODOT_ANNOTATION_FQN -> return current.simpleName.asString()
+                GODOT_CLASS_FQN -> return annotation.arguments.firstOrNull()?.value as? String
+            }
+        }
+        current = current.superTypes
+            .map { it.resolve().declaration }
+            .filterIsInstance<KSClassDeclaration>()
+            .firstOrNull { it.classKind == ClassKind.CLASS }
+    }
+    return null
 }
 
 /** Follows (possibly nested) type aliases: `typealias Hit = (damage: Long) -> Unit` resolves to the function type. */

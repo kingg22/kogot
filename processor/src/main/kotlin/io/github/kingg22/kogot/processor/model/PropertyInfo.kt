@@ -31,9 +31,12 @@ sealed interface SignalDeclaration {
  * One parameter of a typed signal.
  *
  * @property name the function type's parameter name (`@ParameterName`), empty when it has none.
- * @property isGodotObject the type is a `GodotObject` subclass (engine or user class), passed as `OBJECT`.
+ * @property godotClassName for a `GodotObject` subclass (passed as `OBJECT`), the class Godot knows it as: the nearest
+ * registered class in its hierarchy, empty when none is known (any object); `null` for other types.
  */
-data class SignalParameterInfo(val name: String, val type: TypeInfo, val isGodotObject: Boolean = false)
+data class SignalParameterInfo(val name: String, val type: TypeInfo, val godotClassName: String? = null) {
+    val isGodotObject: Boolean get() = godotClassName != null
+}
 
 /**
  * Returns true if this property has @Export annotation.
