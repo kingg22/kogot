@@ -29,7 +29,7 @@ typealias Moved = (position: Vector2, source: GodotObject?) -> Unit
     @Export val spriteName: String = "SpriteBench"
 
     @RegisterSignal
-    private val hint by signal<() -> Unit>()
+    private val hint by signal()
 
     @RegisterSignal
     private val punch by signal<(value: Long) -> Unit>()

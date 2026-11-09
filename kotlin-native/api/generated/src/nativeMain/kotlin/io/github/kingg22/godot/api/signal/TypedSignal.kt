@@ -99,6 +99,13 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
 }
 
 /**
+ * Declares a [TypedSignal] named after the property of `() -> Unit`.
+ *
+ * Register it with `@RegisterSignal` so Godot knows the signal.
+ */
+public fun signal(): ReadOnlyProperty<GodotObject, TypedSignal<() -> Unit>> = SignalDelegate()
+
+/**
  * Declares a [TypedSignal] named after the property; [F] describes its parameters, e.g. `(value: Long) -> Unit`.
  *
  * Register it with `@RegisterSignal` so Godot knows the signal.
@@ -106,10 +113,9 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
 public fun <F : Function<Unit>> signal(): ReadOnlyProperty<GodotObject, TypedSignal<F>> = SignalDelegate()
 
 /** Property delegate behind [signal]: creates the [TypedSignal] on first access. */
-public class SignalDelegate<F : Function<Unit>> @PublishedApi internal constructor() :
-    ReadOnlyProperty<GodotObject, TypedSignal<F>> {
+private class SignalDelegate<F : Function<Unit>> : ReadOnlyProperty<GodotObject, TypedSignal<F>> {
     private var signal: TypedSignal<F>? = null
 
-    public override operator fun getValue(thisRef: GodotObject, property: KProperty<*>): TypedSignal<F> =
+    override operator fun getValue(thisRef: GodotObject, property: KProperty<*>): TypedSignal<F> =
         signal ?: TypedSignal<F>(thisRef, property.name).also { signal = it }
 }
