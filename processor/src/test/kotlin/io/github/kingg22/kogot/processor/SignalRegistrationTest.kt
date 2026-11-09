@@ -23,10 +23,17 @@ class SignalRegistrationTest {
         arguments = mapOf("name" to name, "params" to params),
     )
 
-    private fun param(type: String, name: String) = AnnotationInfo(
+    private fun param(type: String, name: String, vararg options: Pair<String, Any>) = AnnotationInfo(
         qualifiedName = "io.github.kingg22.godot.api.annotations.RegisterSignal.Param",
         shortName = "Param",
-        arguments = mapOf("type" to "io.github.kingg22.godot.api.builtin.Variant.Type.$type", "name" to name),
+        arguments = mapOf("type" to "io.github.kingg22.godot.api.builtin.Variant.Type.$type", "name" to name) +
+            // KSP reports every argument, defaults included.
+            mapOf(
+                "className" to "",
+                "hint" to "io.github.kingg22.godot.api.PropertyHint.NONE",
+                "hintString" to "",
+                "usages" to emptyList<String>(),
+            ) + options,
     )
 
     private fun type(qualifiedName: String, nullable: Boolean = false) =
@@ -111,6 +118,42 @@ class SignalRegistrationTest {
         val code = player.registration()
         assertTrue(code.contains("Param(Variant.Type.INT, \"value\")"), code)
         assertTrue(code.contains("name = \"on_punch\""), code)
+    }
+
+    @Test
+    fun `the builtin Signal forwards className, hint, hintString and usages, and only those set`() {
+        val legacy = PropertyInfo(
+            name = "picked",
+            type = builtinSignalType,
+            annotations = listOf(
+                registerSignal(
+                    params = listOf(
+                        param("OBJECT", "item", "className" to "Node"),
+                        param(
+                            "INT",
+                            "count",
+                            "hint" to "io.github.kingg22.godot.api.PropertyHint.RANGE",
+                            "hintString" to "0,10",
+                            "usages" to listOf(
+                                "io.github.kingg22.godot.api.PropertyUsageFlags.STORAGE",
+                                "io.github.kingg22.godot.api.PropertyUsageFlags.EDITOR",
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            signal = SignalDeclaration.Builtin,
+        )
+
+        val code = godotClass(legacy).registration()
+        assertTrue(code.contains("Param(Variant.Type.OBJECT, \"item\", className = \"Node\")"), code)
+        assertTrue(
+            code.contains(
+                "Param(Variant.Type.INT, \"count\", hint = PropertyHint.RANGE, hintString = \"0,10\", " +
+                    "usages = arrayOf(PropertyUsageFlags.STORAGE, PropertyUsageFlags.EDITOR))",
+            ),
+            code,
+        )
     }
 
     @Test

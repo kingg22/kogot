@@ -1,6 +1,8 @@
 package io.github.kingg22.godot.internal.binding
 
+import io.github.kingg22.godot.api.builtin.GodotString
 import io.github.kingg22.godot.api.builtin.StringName
+import io.github.kingg22.godot.api.builtin.toGodotString
 import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.internal.ffi.GDExtensionCallError
 import io.github.kingg22.godot.internal.ffi.GDExtensionCallErrorType
@@ -25,6 +27,21 @@ public inline fun <R> withTransientStringNames(block: (record: (String) -> COpaq
         return block { value -> value.toStringName().also(names::add).rawPtr }
     } finally {
         for (name in names) name.close()
+    }
+}
+
+/**
+ * Like [withTransientStringNames], but `record` builds a [GodotString]: for the `String` fields of `GDExtension*Info`
+ * structs, such as `GDExtensionPropertyInfo.hint_string`. Passing a [StringName] there is read as a `String` by
+ * Godot (type confusion, it can crash).
+ */
+@InternalBinding
+public inline fun <R> withTransientGodotStrings(block: (record: (String) -> COpaquePointer) -> R): R {
+    val strings = ArrayList<GodotString>()
+    try {
+        return block { value -> value.toGodotString().also(strings::add).rawPtr }
+    } finally {
+        for (string in strings) string.close()
     }
 }
 

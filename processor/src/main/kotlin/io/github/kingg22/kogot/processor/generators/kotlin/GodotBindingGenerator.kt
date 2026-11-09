@@ -11,6 +11,7 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.joinToCode
 import com.squareup.kotlinpoet.withIndent
 import io.github.kingg22.kogot.processor.diagnostics.DiagnosticCode
 import io.github.kingg22.kogot.processor.diagnostics.DiagnosticLocation
@@ -535,19 +536,39 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
                         "Missing type for signal parameter in ${prop.name}, signal param: $paramName",
                     )
                 val entryName = typeQualifiedName.substringAfterLast('.')
-                builder.addStatement(
-                    "%T(%T.%L, %S),", // Param(Variant.Type.NIL, "name")
-                    REGISTER_SIGNAL_PARAM_CLASS_NAME,
-                    VARIANT_TYPE_CLASS_NAME,
-                    entryName,
-                    paramName,
-                )
+                val arguments =
+                    listOf(CodeBlock.of("%T.%L", VARIANT_TYPE_CLASS_NAME, entryName), CodeBlock.of("%S", paramName)) +
+                        signalParamOptions(paramAnn)
+                // Param(Variant.Type.NIL, "name", className = ..., hint = ..., hintString = ..., usages = ...)
+                builder.addStatement("%T(%L),", REGISTER_SIGNAL_PARAM_CLASS_NAME, arguments.joinToCode(", "))
             }
         }
         builder.addStatement("name = %S,", signalName)
         builder.addStatement("⇤),")
 
         return builder.build()
+    }
+
+    /**
+     * The optional `Param` arguments the user set (className, hint, hintString, usages), forwarded as named arguments;
+     * omitted ones keep the annotation defaults.
+     */
+    private fun signalParamOptions(param: AnnotationInfo): List<CodeBlock> = buildList {
+        (param.arguments["className"] as? String)?.takeIf { it.isNotEmpty() }?.let {
+            add(CodeBlock.of("className = %S", it))
+        }
+        (param.arguments["hint"] as? String)?.substringAfterLast('.')?.takeIf { it != "NONE" }?.let {
+            add(CodeBlock.of("hint = %T.%L", PropertyHintClassName, it))
+        }
+        (param.arguments["hintString"] as? String)?.takeIf { it.isNotEmpty() }?.let {
+            add(CodeBlock.of("hintString = %S", it))
+        }
+        (param.arguments["usages"] as? List<*>)?.filterIsInstance<String>()?.takeIf { it.isNotEmpty() }?.let {
+            val flags = it.map { flag ->
+                CodeBlock.of("%T.%L", PROPERTY_USAGE_FLAGS_CLASS_NAME, flag.substringAfterLast('.'))
+            }
+            add(CodeBlock.of("usages = arrayOf(%L)", flags.joinToCode(", ")))
+        }
     }
 
     private fun generateCallbacksFile(classes: List<ClassInfo>): GeneratedFile {
@@ -754,3 +775,5 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
         return builder.build()
     }
 }
+
+private val PROPERTY_USAGE_FLAGS_CLASS_NAME = PropertyHintClassName.peerClass("PropertyUsageFlags")
