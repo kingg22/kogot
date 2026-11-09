@@ -1,6 +1,7 @@
 package io.github.kingg22.kogot.gradle.compiler
 
 import io.github.kingg22.kogot.gradle.KogotConventions
+import io.github.kingg22.kogot.gradle.KogotExtension
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -54,6 +55,20 @@ class KogotCompilerGradlePluginTest {
         val artifact = plugin.getPluginArtifact()
         assertEquals("com.example", artifact.groupId)
         assertEquals("9.9.9", artifact.version)
+    }
+
+    @Test
+    fun `follows the kogot DSL group and version when the kogot extension exists`() {
+        val projectDir = createTempDirectory(tempDir.toPath(), "project").toFile()
+        val project = ProjectBuilder.builder().withProjectDir(projectDir).build()
+        val kogot = project.extensions.create("kogot", KogotExtension::class.java, project)
+        kogot.kogotGroup.set("org.custom")
+        kogot.kogotVersion.set("1.2.3")
+        project.pluginManager.apply(KogotCompilerGradlePlugin::class.java)
+
+        val artifact = project.plugins.getPlugin(KogotCompilerGradlePlugin::class.java).getPluginArtifact()
+        assertEquals("org.custom", artifact.groupId)
+        assertEquals("1.2.3", artifact.version)
     }
 
     @Test

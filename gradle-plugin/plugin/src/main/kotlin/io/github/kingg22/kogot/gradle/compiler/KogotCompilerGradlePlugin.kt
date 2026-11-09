@@ -1,6 +1,7 @@
 package io.github.kingg22.kogot.gradle.compiler
 
 import io.github.kingg22.kogot.gradle.KogotConventions
+import io.github.kingg22.kogot.gradle.KogotExtension
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
@@ -43,12 +44,18 @@ abstract class KogotCompilerGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
     override fun getCompilerPluginId(): String = KogotConventions.COMPILER_PLUGIN_ID
 
-    // Same group/version resolution as KogotExtension.kogotGroup / kogotVersion.
-    override fun getPluginArtifact(): SubpluginArtifact = SubpluginArtifact(
-        groupId = gradleProperty(KogotConventions.PROP_KOGOT_GROUP, KogotConventions.DEFAULT_KOGOT_GROUP),
-        artifactId = KogotConventions.ARTIFACT_COMPILER_PLUGIN,
-        version = gradleProperty(KogotConventions.PROP_KOGOT_VERSION, KogotConventions.DEFAULT_KOGOT_VERSION),
-    )
+    // The kogot DSL (`kogot { kogotVersion = ... }`) when the kogot plugin is applied, else the same Gradle properties
+    // and defaults it falls back to. Read lazily: Kotlin asks for the artifact after the build script ran.
+    override fun getPluginArtifact(): SubpluginArtifact {
+        val kogot = project.extensions.findByType(KogotExtension::class.java)
+        return SubpluginArtifact(
+            groupId = kogot?.kogotGroup?.orNull
+                ?: gradleProperty(KogotConventions.PROP_KOGOT_GROUP, KogotConventions.DEFAULT_KOGOT_GROUP),
+            artifactId = KogotConventions.ARTIFACT_COMPILER_PLUGIN,
+            version = kogot?.kogotVersion?.orNull
+                ?: gradleProperty(KogotConventions.PROP_KOGOT_VERSION, KogotConventions.DEFAULT_KOGOT_VERSION),
+        )
+    }
 
     // The plugin takes no options yet.
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> =
