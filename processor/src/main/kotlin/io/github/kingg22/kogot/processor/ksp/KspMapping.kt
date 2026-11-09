@@ -1,5 +1,6 @@
 package io.github.kingg22.kogot.processor.ksp
 
+import com.google.devtools.ksp.getAllSuperTypes
 import com.google.devtools.ksp.getDeclaredFunctions
 import com.google.devtools.ksp.isConstructor
 import com.google.devtools.ksp.symbol.FileLocation
@@ -9,6 +10,8 @@ import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
+import com.google.devtools.ksp.symbol.KSTypeAlias
+import com.google.devtools.ksp.symbol.KSTypeArgument
 import com.google.devtools.ksp.symbol.KSTypeReference
 import com.google.devtools.ksp.symbol.Modifier
 import com.google.devtools.ksp.symbol.Nullability
@@ -17,11 +20,16 @@ import io.github.kingg22.kogot.processor.model.ClassInfo
 import io.github.kingg22.kogot.processor.model.FunctionInfo
 import io.github.kingg22.kogot.processor.model.ParameterInfo
 import io.github.kingg22.kogot.processor.model.PropertyInfo
+import io.github.kingg22.kogot.processor.model.SignalDeclaration
+import io.github.kingg22.kogot.processor.model.SignalParameterInfo
 import io.github.kingg22.kogot.processor.model.TypeInfo
 import io.github.kingg22.kogot.processor.model.VirtualMethodOverride
 
 private const val UNKNOWN = "<unknown>"
 private const val GODOT_VIRTUAL_METHOD_FQN = "io.github.kingg22.godot.api.internal.GodotVirtualMethod"
+private const val TYPED_SIGNAL_FQN = "io.github.kingg22.godot.api.signal.TypedSignal"
+private const val BUILTIN_SIGNAL_FQN = "io.github.kingg22.godot.api.builtin.Signal"
+private const val GODOT_OBJECT_FQN = "io.github.kingg22.godot.api.core.GodotObject"
 
 /**
  * Extension to convert KSClassDeclaration to ClassInfo.
@@ -189,7 +197,9 @@ fun KSType.toTypeInfo(): TypeInfo {
  * Extension to convert KSPropertyDeclaration to PropertyInfo.
  */
 fun KSPropertyDeclaration.toPropertyInfo(): PropertyInfo {
-    val typeInfo = type.toTypeInfo() ?: TypeInfo(UNKNOWN, UNKNOWN)
+    // Delegated properties without an explicit type (`by signal<...>()`) resolve to the delegate's value type.
+    val resolvedType = type.resolve()
+    val typeInfo = resolvedType.takeUnless { it.isError }?.toTypeInfo() ?: TypeInfo(UNKNOWN, UNKNOWN)
     val annotations = this.annotations.map { it.toAnnotationInfo() }.toList()
     val modifiers = this.modifiers.map { it.name }.toSet()
 
@@ -200,7 +210,65 @@ fun KSPropertyDeclaration.toPropertyInfo(): PropertyInfo {
         hasDefaultValue = false,
         annotations = annotations,
         modifiers = modifiers,
+        lineNumber = getLineNumber(),
+        signal = resolvedType.toSignalDeclaration(),
     )
+}
+
+/**
+ * Reads the signal a property type declares: `TypedSignal<(value: Long) -> Unit>` gives its parameters with the
+ * names Kotlin keeps as `@ParameterName` on each type argument; the builtin `Signal` gives [SignalDeclaration.Builtin].
+ */
+private fun KSType.toSignalDeclaration(): SignalDeclaration? {
+    if (isError) return null
+    return when (declaration.qualifiedName?.asString()) {
+        BUILTIN_SIGNAL_FQN -> SignalDeclaration.Builtin
+
+        TYPED_SIGNAL_FQN -> {
+            val function = arguments.singleOrNull()?.type?.resolve()?.expandTypeAliases()
+            when {
+                function == null || function.isError -> SignalDeclaration.Invalid("its type argument is unresolved")
+
+                !function.isFunctionType -> SignalDeclaration.Invalid(
+                    "'${function.declaration.simpleName.asString()}' is not a function type",
+                )
+
+                // The last type argument of FunctionN is the return type (Unit, enforced by TypedSignal's bound).
+                else -> SignalDeclaration.Typed(function.arguments.dropLast(1).map { it.toSignalParameter() })
+            }
+        }
+
+        else -> null
+    }
+}
+
+private fun KSTypeArgument.toSignalParameter(): SignalParameterInfo {
+    val reference = type
+    val resolved = reference?.resolve()?.takeUnless { it.isError }?.expandTypeAliases()
+    // KSP2 exposes @ParameterName on the reference and on the resolved type; either is enough.
+    val name = (reference?.annotations.orEmpty() + resolved?.annotations.orEmpty())
+        .firstOrNull { it.shortName.asString() == "ParameterName" }
+        ?.arguments
+        ?.firstOrNull()
+        ?.value as? String
+    return SignalParameterInfo(
+        name = name.orEmpty(),
+        type = resolved?.toTypeInfo() ?: TypeInfo(UNKNOWN, UNKNOWN),
+        isGodotObject = resolved?.isGodotObject() == true,
+    )
+}
+
+/** Follows (possibly nested) type aliases: `typealias Hit = (damage: Long) -> Unit` resolves to the function type. */
+private tailrec fun KSType.expandTypeAliases(): KSType {
+    val alias = declaration as? KSTypeAlias ?: return this
+    val expanded = alias.type.resolve()
+    return if (isMarkedNullable) expanded.makeNullable().expandTypeAliases() else expanded.expandTypeAliases()
+}
+
+private fun KSType.isGodotObject(): Boolean {
+    val classDeclaration = declaration as? KSClassDeclaration ?: return false
+    return classDeclaration.qualifiedName?.asString() == GODOT_OBJECT_FQN ||
+        classDeclaration.getAllSuperTypes().any { it.declaration.qualifiedName?.asString() == GODOT_OBJECT_FQN }
 }
 
 /**

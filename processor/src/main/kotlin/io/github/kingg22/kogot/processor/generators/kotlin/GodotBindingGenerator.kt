@@ -18,7 +18,9 @@ import io.github.kingg22.kogot.processor.diagnostics.DiagnosticMessage
 import io.github.kingg22.kogot.processor.model.AnnotationInfo
 import io.github.kingg22.kogot.processor.model.ClassInfo
 import io.github.kingg22.kogot.processor.model.FunctionInfo
+import io.github.kingg22.kogot.processor.model.GodotPrimitives
 import io.github.kingg22.kogot.processor.model.PropertyInfo
+import io.github.kingg22.kogot.processor.model.SignalDeclaration
 import io.github.kingg22.kogot.processor.model.getExportedMethods
 import io.github.kingg22.kogot.processor.model.getParentClassShortName
 import io.github.kingg22.kogot.processor.model.getRegisterSignalAnnotation
@@ -500,7 +502,32 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
         @Suppress("UNCHECKED_CAST")
         val paramAnnotations = annotation.arguments["params"] as? List<AnnotationInfo> ?: emptyList()
 
-        if (paramAnnotations.isNotEmpty()) {
+        val signal = prop.signal
+        if (signal is SignalDeclaration.Typed) {
+            // Inferred from `TypedSignal<(name: Type, ...) -> Unit>`; validation rejects explicit params here.
+            signal.parameters.forEach { parameter ->
+                val variantType = if (parameter.isGodotObject) {
+                    "OBJECT"
+                } else {
+                    when (parameter.type.qualifiedName) {
+                        // NIL marks a Variant argument (any type) in a signal signature.
+                        VARIANT_CLASS_NAME.canonicalName -> "NIL"
+
+                        // Narrow integers travel as INT; the resolver does not map them (it is shared with @Export).
+                        GodotPrimitives.SHORT, GodotPrimitives.BYTE -> "INT"
+
+                        else -> typeResolver.resolve(parameter.type.qualifiedName)
+                    }
+                }
+                builder.addStatement(
+                    "%T(%T.%L, %S),",
+                    REGISTER_SIGNAL_PARAM_CLASS_NAME,
+                    VARIANT_TYPE_CLASS_NAME,
+                    variantType,
+                    parameter.name,
+                )
+            }
+        } else if (paramAnnotations.isNotEmpty()) {
             paramAnnotations.forEach { paramAnn ->
                 val paramName = (paramAnn.arguments["name"] as? String).orEmpty()
                 val typeQualifiedName = paramAnn.arguments["type"] as? String

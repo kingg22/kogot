@@ -17,9 +17,13 @@ import io.github.kingg22.kogot.processor.generators.kotlin.GodotBindingGenerator
 import io.github.kingg22.kogot.processor.ksp.toClassInfo
 import io.github.kingg22.kogot.processor.model.ClassInfo
 import io.github.kingg22.kogot.processor.model.GodotPrimitives
+import io.github.kingg22.kogot.processor.model.PropertyInfo
+import io.github.kingg22.kogot.processor.model.SignalDeclaration
+import io.github.kingg22.kogot.processor.model.SignalParameterInfo
 import io.github.kingg22.kogot.processor.model.TypeInfo
 import io.github.kingg22.kogot.processor.model.getExportedMethods
 import io.github.kingg22.kogot.processor.model.getExportedProperties
+import io.github.kingg22.kogot.processor.model.getRegisterSignalAnnotation
 import io.github.kingg22.kogot.processor.model.isGodotBuiltin
 
 /**
@@ -88,6 +92,8 @@ class KogotProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor 
         val diagnostics = mutableListOf<DiagnosticMessage>()
 
         for (classInfo in classInfos) {
+            diagnostics += classInfo.validateSignals()
+
             for ((_, type) in classInfo.getExportedProperties()) {
                 if (!isValidExportType(type)) {
                     diagnostics.add(
@@ -161,8 +167,9 @@ class KogotProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor 
         return diagnostics
     }
 
-    private fun isValidExportType(type: TypeInfo): Boolean =
-        GodotPrimitives.isPrimitive(type.qualifiedName) || type.isGodotBuiltin()
+    class Provider : SymbolProcessorProvider {
+        override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor = KogotProcessor(environment)
+    }
 
     private fun writeGeneratedFile(
         relativePath: String,
@@ -193,8 +200,118 @@ class KogotProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor 
             dependencies = dependencies,
         ).writer().use { it.write(content) }
     }
+}
 
-    class Provider : SymbolProcessorProvider {
-        override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor = KogotProcessor(environment)
+private fun isValidExportType(type: TypeInfo): Boolean =
+    GodotPrimitives.isPrimitive(type.qualifiedName) || type.isGodotBuiltin()
+
+private const val SIGNAL_NOTE = "This is a compile error: binding generation is aborted for the whole build until " +
+    "it's fixed"
+
+/**
+ * Validates the `@RegisterSignal` properties of this class: their type, that a `TypedSignal` is the single source of
+ * its name and parameters, the parameter names and types, and that signal names are unique.
+ */
+internal fun ClassInfo.validateSignals(): List<DiagnosticMessage> = buildList {
+    val registeredNames = mutableMapOf<String, PropertyInfo>()
+
+    for (property in properties) {
+        val annotation = property.getRegisterSignalAnnotation() ?: continue
+        val location = DiagnosticLocation(filePath, property.lineNumber, 0)
+        fun report(code: DiagnosticCode, message: String, help: String) {
+            add(DiagnosticMessage.error(code, message, location, help, SIGNAL_NOTE))
+        }
+
+        val explicitName = (annotation.arguments["name"] as? String).orEmpty()
+        val signalName = explicitName.ifEmpty { property.name }
+        val previous = registeredNames.put(signalName, property)
+        if (previous != null) {
+            report(
+                DiagnosticCode.DUPLICATE_SIGNAL_NAME,
+                "Signal '$signalName' of '$shortName' is declared by both '${previous.name}' and '${property.name}'",
+                "Rename one of the properties",
+            )
+        }
+
+        when (val signal = property.signal) {
+            null -> report(
+                DiagnosticCode.INVALID_SIGNAL_PROPERTY_TYPE,
+                "@RegisterSignal '${property.name}' has type '${property.type.qualifiedName}', not a signal",
+                "Declare it as `val ${property.name} by signal<(name: Type) -> Unit>()`",
+            )
+
+            is SignalDeclaration.Invalid -> report(
+                DiagnosticCode.INVALID_SIGNAL_PROPERTY_TYPE,
+                "@RegisterSignal '${property.name}' is a TypedSignal, but ${signal.reason}",
+                "Use a function type, e.g. `signal<(value: Long) -> Unit>()`",
+            )
+
+            SignalDeclaration.Builtin -> Unit
+
+            is SignalDeclaration.Typed -> {
+                if ((annotation.arguments["params"] as? List<*>).orEmpty().isNotEmpty()) {
+                    report(
+                        DiagnosticCode.REDUNDANT_SIGNAL_PARAMS,
+                        "@RegisterSignal '${property.name}' declares params, but they come from its type",
+                        "Remove `params`: name and type each parameter in the function type instead",
+                    )
+                }
+                if (explicitName.isNotEmpty() && explicitName != property.name) {
+                    report(
+                        DiagnosticCode.SIGNAL_NAME_MISMATCH,
+                        "@RegisterSignal '${property.name}' registers '$explicitName', but a TypedSignal emits " +
+                            "under its property name",
+                        "Remove `name`, or rename the property to '$explicitName'",
+                    )
+                }
+                signal.parameters.forEachIndexed { index, parameter ->
+                    validateSignalParameter(property, index, parameter, ::report)
+                }
+            }
+        }
     }
 }
+
+private fun validateSignalParameter(
+    property: PropertyInfo,
+    index: Int,
+    parameter: SignalParameterInfo,
+    report: (DiagnosticCode, String, String) -> Unit,
+) {
+    val label = parameter.name.ifEmpty { "#${index + 1}" }
+    if (parameter.name.isEmpty()) {
+        report(
+            DiagnosticCode.UNNAMED_SIGNAL_PARAMETER,
+            "Parameter #${index + 1} of signal '${property.name}' has no name",
+            "Name it in the function type, e.g. `(value: ${parameter.type.shortName}) -> Unit`; Godot shows it in " +
+                "the editor and in connected methods",
+        )
+    }
+    val type = parameter.type
+    val isVariant = type.qualifiedName == VARIANT_FQN
+    if (type.qualifiedName == UNRESOLVED_TYPE) {
+        report(
+            DiagnosticCode.INVALID_SIGNAL_PARAMETER_TYPE,
+            "The type of parameter '$label' of signal '${property.name}' cannot be resolved",
+            "Check its import; kotlinc reports the unresolved reference itself",
+        )
+    } else if (!parameter.isGodotObject && !isValidExportType(type)) {
+        report(
+            DiagnosticCode.INVALID_SIGNAL_PARAMETER_TYPE,
+            "Parameter '$label' of signal '${property.name}' has unsupported type '${type.qualifiedName}'",
+            "Use a primitive (Int, Long, Float, Double, Boolean, String), a Godot builtin type, Variant or a " +
+                "Godot object",
+        )
+    } else if (type.isNullable && !parameter.isGodotObject && !isVariant) {
+        report(
+            DiagnosticCode.INVALID_SIGNAL_PARAMETER_TYPE,
+            "Parameter '$label' of signal '${property.name}' is nullable '${type.shortName}?'",
+            "Only objects and Variant can be null in Godot; use '${type.shortName}' or Variant",
+        )
+    }
+}
+
+private const val VARIANT_FQN = "io.github.kingg22.godot.api.builtin.Variant"
+
+/** What KspMapping records for a type KSP cannot resolve. */
+private const val UNRESOLVED_TYPE = "<unknown>"

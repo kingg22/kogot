@@ -1,30 +1,22 @@
 @file:OptIn(ExperimentalForeignApi::class)
 
-import io.github.kingg22.godot.api.GodotEnum
-import io.github.kingg22.godot.api.GodotError
 import io.github.kingg22.godot.api.annotations.Export
 import io.github.kingg22.godot.api.annotations.Godot
 import io.github.kingg22.godot.api.annotations.GodotNotification
 import io.github.kingg22.godot.api.annotations.RegisterSignal
-import io.github.kingg22.godot.api.builtin.Callable
-import io.github.kingg22.godot.api.builtin.Signal
-import io.github.kingg22.godot.api.builtin.StringName
-import io.github.kingg22.godot.api.builtin.Variant
-import io.github.kingg22.godot.api.builtin.toStringName
-import io.github.kingg22.godot.api.builtin.toVariant
+import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.api.core.node.Node2D
-import io.github.kingg22.godot.internal.binding.VariantBinding
-import io.github.kingg22.godot.internal.binding.allocConstTypePtrArray
-import io.github.kingg22.godot.internal.ffi.GDExtensionPtrBuiltInMethod
+import io.github.kingg22.godot.api.signal.SignalConnection
+import io.github.kingg22.godot.api.signal.connect
+import io.github.kingg22.godot.api.signal.emit
+import io.github.kingg22.godot.api.signal.signal
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.LongVar
-import kotlinx.cinterop.alloc
-import kotlinx.cinterop.invoke
-import kotlinx.cinterop.memScoped
-import kotlinx.cinterop.ptr
-import kotlinx.cinterop.value
+
+// Parameter names and types survive the alias: KSP registers `moved(position: Vector2, source: Object)`.
+// TODO: a Node parameter needs the pending GodotObject downcast; handlers receive a plain GodotObject today.
+typealias Moved = (position: Vector2, source: GodotObject?) -> Unit
 
 @Godot class SpriteBench(nativePtr: COpaquePointer) :
     Node2D(nativePtr),
@@ -36,95 +28,55 @@ import kotlinx.cinterop.value
 
     @Export val spriteName: String = "SpriteBench"
 
-    private val hintStr = "hint".toStringName()
-    private val punchStr = "punch".toStringName()
+    @RegisterSignal
+    private val hint by signal<() -> Unit>()
 
     @RegisterSignal
-    private val hint by lazy { Signal(this, hintStr) }
+    private val punch by signal<(value: Long) -> Unit>()
 
-    @RegisterSignal(RegisterSignal.Param(Variant.Type.INT, "value"))
-    private val punch by lazy { Signal(this, punchStr) }
+    @RegisterSignal
+    private val moved by signal<Moved>()
 
-    private val callable1 = Callable {
-        println("Callable1: received")
-    }
-
-    private val callable2 = Callable { id: Long ->
-        println("Callable2: received $id")
-    }
+    private val connections = mutableListOf<SignalConnection>()
 
     /**
-     * Godot has no GC: release the native builtin handles this node holds for its whole lifetime when
-     * it is about to be freed, or they leak (`Orphan StringName: hint/punch …` at exit).
+     * Godot has no GC: release the native handles this node holds for its whole lifetime when it is about to be
+     * freed, or they leak (`Orphan StringName: hint/punch …` at exit).
      */
     override fun _notification(what: Int) {
         if (what == GodotObject.NOTIFICATION_PREDELETE.toInt()) {
             println("[SpriteBench] NOTIFICATION_PREDELETE: releasing native handles")
+            connections.forEach(SignalConnection::close)
             hint.close()
             punch.close()
-            callable1.close()
-            callable2.close()
-            hintStr.close()
-            punchStr.close()
+            moved.close()
         }
     }
 
     override fun _ready() {
         println("[SpriteBench] _ready started")
-
-        // ✅ connect después de validar
-        if (hint.isConnected(callable1)) {
-            println("hint already connected to callable1")
-        } else {
-            val result1 = hint.connect(callable1)
-            println("connect result: $result1 : ${GodotEnum.fromValue<GodotError>(result1)}")
-        }
-
-        if (punch.isConnected(callable2)) {
-            println("punch already connected to callable2")
-        } else {
-            val result = punch.connect(callable2)
-            println("connect punch result: $result : ${GodotEnum.fromValue<GodotError>(result)}")
-        }
-
         try {
-            println("[SpriteBench] emitting **hint** via Signal.emit fixed")
-            val error = hint.emitFix()
-            println("emitFix hint returned: $error")
+            connections += hint.connect { println("hint: received") }
+            connections += punch.connect { value -> println("punch: received $value") }
+            connections += punch.connect(GodotObject.ConnectFlags.ONE_SHOT) { value -> println("punch one-shot: $value") }
 
-            println("[SpriteBench] emitting **punch** via Signal.emit fixed")
-            val error2 = punch.emitFix(12L.toVariant())
-            println("emitFix punch returned: $error2")
+            println("emit hint: ${hint.emit()}")
+            println("emit punch 12: ${punch.emit(12L)}") // both handlers
+            println("emit punch 15: ${punch.emit(15L)}") // the one-shot is gone
 
-            println("[SpriteBench] emitting **hint** via emitSignal")
-            val result = emitSignal(hintStr)
-            println("emitSignal hint result: $result")
-            println("[SpriteBench] emitting **punch** via emitSignal")
-            val result2 = emitSignal(punchStr, 15L.toVariant())
-            println("emitSignal punch result2: $result2")
+            val temporary = punch.connect { value -> println("punch temporary: $value") }
+            println("temporary connected: ${temporary.isConnected}")
+            temporary.close()
+            println("temporary connected after close: ${temporary.isConnected}")
+            println("emit punch 30: ${punch.emit(30L)}") // the temporary handler must not run
+
+            connections += moved.connect { position, source -> println("moved: $position by ${source != null}") }
+            println("emit moved: ${moved.emit(Vector2(1.0, 2.0), this)}")
         } catch (e: Exception) {
             println("[SpriteBench] failed: ${e.message}")
             e.printStackTrace()
         } finally {
             println("[SpriteBench] _ready finished")
         }
-    }
-}
-
-fun Signal.emitFix(vararg args: Variant): GodotError = memScoped {
-    val retPtr = alloc<LongVar>()
-    methodSignalEmit_3286317445_Fn.invoke(
-        rawPtr,
-        allocConstTypePtrArray(*args.map { it.rawPtr }.toTypedArray()),
-        retPtr.ptr,
-        args.size,
-    )
-    return GodotEnum.fromValue(retPtr.value)
-}
-
-private val methodSignalEmit_3286317445_Fn: GDExtensionPtrBuiltInMethod by lazy(PUBLICATION) {
-    StringName("emit").use { name ->
-        VariantBinding.getPtrBuiltinMethodRaw(GDEXTENSION_VARIANT_TYPE_SIGNAL, name.rawPtr, 3_286_317_445L)
-            ?: error("Missing builtin method 'Signal.emit' hash: 3286317445")
     }
 }
