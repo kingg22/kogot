@@ -132,6 +132,7 @@ include(
     "codegen:api:java-ffm",
     "codegen:api:kotlin-native",
     "codegen:api:kotlin-native-callable",
+    "codegen:api:kotlin-native-signal",
     "codegen:common",
     "codegen:common:kotlin-native",
     "codegen:runtime:common",

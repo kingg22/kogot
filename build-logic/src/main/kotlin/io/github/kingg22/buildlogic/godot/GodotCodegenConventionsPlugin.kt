@@ -8,6 +8,7 @@ import io.github.kingg22.buildlogic.godot.conventions.CodegenKind
 import io.github.kingg22.buildlogic.godot.conventions.CodegenKind.API
 import io.github.kingg22.buildlogic.godot.conventions.CodegenKind.CALLABLE
 import io.github.kingg22.buildlogic.godot.conventions.CodegenKind.RUNTIME
+import io.github.kingg22.buildlogic.godot.conventions.CodegenKind.SIGNAL
 import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenDsl
 import io.github.kingg22.buildlogic.godot.conventions.GodotCodegenExtension
 import io.github.kingg22.buildlogic.godot.task.GenerateGodotTask
@@ -143,6 +144,7 @@ class GodotCodegenConventionsPlugin : Plugin<Project> {
             KOTLIN_NATIVE to API -> target.project(":codegen:api:kotlin-native")
             KOTLIN_NATIVE to RUNTIME -> target.project(":codegen:runtime:kotlin-native")
             KOTLIN_NATIVE to CALLABLE -> target.project(":codegen:api:kotlin-native-callable")
+            KOTLIN_NATIVE to SIGNAL -> target.project(":codegen:api:kotlin-native-signal")
             JAVA_FFM to API -> target.project(":codegen:api:java-ffm")
             else -> error("Unsupported backend/output kind combination: $backend to $kind")
         }

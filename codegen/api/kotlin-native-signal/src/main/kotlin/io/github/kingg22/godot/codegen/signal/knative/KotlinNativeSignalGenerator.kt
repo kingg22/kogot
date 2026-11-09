@@ -1,4 +1,4 @@
-package io.github.kingg22.godot.codegen.callable.knative
+package io.github.kingg22.godot.codegen.signal.knative
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy

@@ -66,5 +66,9 @@ godotCodegen {
         register("callable") {
             kind = CodegenKind.CALLABLE
         }
+        // Typed `emit`/`connect` extensions of TypedSignal (hand-written in this module, api.signal).
+        register("signal") {
+            kind = CodegenKind.SIGNAL
+        }
     }
 }
