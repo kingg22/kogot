@@ -238,16 +238,34 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
                         // Caso especial: Boolean check
                         BOOLEAN -> {
                             addStatement("check(")
-                            withIndent { add(buildReturnRead(returnType, implPackageRegistry, resolvedReturn, true)) }
+                            withIndent {
+                                add(
+                                    buildReturnRead(
+                                        returnType,
+                                        implPackageRegistry,
+                                        resolvedReturn,
+                                        true,
+                                        adoptRefCounted = true,
+                                    ),
+                                )
+                            }
                             addStatement(")·{♢%S♢}", "$contextInfo doesn't return true")
                         }
 
                         // Fallback para otros tipos en setterMode (si aplica)
-                        else -> add(buildReturnRead(returnType, implPackageRegistry, resolvedReturn, true))
+                        else -> add(
+                            buildReturnRead(
+                                returnType,
+                                implPackageRegistry,
+                                resolvedReturn,
+                                true,
+                                adoptRefCounted = true,
+                            ),
+                        )
                     }
                 } else {
                     // No es setterMode: Solo emitimos la lectura normal del retorno
-                    add(buildReturnRead(returnType, implPackageRegistry, resolvedReturn))
+                    add(buildReturnRead(returnType, implPackageRegistry, resolvedReturn, adoptRefCounted = true))
                 }
             }
 

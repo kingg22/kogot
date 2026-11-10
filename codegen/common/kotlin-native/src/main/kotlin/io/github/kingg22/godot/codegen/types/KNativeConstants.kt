@@ -62,6 +62,9 @@ val GODOT_VIRTUAL_METHOD = ClassName("io.github.kingg22.godot.api.internal", "Go
 val GODOT_CLASS = ClassName("io.github.kingg22.godot.api.internal", "GodotClass")
 val KOTLIN_NATIVE_CLEANER = ClassName("kotlin.native.ref", "Cleaner")
 
+/** Wraps the wrapper built around a `Ref<T>` ptrcall return so it owns (and later gives back) that reference. */
+val ADOPT_RETURNED_REFERENCE = MemberName("io.github.kingg22.godot.internal.binding", "adoptReturnedReference")
+
 val PRIMITIVE_NUMERIC_TYPES = setOf(
     "int8_t", "int8",
     "short", "int16_t", "int16",

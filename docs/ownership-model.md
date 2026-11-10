@@ -71,38 +71,43 @@ la colección desde un hilo creado por Kotlin, no solo el principal — **cero c
 incluyendo con la colección disparada concurrentemente desde un hilo de coroutine mientras el hilo
 principal seguía en su loop de frames.
 
-### Adquisiciones repetidas del mismo puntero todavía vivo: resuelto en `GD.load`/`loadOrNull`
+### Un solo modelo: cada wrapper vivo posee exactamente una referencia del motor
 
-El caché de identidad de `materialize()` hace que `GD.load()` repetido sobre el mismo recurso, mientras el
-wrapper anterior sigue vivo, devuelva la **misma** instancia Kotlin cacheada — sin pasar por `factory()` y
-sin un segundo `Cleaner`. Pero cada llamada es un ptrcall real que transfiere una referencia nueva del
-motor (+1), así que solo la *primera* se liberaba y cada adquisición redundante filtraba una referencia
-(confirmado: el refcount crecía en un loop de `GD.load`).
+Lo anterior liberaba la referencia de un wrapper al recogerlo, pero solo cubría los wrappers que pasaban por
+`castTo`. Las tres piezas que faltaban se resolvieron con la misma regla: **un wrapper vivo posee exactamente
+una referencia del motor y la devuelve al recogerse** (`attachRefCountedRelease`, que además la registra en
+`PendingReleases`, ver abajo).
 
-`castTo`/`materialize` no pueden distinguir "este puntero trae una referencia nueva" de "re-cast de un
-puntero que ya tengo" — esa información solo existe en el *call site*. Por eso hay una variante explícita,
-`materializeOwned` / `castToOwnedInternal` (`ObjectIdentity.kt`, `Casting.kt`), que el call site que sabe
-que recibió una referencia propia (hoy `GD.load` y `GD.loadOrNull`) usa para que **toda** referencia
-recibida quede saldada. Invariante: cada wrapper vivo posee **exactamente una** referencia del motor,
-liberada por su `Cleaner`:
+- **Los métodos generados que devuelven `Ref<T>` adoptan la referencia que reciben.** Un ptrcall que devuelve
+  un `Ref<T>` entrega al caller un +1 que nadie más soltará. El generador (`buildReturnRead`) envuelve el
+  wrapper de todo retorno de una clase que hereda de `RefCounted` en `adoptReturnedReference(...)`, que le
+  asigna ese +1 al wrapper. Antes, cada `ResourceLoader.load`, getter de propiedad, `Image.createEmpty`, etc.
+  filtraba una referencia por llamada. La liberación vive ahora en `api:generated` (junto al código
+  generado que la llama), no en `binding`; eso exige añadir `InternalBinding` a los `optIn` de ese módulo.
+- **`castTo` (`materialize`) trata el puntero como prestado.** No puede distinguir un puntero que llegó con una
+  referencia propia de uno leído de un `Variant` o recibido como argumento de un callback, así que el wrapper
+  nuevo hace `RefCounted::reference()` por su cuenta (`takeOwnReference = true`). Antes asumía propiedad y
+  su `Cleaner` hacía `unreference()` de una referencia que nunca se tomó, con lo que el motor liberaba el
+  objeto bajo su dueño real.
+- **Adquisiciones repetidas del mismo puntero vivo.** El caché de identidad colapsa `GD.load` repetidos en la
+  misma instancia Kotlin, pero cada llamada trae un +1. Ya no hay nada especial que hacer: el `Resource` que
+  devuelve `ResourceLoader.load` posee el suyo y el wrapper del cast posee el otro, y cada uno se devuelve
+  al recogerse. (Un intento anterior de resolverlo en `GD.load` con una variante `materializeOwned` era más
+  rápido de liberar pero dependía de que el call site supiera lo que recibía; se eliminó en favor de esta
+  regla única.) `GD.load` y `GD.loadOrNull` son ahora un `castTo` simple.
 
-- primera vez que se ve el puntero → el wrapper nuevo adopta la referencia;
-- adquisición repetida y el wrapper ya tiene `Cleaner` → la referencia nueva es redundante y se libera
-  (`releaseOwnedReference`, por el mismo `callDeferred()` al hilo principal);
-- adquisición repetida y el wrapper **no** tiene `Cleaner` (clase propia registrada, cuya instancia
-  construyó `createInstanceFunc` de forma eager) → nada mantiene vivo el objeto del motor, así que la
-  referencia se adopta en vez de soltarla (soltarla dejaría un wrapper Kotlin apuntando a un objeto ya
-  liberado por el motor);
-- `GD.loadOrNull` cuyo cast falla → devuelve `null` y la referencia recibida se libera, no se filtra.
+Consecuencia a tener presente: las referencias se devuelven **cuando el GC recoge los wrappers** y el
+`Cleaner` encola la liberación, no en el instante en que el wrapper deja de usarse. Ver el límite de
+timing del `Cleaner` más abajo.
 
-Verificado contra el binario dev real (`test_diag.tscn`, `[RepeatedAcquire]`): con el wrapper ancla vivo se
-hacen 9 `GD.load` repetidos + 1 `loadOrNull` fallido; el refcount sube de 6 a 16 mientras las liberaciones
-siguen en cola y vuelve a **6** tras el flush del siguiente frame, 5 de 5 corridas, sin crashes. No depende
-del momento en que el GC dispare un `Cleaner`: toda la liberación va directa por `callDeferred()`.
+Verificado contra el binario dev real (`test_diag.tscn`), 5 de 5 corridas, sin crashes:
 
-**Alcance:** `castToOwnedInternal` es `internal`; un `castTo` manual sobre el retorno de un método
-generado sigue sin saber si el puntero trae una referencia propia, y el primer avistamiento sigue
-adoptándola (ver "Abierto" abajo).
+- `[RepeatedAcquire]`: con un wrapper ancla vivo, 9 `GD.load` repetidos + 1 `loadOrNull` fallido llevan el
+  refcount de 6 a 16 y, tras recolectar, vuelve a **6**.
+- `[BorrowedCast]`: un `Image` cuyo único dueño es una `Variant` pasa de refcount 1 a 2 mientras vive el
+  wrapper del cast y vuelve a 1 al recogerse; la `Variant` lo libera al cerrarse.
+- `[GeneratedReturn]`: 50 `Image.createEmpty()` descartados suben `Performance.OBJECT_COUNT` de 1502 a 1552 y,
+  tras recolectar, vuelve a **1502** (0 de 50 vivos).
 
 ### Referencias que Kotlin aún posee al cerrar la extensión: vaciado síncrono en `onDeInitScene`
 
@@ -111,9 +116,9 @@ tarde correría cuando el motor ya apagó los servidores. En `Main::cleanup` la 
 **antes** del deinit `SCENE` y otra vez al final, **después** de apagar los servidores, así que lo que Kotlin
 aún debe tiene que saldarse de forma síncrona en el deinit `SCENE`, con todo el motor vivo.
 
-`PendingReleases` (`kotlin-native/binding/.../internal/binding/PendingReleases.kt`) lleva, por puntero, cuántas
-liberaciones están pendientes: una por cada wrapper vivo (`attachRefCountedRelease`) y una por cada
-referencia redundante encolada (`releaseOwnedReference`). Cada unidad se consume **exactamente una vez**,
+`PendingReleases` (`kotlin-native/api/generated/.../internal/binding/PendingReleases.kt`) lleva, por puntero, cuántas
+liberaciones están pendientes: una por cada wrapper vivo (`attachRefCountedRelease`). Cada unidad se consume
+**exactamente una vez**,
 por quien llegue primero: la liberación diferida en el hilo principal (`settle`) o el vaciado al cerrar
 (`drain`). Eso hace que una liberación diferida que sigue en cola cuando corre el vaciado sea un no-op y no
 un `unreference()` doble. El procesador genera `releaseAllPendingRefCountedReferences()` como **primera**
@@ -127,35 +132,20 @@ limpio, 3 de 3 corridas cada una, sin crashes. Un punto de entrada escrito a man
 `kotlin-native/sample`) debe llamar a esa función él mismo; y un proyecto sin ninguna clase `@Godot` no recibe
 el `GeneratedBindings` generado, así que tampoco el vaciado.
 
-### `castTo` sobre un puntero prestado: el wrapper toma su propia referencia
-
-`materialize` asumía que todo `RefCounted` que veía por primera vez traía una referencia propia (cierto para un
-retorno de ptrcall, falso para un puntero leído de un `Variant` o recibido como argumento de un callback). Con
-un puntero prestado, el `Cleaner` terminaba haciendo `unreference()` de una referencia que nunca se tomó, y el
-motor liberaba el objeto bajo su dueño real.
-
-Ahora la regla es la misma para todos: **un wrapper vivo posee exactamente una referencia del motor y la
-devuelve al recogerse**. `materialize` (`castTo`) trata el puntero como prestado y el wrapper nuevo hace
-`RefCounted::reference()` por su cuenta (`attachRefCountedRelease(..., takeOwnReference = true)`);
-`materializeOwned` — el call site que sabe que acaba de recibir una referencia — la adopta como antes.
-
-Verificado contra el binario real (`[BorrowedCast]` en `test_diag.tscn`): un `Image` cuyo único dueño es una
-`Variant` pasa de refcount 1 a 2 mientras vive el wrapper del cast y vuelve a 1 al recogerse, 5 de 5 corridas
-(las dos comprobaciones en `PASS`), sin que el motor libere el objeto bajo la `Variant`.
 
 ### Abierto, no resuelto aquí
 
-1. **Los métodos generados que devuelven `Ref<T>` nunca liberan la referencia que reciben.** Cada
-   `ResourceLoader.load(...)`, getter de propiedad, etc. construye un wrapper genérico nuevo (`Resource(ptr)`)
-   sin `Cleaner`: solo lo que pasa por `GD.load` (o un `castTo` posterior) queda saldado. Solucionarlo de
-   forma general es un cambio de codegen (adoptar la referencia en el sitio de retorno), con la dificultad
-   de que `api:generated` no puede depender del módulo `binding` donde vive la liberación diferida.
-   Con esta regla, un `castTo` manual sobre el retorno de un método generado ya no adopta su referencia: esa
-   referencia queda sin soltar (una fuga segura) hasta que el retorno generado la adopte.
-2. **`Orphan StringName: Environment` al salir.** Aparece con la extensión cargada incluso en una escena
+
+1. **Los constructores públicos de clases `RefCounted` (`Image()`, `JSON()`, ...) filtran su referencia.** El
+   constructor sin argumentos generado hace `ClassDB.instantiate(...)`, que devuelve una `Variant` que nunca se
+   cierra, y el wrapper resultante no posee la referencia: ninguna pasa por `adoptReturnedReference`.
+2. **Se asume que todo retorno de una clase `RefCounted` es un `Ref<T>`.** Es la convención de Godot y lo que
+   observan los tests, pero no se verificó método por método (hay 543 en la API): un método que devolviera un
+   `T*` crudo de una clase `RefCounted` haría que el wrapper devolviera una referencia que nunca recibió.
+3. **`Orphan StringName: Environment` al salir.** Aparece con la extensión cargada incluso en una escena
    vacía (sin el binario de la extensión no aparece), así que sale de la inicialización de código generado,
    no del ciclo de vida de `RefCounted`. Sin localizar todavía.
-3. **La liberación necesita actividad de otro thread para despachar a tiempo.** Con `mi-juego-prueba`
+4. **La liberación necesita actividad de otro thread para despachar a tiempo.** Con `mi-juego-prueba`
    corriendo prácticamente single-threaded, un `GC.collect()` síncrono en el hilo principal seguido de
    ~30 frames de espera **no** alcanza para que el `Cleaner` dispare — pero forzar la MISMA colección
    desde un hilo lanzado con `kotlinx.coroutines` (`Dispatchers.Default`) sí, de forma consistente y

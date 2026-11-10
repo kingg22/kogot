@@ -281,6 +281,12 @@ fun buildReturnAlloc(
 /**
  * Reads the return value from the allocated return buffer after a FFI invoke call.
  * Must be called AFTER [buildReturnAlloc] — consumes the same type decisions.
+ *
+ * With [adoptRefCounted], a return type that is `RefCounted` or a descendant is wrapped in
+ * `adoptReturnedReference(...)`: the ptrcall returned a `Ref<T>`, which transfers one owned engine
+ * reference to the caller, and that call is what makes the Kotlin wrapper own it and give it back when it
+ * is collected (issue #114). Only valid where the buffer holds a fresh ptrcall return — the engine-class
+ * methods and property getters — never for a pointer that was merely read out of somewhere.
  */
 context(ctx: Context)
 fun buildReturnRead(
@@ -288,6 +294,7 @@ fun buildReturnRead(
     implPackageRegistry: ImplementationPackageRegistry,
     kotlinType: TypeName,
     setterMode: Boolean = false,
+    adoptRefCounted: Boolean = false,
 ): CodeBlock {
     val cVarType = primitiveKotlinToCVar(kotlinType)
     val preAppendReturn = if (setterMode) "" else "return "
@@ -334,14 +341,29 @@ fun buildReturnRead(
             returnType.startsWith("typedarray") -> CodeBlock.ofStatement("${preAppendReturn}retPtr")
 
         ctx.isEngineClass(returnType) -> {
+            val adopt = adoptRefCounted && ctx.inheritsRefCounted(returnType)
             CodeBlock
                 .builder()
-                .addStatement("$preAppendReturn%T(", kotlinType)
+                .apply {
+                    if (adopt) {
+                        addStatement("$preAppendReturn%M(", ADOPT_RETURNED_REFERENCE)
+                        indent()
+                        addStatement("%T(", kotlinType)
+                    } else {
+                        addStatement("$preAppendReturn%T(", kotlinType)
+                    }
+                }
                 .indent()
                 .addStatement("%M(retPtr.%M) {", K_REQUIRE_NOT_NULL, cinteropValue)
                 .withIndent { addStatement("%S", "$returnType pointer value was null") }
                 .withIndent { endControlFlow() }
                 .addStatement(")")
+                .apply {
+                    if (adopt) {
+                        unindent()
+                        addStatement(")")
+                    }
+                }
                 .build()
         }
 

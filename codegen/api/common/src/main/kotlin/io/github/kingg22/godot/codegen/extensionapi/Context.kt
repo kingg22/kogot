@@ -20,6 +20,8 @@ import io.github.kingg22.godot.codegen.services.PackageRegistry
 import io.github.kingg22.godot.codegen.utils.currentClassLogger
 import io.github.kingg22.godot.codegen.utils.info
 
+private const val REF_COUNTED_CLASS_NAME = "RefCounted"
+
 /**
  * Inmutable, built once from [ExtensionApi]
  *
@@ -64,6 +66,21 @@ class Context(
         godotName in model.engineClassesByName || godotName in globalEnumsTypes
 
     fun isEngineClass(godotName: String): Boolean = godotName in model.engineClassesByName
+
+    /**
+     * Whether [godotName] is `RefCounted` or one of its descendants. Godot returns such a class by `Ref<T>`
+     * from a ptrcall, which hands the caller one owned engine reference (see issue #114).
+     */
+    fun inheritsRefCounted(godotName: String): Boolean {
+        var current: String = godotName
+        // The hop bound only guards against a malformed (cyclic) hierarchy; real chains are a few levels.
+        for (_ in 0..model.engineClassesByName.size) {
+            if (current == REF_COUNTED_CLASS_NAME) return true
+            current = model.engineClassesByName[current]?.raw?.inherits ?: return false
+        }
+        return false
+    }
+
     fun isNativeStructure(godotName: String): Boolean = godotName in nativeStructureTypes
 
     fun isSpecializedClass(godotName: String): Boolean = godotName.endsWith('i') && isGodotType(godotName.dropLast(1))

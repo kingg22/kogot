@@ -29,6 +29,9 @@ kotlin {
             "io.github.kingg22.godot.api.ExperimentalGodotKotlin",
             "io.github.kingg22.godot.api.ExperimentalForInheritanceGodotApi",
             "io.github.kingg22.godot.api.InternalForInheritanceGodotApi",
+            // The generated wrappers are part of the binding's own implementation: the ones around a
+            // `Ref<T>` return call `adoptReturnedReference`. The marker is there to keep users away.
+            "io.github.kingg22.godot.internal.binding.InternalBinding",
         )
     }
 

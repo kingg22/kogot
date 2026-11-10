@@ -13,11 +13,10 @@ import io.github.kingg22.godot.internal.ffi.GDExtensionObjectPtr
  * registry yet, so the caller must supply [factory] (e.g. `::Texture2D`) to construct [T] from the
  * loaded native pointer.
  *
- * `ResourceLoader.load` hands Kotlin one owned engine reference per call, and this function is the one
- * place that knows it — so it is always settled here (issue #114): adopted by the new wrapper on a first
- * sighting, released when the same still-live resource is loaded again (the wrapper already owns its
- * own), and released when the cast fails. Loading the same path in a loop therefore does not make the
- * engine refcount climb.
+ * Ownership (issue #114): the [Resource] that [ResourceLoader.load] returns owns the engine reference
+ * that call transferred and gives it back when collected, and the cast wrapper takes and gives back its
+ * own — so loading the same path repeatedly, or failing the cast, leaks nothing; the references are
+ * returned as the garbage collector gets to the wrappers.
  *
  * @throws ClassCastException if the resource at [path] is not actually a [T].
  * @see ResourceLoader.load
@@ -27,26 +26,14 @@ public inline fun <reified T : Resource> GD.load(
     typeHint: String = T::class.simpleName!!,
     cacheMode: ResourceLoader.CacheMode = ResourceLoader.CacheMode.REUSE,
     noinline factory: (nativePtr: GDExtensionObjectPtr) -> T,
-): T {
-    val godotClassName = T::class.simpleName!!
-    return castToOwnedInternal(
-        ResourceLoader.instance.load(path, typeHint, cacheMode).rawPtr,
-        godotClassName,
-        factory,
-    ) ?: throw ClassCastException("Failed to cast pointer to $godotClassName")
-}
+): T = ResourceLoader.instance.load(path, typeHint, cacheMode).castTo(factory)
 
 /**
- * Like [load], but returns `null` instead of throwing when the resource at [path] is not a [T]. The
- * reference `ResourceLoader.load` handed over is released in that case too.
+ * Like [load], but returns `null` instead of throwing when the resource at [path] is not a [T].
  */
 public inline fun <reified T : Resource> GD.loadOrNull(
     path: String,
     typeHint: String = T::class.simpleName!!,
     cacheMode: ResourceLoader.CacheMode = ResourceLoader.CacheMode.REUSE,
     noinline factory: (nativePtr: GDExtensionObjectPtr) -> T,
-): T? = castToOwnedInternal(
-    ResourceLoader.instance.load(path, typeHint, cacheMode).rawPtr,
-    T::class.simpleName!!,
-    factory,
-)
+): T? = ResourceLoader.instance.load(path, typeHint, cacheMode).castToOrNull(factory)

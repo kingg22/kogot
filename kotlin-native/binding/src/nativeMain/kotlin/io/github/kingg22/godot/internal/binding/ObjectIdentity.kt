@@ -89,44 +89,17 @@ public fun <T : GodotObject> resolveBinding(rawPtr: GDExtensionObjectPtr): T? {
  * as-is (never fabricates a second Kotlin instance for the same native pointer, see issue #114); only
  * on a genuine first sighting is [factory] invoked.
  *
- * This overload treats [rawPtr] as **borrowed**: it cannot tell a pointer that arrived with an owned
- * engine reference (a ptrcall return of a `Ref<T>`) from one read out of a `Variant`, handed to a
- * callback, or re-cast from a wrapper someone else holds. So a `RefCounted` wrapper built on a first
- * sighting takes its *own* reference (released when the wrapper is collected) and never touches the
- * caller's; a cache hit leaves the engine refcount untouched. A call site that knows it just received
- * an owned reference uses [materializeOwned] to hand that reference over instead.
+ * The pointer is treated as **borrowed**: a cast cannot tell one that arrived with an owned engine
+ * reference (a ptrcall return of a `Ref<T>`) from one read out of a `Variant`, handed to a callback, or
+ * re-cast from a wrapper someone else holds. So a `RefCounted` wrapper built on a first sighting takes its
+ * *own* reference (released when the wrapper is collected) and never touches the caller's; a cache hit
+ * leaves the engine refcount untouched. A reference that came with a ptrcall return is owned by the
+ * wrapper the generated method built around it (`adoptReturnedReference`), not by the cast.
  */
 @InternalBinding
+@Suppress("UNCHECKED_CAST")
 public fun <T : GodotObject> materialize(
     rawPtr: GDExtensionObjectPtr,
-    factory: (nativePtr: GDExtensionObjectPtr) -> T,
-): T = materializeInternal(rawPtr, owned = false, factory)
-
-/**
- * [materialize] for a [rawPtr] the caller just *received* an owned engine reference for — a ptrcall
- * return of a `Ref<T>`, whose +1 nothing but Kotlin will ever drop (see issue #114).
- *
- * That ownership knowledge only exists at the call site (e.g. `GD.load`), which is why it is a separate
- * entry point rather than something [materialize] could infer. It lets a repeated acquisition of a
- * still-live pointer be settled correctly: on a first sighting the new wrapper adopts the reference
- * (its cleaner releases it); on a cache hit the wrapper already owns *its* reference, so the redundant
- * one is released instead of leaking one engine reference per call ([settleOwnedReference]).
- *
- * The caller guarantees [rawPtr] is a `RefCounted` holding an owned reference it does not otherwise
- * use, and must not call this for a borrowed pointer (one read out of a `Variant`, an engine callback
- * argument, ...): it would drop a reference it never received.
- */
-@InternalBinding
-public fun <T : GodotObject> materializeOwned(
-    rawPtr: GDExtensionObjectPtr,
-    factory: (nativePtr: GDExtensionObjectPtr) -> T,
-): T = materializeInternal(rawPtr, owned = true, factory)
-
-@OptIn(InternalBinding::class)
-@Suppress("UNCHECKED_CAST")
-private fun <T : GodotObject> materializeInternal(
-    rawPtr: GDExtensionObjectPtr,
-    owned: Boolean,
     factory: (nativePtr: GDExtensionObjectPtr) -> T,
 ): T = memScoped {
     val slotPtr = requireNotNull(
@@ -138,17 +111,12 @@ private fun <T : GodotObject> materializeInternal(
     ) { "object_get_instance_binding returned null for $rawPtr" }
 
     val slot = slotPtr.asStableRef<BindingSlot>().get()
-    (slot.ref?.get() as T?)?.let { cached ->
-        if (owned && cached is RefCounted) settleOwnedReference(cached, rawPtr)
-        return@memScoped cached
-    }
+    (slot.ref?.get() as T?)?.let { return@memScoped it }
 
     val instance = factory(rawPtr)
     slot.ref = WeakReference(instance)
     if (instance is RefCounted) {
-        // Owned: the ptrcall return already carried the reference this wrapper adopts. Not owned: the
-        // pointer is borrowed from someone else, so the wrapper takes (and later gives back) its own.
-        attachRefCountedRelease(instance, rawPtr, takeOwnReference = !owned)
+        attachRefCountedRelease(instance, rawPtr, takeOwnReference = true)
     }
     instance
 }

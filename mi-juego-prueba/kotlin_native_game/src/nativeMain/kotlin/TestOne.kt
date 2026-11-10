@@ -19,6 +19,7 @@ import io.github.kingg22.godot.api.core.refcounted.Image
 import io.github.kingg22.godot.api.core.refcounted.Texture2D
 import io.github.kingg22.godot.api.singleton.ClassDB
 import io.github.kingg22.godot.api.singleton.Engine
+import io.github.kingg22.godot.api.singleton.Performance
 import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.print
 import io.github.kingg22.godot.binding.instantiate
@@ -41,13 +42,27 @@ private const val SPRITE_COUNT = 5
 // dedicated Cleaner worker thread and Godot's MessageQueue idle-time flush to have run in between.
 private val REFCOUNT_STEP_ACQUIRE_FRAMES = listOf(10, 40, 70, 100, 130, 160)
 
-// issue #114, repeated acquisition of a still-live pointer: runs well after the steps above have settled
-// (their GC-driven releases would otherwise move the refcount under this check), in three phases one
-// idle frame apart so each deferred `callDeferred()` release has been flushed before it is measured.
+// issue #114, repeated acquisition of a still-live pointer: runs well after the steps above have settled.
+// Every wrapper (the one `ResourceLoader.load` returns and the cast one) now gives its reference back when
+// it is collected, so each phase that needs garbage gone forces the GC from a worker thread (see
+// stepRefCountedReleaseTest) and leaves idle frames for the deferred release to run: first collect the
+// garbage left by earlier steps, then measure the baseline and burst, then collect again and check.
 private const val REPEATED_ACQUIRE_ANCHOR_FRAME = 300
-private const val REPEATED_ACQUIRE_BURST_FRAME = 302
-private const val REPEATED_ACQUIRE_CHECK_FRAME = 304
+private const val REPEATED_ACQUIRE_PRE_GC_FRAME = 302
+private const val REPEATED_ACQUIRE_BURST_FRAME = 312
+private const val REPEATED_ACQUIRE_GC_FRAME = 316
+private const val REPEATED_ACQUIRE_GC_RETRY_FRAME = 330
+private const val REPEATED_ACQUIRE_CHECK_FRAME = 360
 private const val REPEATED_ACQUIRE_COUNT = 9
+
+// issue #114, methods that return a `Ref<T>`: the generated wrapper owns the reference the ptrcall handed over.
+// Creates GENERATED_RETURN_COUNT Images that are dropped right away; the engine's own object count must come
+// back down once they are collected (before the fix every one stayed alive for the whole process).
+private const val GENERATED_RETURN_FRAME = 480
+private const val GENERATED_RETURN_GC_FRAME = 485
+private const val GENERATED_RETURN_GC_RETRY_FRAME = 500
+private const val GENERATED_RETURN_CHECK_FRAME = 530
+private const val GENERATED_RETURN_COUNT = 50
 
 // issue #114, castTo on a *borrowed* pointer: the cast happens at BORROWED_CAST_FRAME and its wrapper is
 // dropped when that call returns; the GC is forced from a worker thread in a later frame (twice, since a
@@ -67,6 +82,7 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
     // Kept strongly reachable across the repeated-acquisition phases on purpose.
     private var repeatedAcquireAnchor: Texture2D? = null
     private var repeatedAcquireBaseline = -1
+    private var generatedReturnBaseline = -1.0
 
     // The Variant is the only real owner of the borrowed Image across the borrowed-cast phases.
     private var borrowedOwner: Variant? = null
@@ -182,6 +198,7 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
                 stepRefCountedReleaseTest(currentFrame - START_FRAME)
                 stepRepeatedAcquisitionTest(currentFrame - START_FRAME)
                 stepBorrowedCastTest(currentFrame - START_FRAME)
+                stepGeneratedReturnTest(currentFrame - START_FRAME)
 
                 frameIndex += 1
             }
@@ -239,25 +256,31 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
     }
 
     /**
-     * issue #114 follow-up: acquiring the *same* still-live pointer repeatedly. `GD.load` hands Kotlin one
-     * owned engine reference per call, but the identity cache collapses every call into the one live
-     * wrapper (which owns exactly one reference) — the redundant references must be released, not leaked.
+     * issue #114 follow-up: acquiring the *same* still-live pointer repeatedly. Every `GD.load` hands
+     * Kotlin one owned engine reference (the `Resource` that `ResourceLoader.load` returns owns it), while
+     * the identity cache collapses every cast into the one live wrapper — which owns exactly one reference
+     * of its own. Nothing may be left unreleased once the throwaway wrappers are collected.
      *
-     * Three phases, one idle frame apart so each deferred release has been flushed before it is measured:
+     * Phases, spaced so that each collection and its deferred release have idle frames to complete:
      * 1. [REPEATED_ACQUIRE_ANCHOR_FRAME]: load the resource and keep the wrapper reachable (the *anchor*).
-     * 2. [REPEATED_ACQUIRE_BURST_FRAME]: record the settled refcount, then load it [REPEATED_ACQUIRE_COUNT]
-     *    more times (each must resolve to the anchor itself), and also a `loadOrNull` whose cast fails
-     *    (the owned reference must be released on that path too).
-     * 3. [REPEATED_ACQUIRE_CHECK_FRAME]: the refcount must be back at the recorded baseline. Before the
-     *    fix it stayed at `baseline + REPEATED_ACQUIRE_COUNT + 1`.
-     *
-     * Deliberately independent of Kotlin/Native's Cleaner timing: every release exercised here goes
-     * straight through `callDeferred()`, so a leak shows up deterministically instead of "eventually".
+     * 2. [REPEATED_ACQUIRE_PRE_GC_FRAME]: collect the garbage left behind by the earlier steps, so the
+     *    baseline below is not moved by their late releases.
+     * 3. [REPEATED_ACQUIRE_BURST_FRAME]: record the refcount, then load it [REPEATED_ACQUIRE_COUNT] more
+     *    times (each must resolve to the anchor itself) plus a `loadOrNull` whose cast fails (that
+     *    reference must not leak either).
+     * 4. [REPEATED_ACQUIRE_GC_FRAME] and [REPEATED_ACQUIRE_GC_RETRY_FRAME]: collect the throwaway wrappers.
+     * 5. [REPEATED_ACQUIRE_CHECK_FRAME]: the refcount must be back at the baseline. A leak would leave it
+     *    at `baseline + REPEATED_ACQUIRE_COUNT + 1`; it may be lower only if an older wrapper's release
+     *    landed late, which is not a leak.
      */
     private fun stepRepeatedAcquisitionTest(frameSinceStart: Int) {
         when (frameSinceStart) {
             REPEATED_ACQUIRE_ANCHOR_FRAME -> {
                 repeatedAcquireAnchor = GD.load<Texture2D>("res://icon.svg", factory = ::Texture2D)
+            }
+
+            REPEATED_ACQUIRE_PRE_GC_FRAME, REPEATED_ACQUIRE_GC_FRAME, REPEATED_ACQUIRE_GC_RETRY_FRAME -> {
+                CoroutineScope(Dispatchers.Default).launch { GC.collect() }
             }
 
             REPEATED_ACQUIRE_BURST_FRAME -> {
@@ -273,23 +296,65 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
                 val mismatched = GD.loadOrNull<Image>("res://icon.svg", typeHint = "Texture2D", factory = ::Image)
                 println(
                     "[RepeatedAcquire] $sameWrapper/$REPEATED_ACQUIRE_COUNT loads resolved to the anchor wrapper, " +
-                        "mismatched loadOrNull=$mismatched, refcount right after (deferred releases still " +
-                        "queued)=${anchor.getReferenceCount()}",
+                        "mismatched loadOrNull=$mismatched, refcount right after (throwaway wrappers not " +
+                        "collected yet)=${anchor.getReferenceCount()}",
                 )
             }
 
             REPEATED_ACQUIRE_CHECK_FRAME -> {
                 val anchor = repeatedAcquireAnchor ?: return
                 val after = anchor.getReferenceCount()
-                val verdict = if (after == repeatedAcquireBaseline) "PASS" else "FAIL"
+                val verdict = if (after <= repeatedAcquireBaseline) "PASS" else "FAIL"
                 println(
-                    "[RepeatedAcquire] $verdict: refcount after flush=$after, baseline=$repeatedAcquireBaseline " +
+                    "[RepeatedAcquire] $verdict: refcount after collection=$after, baseline=$repeatedAcquireBaseline " +
                         "(leaked=${after - repeatedAcquireBaseline})",
                 )
                 repeatedAcquireAnchor = null
             }
         }
     }
+
+    /**
+     * issue #114: a generated method that returns a `Ref<T>` (`Image.createEmpty` here, but it is the same
+     * for `ResourceLoader.load`, `Texture2D.getImage`, property getters, ...) hands the caller one owned
+     * engine reference. The wrapper the generated code builds must own it and give it back once collected —
+     * before this, every call kept its object alive for the whole process.
+     *
+     * Creates [GENERATED_RETURN_COUNT] images and drops them at once; after the collections the engine's own
+     * object count (`Performance.OBJECT_COUNT`) must be back near where it started. A leak would leave it
+     * [GENERATED_RETURN_COUNT] higher.
+     */
+    private fun stepGeneratedReturnTest(frameSinceStart: Int) {
+        when (frameSinceStart) {
+            GENERATED_RETURN_FRAME -> {
+                generatedReturnBaseline = objectCount()
+                repeat(GENERATED_RETURN_COUNT) {
+                    val _ = Image.createEmpty(8, 8, false, Image.Format.RGBA8)
+                }
+                println(
+                    "[GeneratedReturn] object count: baseline=$generatedReturnBaseline, " +
+                        "right after creating $GENERATED_RETURN_COUNT images=${objectCount()}",
+                )
+            }
+
+            GENERATED_RETURN_GC_FRAME, GENERATED_RETURN_GC_RETRY_FRAME -> {
+                CoroutineScope(Dispatchers.Default).launch { GC.collect() }
+            }
+
+            GENERATED_RETURN_CHECK_FRAME -> {
+                val after = objectCount()
+                val leaked = after - generatedReturnBaseline
+                // Slack for objects unrelated to the images; a leak would be GENERATED_RETURN_COUNT.
+                val verdict = if (leaked < GENERATED_RETURN_COUNT / 2) "PASS" else "FAIL"
+                println(
+                    "[GeneratedReturn] $verdict: object count after collection=$after, " +
+                        "baseline=$generatedReturnBaseline (still alive: $leaked of $GENERATED_RETURN_COUNT)",
+                )
+            }
+        }
+    }
+
+    private fun objectCount(): Double = Performance.instance.getMonitor(Performance.Monitor.OBJECT_COUNT)
 
     /**
      * issue #114: `castTo` on a pointer the caller holds no reference to. A `Variant` is the only real
