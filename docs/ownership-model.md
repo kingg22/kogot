@@ -139,15 +139,22 @@ limpio, 3 de 3 corridas cada una, sin crashes. Un punto de entrada escrito a man
 el `GeneratedBindings` generado, así que tampoco el vaciado.
 
 
+### Un `Orphan StringName` al salir que no era del ciclo de vida de `RefCounted`
+
+Con la extensión cargada, incluso en una escena vacía, Godot reportaba `Orphan StringName: Environment` y `1
+unclaimed string names at exit`. Bisectando la inicialización: desaparecía al no registrar el
+`ResourceFormatLoader` de Kotlin, cuyo `_handlesType(type: StringName)` llama a `type.toString()` — y el
+`toString()` generado de los builtins hacía `Variant(this).stringify().toKString()` sin cerrar la `Variant` (una
+copia de `this`) ni el `GodotString`. Está arreglado en una rama aparte, independiente de esta serie (#189); con
+toda la serie más ese arreglo, `test_diag.tscn` y `threading_edge_cases.tscn` (3 corridas cada una) cierran con 0
+`ERROR`, 0 `WARNING`, sin leaks de `ObjectDB`/recursos/RID y sin `StringName` huérfanos.
+
 ### Abierto, no resuelto aquí
 
 1. **Se asume que todo retorno de una clase `RefCounted` es un `Ref<T>`.** Es la convención de Godot y lo que
    observan los tests, pero no se verificó método por método (hay 543 en la API): un método que devolviera un
    `T*` crudo de una clase `RefCounted` haría que el wrapper devolviera una referencia que nunca recibió.
-2. **`Orphan StringName: Environment` al salir.** Aparece con la extensión cargada incluso en una escena
-   vacía (sin el binario de la extensión no aparece), así que sale de la inicialización de código generado,
-   no del ciclo de vida de `RefCounted`. Sin localizar todavía.
-3. **La liberación necesita actividad de otro thread para despachar a tiempo.** Con `mi-juego-prueba`
+2. **La liberación necesita actividad de otro thread para despachar a tiempo.** Con `mi-juego-prueba`
    corriendo prácticamente single-threaded, un `GC.collect()` síncrono en el hilo principal seguido de
    ~30 frames de espera **no** alcanza para que el `Cleaner` dispare — pero forzar la MISMA colección
    desde un hilo lanzado con `kotlinx.coroutines` (`Dispatchers.Default`) sí, de forma consistente y
