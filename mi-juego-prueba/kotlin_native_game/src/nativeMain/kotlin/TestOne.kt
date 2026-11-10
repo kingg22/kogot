@@ -13,6 +13,7 @@ import io.github.kingg22.godot.api.core.SceneTree
 import io.github.kingg22.godot.api.core.node.Node2D
 import io.github.kingg22.godot.api.core.node.TextEdit
 import io.github.kingg22.godot.api.core.node.Window
+import io.github.kingg22.godot.api.core.refcounted.Image
 import io.github.kingg22.godot.api.core.refcounted.Texture2D
 import io.github.kingg22.godot.api.singleton.Engine
 import io.github.kingg22.godot.api.utils.GD
@@ -20,6 +21,7 @@ import io.github.kingg22.godot.api.utils.print
 import io.github.kingg22.godot.binding.instantiate
 import io.github.kingg22.godot.castTo
 import io.github.kingg22.godot.load
+import io.github.kingg22.godot.loadOrNull
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.CoroutineScope
@@ -36,11 +38,23 @@ private const val SPRITE_COUNT = 5
 // dedicated Cleaner worker thread and Godot's MessageQueue idle-time flush to have run in between.
 private val REFCOUNT_STEP_ACQUIRE_FRAMES = listOf(10, 40, 70, 100, 130, 160)
 
+// issue #114, repeated acquisition of a still-live pointer: runs well after the steps above have settled
+// (their GC-driven releases would otherwise move the refcount under this check), in three phases one
+// idle frame apart so each deferred `callDeferred()` release has been flushed before it is measured.
+private const val REPEATED_ACQUIRE_ANCHOR_FRAME = 300
+private const val REPEATED_ACQUIRE_BURST_FRAME = 302
+private const val REPEATED_ACQUIRE_CHECK_FRAME = 304
+private const val REPEATED_ACQUIRE_COUNT = 9
+
 @Godot class TestOne(nativePtr: COpaquePointer) : Node2D(nativePtr) {
     private val frameTimes = DoubleArray(FRAME_COUNT) { 0.0 }
     private var currentFrame = 0
     private var frameIndex = 0
     private var windowSize: Vector2 = Vector2.ZERO
+
+    // Kept strongly reachable across the repeated-acquisition phases on purpose.
+    private var repeatedAcquireAnchor: Texture2D? = null
+    private var repeatedAcquireBaseline = -1
 
     private val callable = Callable {
         println("Hello from Kotlin inside a Callable!")
@@ -150,6 +164,7 @@ private val REFCOUNT_STEP_ACQUIRE_FRAMES = listOf(10, 40, 70, 100, 130, 160)
                 }
 
                 stepRefCountedReleaseTest(currentFrame - START_FRAME)
+                stepRepeatedAcquisitionTest(currentFrame - START_FRAME)
 
                 frameIndex += 1
             }
@@ -181,13 +196,8 @@ private val REFCOUNT_STEP_ACQUIRE_FRAMES = listOf(10, 40, 70, 100, 130, 160)
      * background-thread activity to actually get scheduled promptly in an otherwise single-threaded
      * process. Real games are rarely purely single-threaded, so this is noted, not chased further here.
      *
-     * Scope: this validates the common acquire-use-drop lifetime, one live wrapper at a time. It does
-     * **not** cover acquiring the *same* still-reachable pointer repeatedly (e.g. `GD.load` in a tight
-     * loop without ever dropping the previous result) — `materialize`'s identity cache collapses those
-     * into the *one* already-cached wrapper, so only the first acquisition's cleaner ever releases a
-     * reference; each further redundant ptrcall's own +1 is currently still unreleased. Distinguishing
-     * "a fresh ptrcall reference" from "a re-cast of a pointer the caller already holds" needs call-site
-     * knowledge `castTo`/`materialize` don't have — left as a documented follow-up, not solved here.
+     * Scope: this validates the common acquire-use-drop lifetime, one live wrapper at a time. Acquiring
+     * the *same* still-reachable pointer repeatedly is covered by [stepRepeatedAcquisitionTest].
      */
     private fun stepRefCountedReleaseTest(frameSinceStart: Int) {
         val step = REFCOUNT_STEP_ACQUIRE_FRAMES.indexOf(frameSinceStart)
@@ -207,6 +217,59 @@ private val REFCOUNT_STEP_ACQUIRE_FRAMES = listOf(10, 40, 70, 100, 130, 160)
                 println("[RefCountedRelease] step $step: forcing GC.collect() from a kotlinx.coroutines worker thread")
                 GC.collect()
                 println("[RefCountedRelease] step $step: worker-thread GC.collect() finished")
+            }
+        }
+    }
+
+    /**
+     * issue #114 follow-up: acquiring the *same* still-live pointer repeatedly. `GD.load` hands Kotlin one
+     * owned engine reference per call, but the identity cache collapses every call into the one live
+     * wrapper (which owns exactly one reference) — the redundant references must be released, not leaked.
+     *
+     * Three phases, one idle frame apart so each deferred release has been flushed before it is measured:
+     * 1. [REPEATED_ACQUIRE_ANCHOR_FRAME]: load the resource and keep the wrapper reachable (the *anchor*).
+     * 2. [REPEATED_ACQUIRE_BURST_FRAME]: record the settled refcount, then load it [REPEATED_ACQUIRE_COUNT]
+     *    more times (each must resolve to the anchor itself), and also a `loadOrNull` whose cast fails
+     *    (the owned reference must be released on that path too).
+     * 3. [REPEATED_ACQUIRE_CHECK_FRAME]: the refcount must be back at the recorded baseline. Before the
+     *    fix it stayed at `baseline + REPEATED_ACQUIRE_COUNT + 1`.
+     *
+     * Deliberately independent of Kotlin/Native's Cleaner timing: every release exercised here goes
+     * straight through `callDeferred()`, so a leak shows up deterministically instead of "eventually".
+     */
+    private fun stepRepeatedAcquisitionTest(frameSinceStart: Int) {
+        when (frameSinceStart) {
+            REPEATED_ACQUIRE_ANCHOR_FRAME -> {
+                repeatedAcquireAnchor = GD.load<Texture2D>("res://icon.svg", factory = ::Texture2D)
+            }
+
+            REPEATED_ACQUIRE_BURST_FRAME -> {
+                val anchor = repeatedAcquireAnchor ?: return
+                repeatedAcquireBaseline = anchor.getReferenceCount()
+                println("[RepeatedAcquire] baseline refcount=$repeatedAcquireBaseline")
+
+                var sameWrapper = 0
+                repeat(REPEATED_ACQUIRE_COUNT) {
+                    if (GD.load<Texture2D>("res://icon.svg", factory = ::Texture2D) === anchor) sameWrapper += 1
+                }
+                // typeHint pins what the loader returns (a Texture2D), so the cast to Image is what fails.
+                val mismatched = GD.loadOrNull<Image>("res://icon.svg", typeHint = "Texture2D", factory = ::Image)
+                println(
+                    "[RepeatedAcquire] $sameWrapper/$REPEATED_ACQUIRE_COUNT loads resolved to the anchor wrapper, " +
+                        "mismatched loadOrNull=$mismatched, refcount right after (deferred releases still " +
+                        "queued)=${anchor.getReferenceCount()}",
+                )
+            }
+
+            REPEATED_ACQUIRE_CHECK_FRAME -> {
+                val anchor = repeatedAcquireAnchor ?: return
+                val after = anchor.getReferenceCount()
+                val verdict = if (after == repeatedAcquireBaseline) "PASS" else "FAIL"
+                println(
+                    "[RepeatedAcquire] $verdict: refcount after flush=$after, baseline=$repeatedAcquireBaseline " +
+                        "(leaked=${after - repeatedAcquireBaseline})",
+                )
+                repeatedAcquireAnchor = null
             }
         }
     }

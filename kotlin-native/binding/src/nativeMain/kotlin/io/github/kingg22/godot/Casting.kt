@@ -4,6 +4,8 @@ import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.internal.binding.InternalBinding
 import io.github.kingg22.godot.internal.binding.materialize
+import io.github.kingg22.godot.internal.binding.materializeOwned
+import io.github.kingg22.godot.internal.binding.releaseOwnedReference
 import io.github.kingg22.godot.internal.ffi.GDExtensionObjectPtr
 
 /**
@@ -26,13 +28,42 @@ internal fun <Convert : GodotObject> castToInternal(
     godotClassName: String,
     factory: (nativePtr: GDExtensionObjectPtr) -> Convert,
 ): Convert? {
-    val isRequestedClass = godotClassName.toStringName().use { className ->
-        GodotObject(rawPtr).isClass(className)
-    }
-    if (!isRequestedClass) return null
+    if (!isInstanceOfGodotClass(rawPtr, godotClassName)) return null
 
     return materialize(rawPtr, factory)
 }
+
+/**
+ * [castToInternal] for a [rawPtr] the caller just *received* an owned engine reference for (a ptrcall
+ * return of a `Ref<T>`, e.g. `ResourceLoader.load`) — the call site is the only place that knows
+ * that, so it opts in here instead of [castToInternal] guessing (see issue #114).
+ *
+ * The received reference is always settled, so none leaks regardless of the outcome:
+ * - first sighting: the new wrapper adopts it (released when the wrapper is collected);
+ * - repeated acquisition of a still-live pointer: the wrapper already owns its own reference, the
+ *   redundant one is released;
+ * - [godotClassName] does not match: the caller gets `null` and nothing would ever drop it, so it is
+ *   released here.
+ *
+ * The caller guarantees [rawPtr] is a `RefCounted` carrying an owned reference (see [materializeOwned]).
+ */
+@PublishedApi
+@OptIn(InternalBinding::class)
+internal fun <Convert : GodotObject> castToOwnedInternal(
+    rawPtr: GDExtensionObjectPtr,
+    godotClassName: String,
+    factory: (nativePtr: GDExtensionObjectPtr) -> Convert,
+): Convert? {
+    if (!isInstanceOfGodotClass(rawPtr, godotClassName)) {
+        releaseOwnedReference(rawPtr)
+        return null
+    }
+
+    return materializeOwned(rawPtr, factory)
+}
+
+private fun isInstanceOfGodotClass(rawPtr: GDExtensionObjectPtr, godotClassName: String): Boolean =
+    godotClassName.toStringName().use { className -> GodotObject(rawPtr).isClass(className) }
 
 // -----------------------------------------------------------------------------
 // GDExtensionObjectPtr overloads

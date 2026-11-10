@@ -39,14 +39,52 @@ public fun attachRefCountedRelease(instance: RefCounted, rawPtr: GDExtensionObje
     instance.kogotReleaseCleaner = createCleaner(rawPtr, ::deferRefCountedRelease)
 }
 
+/**
+ * Settles one *owned* engine reference the caller just received (a ptrcall return of a `Ref<T>`) for a
+ * pointer that already has a canonical Kotlin wrapper — the repeated-acquisition case [materializeOwned]
+ * hits (e.g. `GD.load` of the same path while the previous result is still reachable).
+ *
+ * Invariant kept per live wrapper: it owns **exactly one** engine reference, released by its
+ * [attachRefCountedRelease] cleaner when the wrapper is collected. So:
+ * - the wrapper already has a cleaner → it already owns its one reference; the new one is redundant and
+ *   is released right away ([releaseOwnedReference]), keeping the engine refcount from climbing with
+ *   every repeated acquisition;
+ * - the wrapper has *no* cleaner yet (a registered custom class whose instance our own
+ *   `createInstanceFunc` built eagerly, so [materialize] never saw a first sighting) → nothing keeps
+ *   the engine object alive for it, so the new reference is adopted instead of dropped. Dropping it
+ *   would let the engine free the object while Kotlin still holds the wrapper.
+ */
+@InternalBinding
+public fun settleOwnedReference(instance: RefCounted, rawPtr: GDExtensionObjectPtr) {
+    if (instance.kogotReleaseCleaner == null) {
+        attachRefCountedRelease(instance, rawPtr)
+    } else {
+        releaseOwnedReference(rawPtr)
+    }
+}
+
+/**
+ * Drops one owned engine reference the caller received but will not keep (a redundant repeated
+ * acquisition, or a ptrcall return whose cast to the requested class failed), deferred to the main
+ * thread exactly like the cleaner path — safe to call from any thread.
+ *
+ * Only valid for a pointer that really is a `RefCounted` carrying an owned reference: it ends in
+ * `RefCounted::unreference()`, which is undefined on any other object.
+ */
+@InternalBinding
+public fun releaseOwnedReference(rawPtr: GDExtensionObjectPtr) {
+    deferRefCountedRelease(rawPtr)
+}
+
 private fun deferRefCountedRelease(rawPtr: GDExtensionObjectPtr) {
-    val callable = CallableFactory.create {
+    val callable = CallableFactory.create(arity = 0) { _ ->
         val shouldFree = memScoped {
             val retPtr = allocGdBool()
             ObjectBinding.methodBindPtrcallRaw(unreferenceMethodBind, rawPtr, null, retPtr)
             retPtr.readGdBool()
         }
         if (shouldFree) ObjectBinding.destroyRaw(rawPtr)
+        null
     }
     callable.callDeferred()
 }

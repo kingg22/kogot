@@ -71,19 +71,59 @@ la colección desde un hilo creado por Kotlin, no solo el principal — **cero c
 incluyendo con la colección disparada concurrentemente desde un hilo de coroutine mientras el hilo
 principal seguía en su loop de frames.
 
-### Dos límites encontrados y documentados (no resueltos aquí)
+### Adquisiciones repetidas del mismo puntero todavía vivo: resuelto en `GD.load`/`loadOrNull`
 
-1. **Adquisiciones repetidas del mismo puntero todavía vivo se colapsan.** El caché de identidad de
-   `materialize()` (issue #114 parte 1) hace que `GD.load()`/`castTo()` repetidos sobre el mismo puntero,
-   mientras el wrapper anterior sigue vivo, devuelvan la **misma** instancia Kotlin cacheada — sin pasar
-   por `factory()` de nuevo, así que sin adjuntar un segundo `Cleaner`. Pero cada una de esas llamadas es
-   un ptrcall real que igual incrementa el refcount del motor en +1. Solo el `Cleaner` de la *primera*
-   adquisición libera algo; cada incremento redundante de una adquisición repetida se queda sin liberar.
-   Arreglarlo necesita que el *call site* (cada getter/`load` generado) sepa si *esta* llamada en
-   particular transfirió una referencia nueva del motor o si es un recast de un puntero que el caller ya
-   tenía — información que `castTo`/`materialize` no tienen hoy. Confirmado empíricamente: cargar el mismo
-   `Texture2D` en un loop estrecho deja crecer el refcount aunque nunca se guarde el resultado.
-2. **La liberación necesita actividad de otro thread para despachar a tiempo.** Con `mi-juego-prueba`
+El caché de identidad de `materialize()` hace que `GD.load()` repetido sobre el mismo recurso, mientras el
+wrapper anterior sigue vivo, devuelva la **misma** instancia Kotlin cacheada — sin pasar por `factory()` y
+sin un segundo `Cleaner`. Pero cada llamada es un ptrcall real que transfiere una referencia nueva del
+motor (+1), así que solo la *primera* se liberaba y cada adquisición redundante filtraba una referencia
+(confirmado: el refcount crecía en un loop de `GD.load`).
+
+`castTo`/`materialize` no pueden distinguir "este puntero trae una referencia nueva" de "re-cast de un
+puntero que ya tengo" — esa información solo existe en el *call site*. Por eso hay una variante explícita,
+`materializeOwned` / `castToOwnedInternal` (`ObjectIdentity.kt`, `Casting.kt`), que el call site que sabe
+que recibió una referencia propia (hoy `GD.load` y `GD.loadOrNull`) usa para que **toda** referencia
+recibida quede saldada. Invariante: cada wrapper vivo posee **exactamente una** referencia del motor,
+liberada por su `Cleaner`:
+
+- primera vez que se ve el puntero → el wrapper nuevo adopta la referencia;
+- adquisición repetida y el wrapper ya tiene `Cleaner` → la referencia nueva es redundante y se libera
+  (`releaseOwnedReference`, por el mismo `callDeferred()` al hilo principal);
+- adquisición repetida y el wrapper **no** tiene `Cleaner` (clase propia registrada, cuya instancia
+  construyó `createInstanceFunc` de forma eager) → nada mantiene vivo el objeto del motor, así que la
+  referencia se adopta en vez de soltarla (soltarla dejaría un wrapper Kotlin apuntando a un objeto ya
+  liberado por el motor);
+- `GD.loadOrNull` cuyo cast falla → devuelve `null` y la referencia recibida se libera, no se filtra.
+
+Verificado contra el binario dev real (`test_diag.tscn`, `[RepeatedAcquire]`): con el wrapper ancla vivo se
+hacen 9 `GD.load` repetidos + 1 `loadOrNull` fallido; el refcount sube de 6 a 16 mientras las liberaciones
+siguen en cola y vuelve a **6** tras el flush del siguiente frame, 5 de 5 corridas, sin crashes. No depende
+del momento en que el GC dispare un `Cleaner`: toda la liberación va directa por `callDeferred()`.
+
+**Alcance:** `castToOwnedInternal` es `internal`; un `castTo` manual sobre el retorno de un método
+generado sigue sin saber si el puntero trae una referencia propia, y el primer avistamiento sigue
+adoptándola (ver "Abierto" abajo).
+
+### Abierto, no resuelto aquí
+
+1. **Los métodos generados que devuelven `Ref<T>` nunca liberan la referencia que reciben.** Cada
+   `ResourceLoader.load(...)`, getter de propiedad, etc. construye un wrapper genérico nuevo (`Resource(ptr)`)
+   sin `Cleaner`: solo lo que pasa por `GD.load` (o un `castTo` posterior) queda saldado. Solucionarlo de
+   forma general es un cambio de codegen (adoptar la referencia en el sitio de retorno), con la dificultad
+   de que `api:generated` no puede depender del módulo `binding` donde vive la liberación diferida.
+2. **`castTo` sobre un puntero prestado puede sobre-liberar.** El primer avistamiento de un `RefCounted`
+   en `materialize` asume que recibió una referencia propia (cierto para retornos de ptrcall, falso para
+   un puntero leído de un `Variant` o recibido como argumento de un callback). Para un puntero prestado,
+   el `Cleaner` terminaría haciendo `unreference()` sobre una referencia que nunca tomó.
+3. **No hay vaciado al cerrar la extensión.** Un wrapper que sigue vivo al salir nunca dispara su
+   `Cleaner`, así que su única referencia queda sin soltar. Medido contra el binario real: `test_diag.tscn`
+   sale sin avisos de leak, pero `threading_edge_cases.tscn` (cuyos wrappers siguen alcanzables al cerrar)
+   todavía reporta `2 ObjectDB instances were leaked at exit` / `1 resources still in use` / `1 RID
+   allocations ... leaked`: un `CompressedTexture2D` (`res://icon.svg`) y su `Image`. Con las adquisiciones
+   repetidas saldadas, ese `CompressedTexture2D` pasó de refcount **10 a 1** — exactamente la referencia
+   del wrapper vivo, igual con 200 que con 600 frames. Hace falta llevar la cuenta de lo que Kotlin aún
+   posee y vaciarlo en `onDeInitScene` (que `main` ya genera, ver `GodotBindingGenerator`).
+4. **La liberación necesita actividad de otro thread para despachar a tiempo.** Con `mi-juego-prueba`
    corriendo prácticamente single-threaded, un `GC.collect()` síncrono en el hilo principal seguido de
    ~30 frames de espera **no** alcanza para que el `Cleaner` dispare — pero forzar la MISMA colección
    desde un hilo lanzado con `kotlinx.coroutines` (`Dispatchers.Default`) sí, de forma consistente y
