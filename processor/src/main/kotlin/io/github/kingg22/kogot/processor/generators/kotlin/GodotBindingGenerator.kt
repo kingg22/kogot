@@ -604,10 +604,14 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
                 // script-language / resource-format-loader / -saver singletons handed to the engine
                 // must be torn down, and each extension class must be unregistered, or their instances
                 // and interned signal-name StringNames are reported as leaked at exit (issue #42).
+                // Engine references Kotlin still owns (a wrapper reachable at exit never fires its
+                // Cleaner) are released first, while the servers are alive and before any class that
+                // may still have live instances is unregistered (issue #114).
                 FunSpec
                     .builder("onDeInitScene")
                     .addModifiers(KModifier.OVERRIDE)
                     .apply {
+                        addStatement("%M()", RELEASE_ALL_PENDING_REF_COUNTED_REFERENCES)
                         addStatement("%T.unregisterKotlinScriptLanguageSupport()", KOTLIN_SCRIPT_REGISTRATION)
                         classes.asReversed().forEach {
                             addStatement(

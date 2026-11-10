@@ -19,9 +19,15 @@ import kotlin.native.ref.createCleaner
  * "RefCounted" doc). Instead it only builds a [io.github.kingg22.godot.api.builtin.Callable] and pushes
  * it onto Godot's `MessageQueue` via `callDeferred()` — safe to call from any thread — so the actual
  * `unreference()`/`object_destroy()` runs on the main thread at the next idle frame.
+ *
+ * The reference is also recorded in [PendingReleases], so whatever is still owed when the extension shuts
+ * down is settled synchronously by [releaseAllPendingRefCountedReferences] instead of leaking: a wrapper
+ * that is still reachable at exit never fires its cleaner.
  */
 @InternalBinding
 public fun attachRefCountedRelease(instance: RefCounted, rawPtr: GDExtensionObjectPtr) {
+    // Once shutdown started the drain already settled everything and the engine must not be touched.
+    if (!PendingReleases.owe(rawPtr)) return
     instance.kogotReleaseCleaner = createCleaner(rawPtr, ::deferRefCountedRelease)
 }
 
@@ -59,13 +65,55 @@ public fun settleOwnedReference(instance: RefCounted, rawPtr: GDExtensionObjectP
  */
 @InternalBinding
 public fun releaseOwnedReference(rawPtr: GDExtensionObjectPtr) {
+    if (!PendingReleases.owe(rawPtr)) return
     deferRefCountedRelease(rawPtr)
 }
 
+/**
+ * Settles, synchronously, every engine reference Kotlin still owes (see [PendingReleases]) and stops
+ * tracking: from here on the cleaners and any release still queued in Godot's `MessageQueue` become
+ * no-ops, so nothing calls into a half-destroyed engine afterwards.
+ *
+ * Godot has no GC, so a reference Kotlin still holds at exit is reported as `ObjectDB instances were
+ * leaked at exit` / `resources still in use` / `RID allocations ... leaked`. Must run on the main thread at
+ * the `SCENE` deinitialization level, **before** any user class is unregistered (Godot refuses to
+ * unregister a class that still has live instances) and before the servers go away (a `Texture2D` frees its
+ * RID through the `RenderingServer`). The Kogot processor generates that call into `onDeInitScene`; a
+ * hand-written entry point must make it itself.
+ */
+@InternalBinding
+public fun releaseAllPendingRefCountedReferences() {
+    for ((ptr, count) in PendingReleases.drain()) {
+        for (i in 0 until count) {
+            // Destroyed means that was the last reference: any further unreference() would be a use-after-free.
+            if (unreferenceAndDestroyIfLast(ptr)) break
+        }
+    }
+}
+
+/** Main thread only. Returns `true` when that was the last reference and the object was destroyed. */
+private fun unreferenceAndDestroyIfLast(rawPtr: GDExtensionObjectPtr): Boolean {
+    val shouldFree = RefCounted(rawPtr).unreference()
+    if (shouldFree) ObjectBinding.destroyRaw(rawPtr)
+    return shouldFree
+}
+
+/**
+ * Safe from any thread; the `unreference()` itself runs on the main thread, and only if still owed. The
+ * `Callable` handle is closed right after queueing: the message queue keeps its own copy, and without the
+ * close the handle (and the lambda it keeps alive) would never be freed.
+ */
 private fun deferRefCountedRelease(rawPtr: GDExtensionObjectPtr) {
-    Callable {
-        val shouldFree = RefCounted(rawPtr).unreference()
-        if (shouldFree) ObjectBinding.destroyRaw(rawPtr)
-        null
-    }.use { it.callDeferred() }
+    if (!PendingReleases.beginEnqueue()) return
+    try {
+        Callable {
+            // Already settled by releaseAllPendingRefCountedReferences() if shutdown got there first.
+            if (PendingReleases.settle(rawPtr)) {
+                val _ = unreferenceAndDestroyIfLast(rawPtr)
+            }
+            null
+        }.use { it.callDeferred() }
+    } finally {
+        PendingReleases.endEnqueue()
+    }
 }

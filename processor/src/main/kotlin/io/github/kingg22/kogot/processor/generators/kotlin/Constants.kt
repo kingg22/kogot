@@ -42,6 +42,9 @@ val AS_STRING_NAME = MemberName("$GODOT_PKG.api.builtin", "asStringName")
 
 val CREATE_FREE_INSTANCE_FUN = MemberName(GODOT_INTERNAL_BINDING_PKG, "createFreeInstanceFunc")
 
+val RELEASE_ALL_PENDING_REF_COUNTED_REFERENCES =
+    MemberName(GODOT_INTERNAL_BINDING_PKG, "releaseAllPendingRefCountedReferences")
+
 val REGISTER_CLASS = MemberName(GODOT_INTERNAL_BINDING_PKG, "registerClass")
 
 val UNREGISTER_CLASS = MemberName(GODOT_INTERNAL_BINDING_PKG, "unregisterClass")

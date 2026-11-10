@@ -104,6 +104,29 @@ del momento en que el GC dispare un `Cleaner`: toda la liberación va directa po
 generado sigue sin saber si el puntero trae una referencia propia, y el primer avistamiento sigue
 adoptándola (ver "Abierto" abajo).
 
+### Referencias que Kotlin aún posee al cerrar la extensión: vaciado síncrono en `onDeInitScene`
+
+Un wrapper que sigue alcanzable al salir nunca dispara su `Cleaner`, y una liberación diferida encolada
+tarde correría cuando el motor ya apagó los servidores. En `Main::cleanup` la cola de mensajes se vacía
+**antes** del deinit `SCENE` y otra vez al final, **después** de apagar los servidores, así que lo que Kotlin
+aún debe tiene que saldarse de forma síncrona en el deinit `SCENE`, con todo el motor vivo.
+
+`PendingReleases` (`kotlin-native/binding/.../internal/binding/PendingReleases.kt`) lleva, por puntero, cuántas
+liberaciones están pendientes: una por cada wrapper vivo (`attachRefCountedRelease`) y una por cada
+referencia redundante encolada (`releaseOwnedReference`). Cada unidad se consume **exactamente una vez**,
+por quien llegue primero: la liberación diferida en el hilo principal (`settle`) o el vaciado al cerrar
+(`drain`). Eso hace que una liberación diferida que sigue en cola cuando corre el vaciado sea un no-op y no
+un `unreference()` doble. El procesador genera `releaseAllPendingRefCountedReferences()` como **primera**
+línea de `onDeInitScene` (antes de desregistrar clases propias: Godot se niega a desregistrar una clase con
+instancias vivas). Después del vaciado, los `Cleaner` y lo que quede en la cola no tocan el motor; `drain`
+espera a que termine cualquier encolado del hilo de cleaners que ya estuviera en vuelo.
+
+Medido contra el binario real: `threading_edge_cases.tscn` pasó de `2 ObjectDB instances were leaked` / `1
+resources still in use` / `1 RID allocations ... leaked` a **cero** avisos de leak, y `test_diag.tscn` sigue
+limpio, 3 de 3 corridas cada una, sin crashes. Un punto de entrada escrito a mano (como
+`kotlin-native/sample`) debe llamar a esa función él mismo; y un proyecto sin ninguna clase `@Godot` no recibe
+el `GeneratedBindings` generado, así que tampoco el vaciado.
+
 ### Abierto, no resuelto aquí
 
 1. **Los métodos generados que devuelven `Ref<T>` nunca liberan la referencia que reciben.** Cada
@@ -115,14 +138,9 @@ adoptándola (ver "Abierto" abajo).
    en `materialize` asume que recibió una referencia propia (cierto para retornos de ptrcall, falso para
    un puntero leído de un `Variant` o recibido como argumento de un callback). Para un puntero prestado,
    el `Cleaner` terminaría haciendo `unreference()` sobre una referencia que nunca tomó.
-3. **No hay vaciado al cerrar la extensión.** Un wrapper que sigue vivo al salir nunca dispara su
-   `Cleaner`, así que su única referencia queda sin soltar. Medido contra el binario real: `test_diag.tscn`
-   sale sin avisos de leak, pero `threading_edge_cases.tscn` (cuyos wrappers siguen alcanzables al cerrar)
-   todavía reporta `2 ObjectDB instances were leaked at exit` / `1 resources still in use` / `1 RID
-   allocations ... leaked`: un `CompressedTexture2D` (`res://icon.svg`) y su `Image`. Con las adquisiciones
-   repetidas saldadas, ese `CompressedTexture2D` pasó de refcount **10 a 1** — exactamente la referencia
-   del wrapper vivo, igual con 200 que con 600 frames. Hace falta llevar la cuenta de lo que Kotlin aún
-   posee y vaciarlo en `onDeInitScene` (que `main` ya genera, ver `GodotBindingGenerator`).
+3. **`Orphan StringName: Environment` al salir.** Aparece con la extensión cargada incluso en una escena
+   vacía (sin el binario de la extensión no aparece), así que sale de la inicialización de código generado,
+   no del ciclo de vida de `RefCounted`. Sin localizar todavía.
 4. **La liberación necesita actividad de otro thread para despachar a tiempo.** Con `mi-juego-prueba`
    corriendo prácticamente single-threaded, un `GC.collect()` síncrono en el hilo principal seguido de
    ~30 frames de espera **no** alcanza para que el `Cleaner` dispare — pero forzar la MISMA colección

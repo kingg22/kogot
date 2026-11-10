@@ -128,7 +128,7 @@ private const val REPEATED_ACQUIRE_COUNT = 9
             )
 
             println("[SpriteBench] calling @ExportMethod addTwo(3, 4) via Object.call")
-            val addTwoResult = call("addTwo".toStringName(), 3.toVariant(), 4.toVariant())
+            val addTwoResult = "addTwo".toStringName().use { call(it, 3.toVariant(), 4.toVariant()) }
             println(
                 "[SpriteBench] addTwo returned: ${addTwoResult.toIntOrNull()} (expected 7)",
             )
