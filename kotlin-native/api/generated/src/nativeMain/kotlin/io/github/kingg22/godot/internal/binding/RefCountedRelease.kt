@@ -56,6 +56,19 @@ public fun <T : RefCounted> adoptReturnedReference(instance: T): T {
     return instance
 }
 
+/**
+ * For the generated public constructors of `RefCounted` classes: `ClassDB.instantiate` hands back a `Variant`
+ * holding the only reference to the new object, and that `Variant` has to be closed. This takes a reference
+ * of its own on [rawPtr] first so the object survives the close, and returns [rawPtr] for the delegation to
+ * the primary constructor; the constructor body then makes the new wrapper the owner of that reference with
+ * [attachRefCountedRelease].
+ */
+@InternalBinding
+public fun takeConstructedReference(rawPtr: GDExtensionObjectPtr): GDExtensionObjectPtr {
+    takeReference(rawPtr)
+    return rawPtr
+}
+
 /** Takes one more engine reference on [rawPtr] (`RefCounted::reference()`); safe from any thread, the count is atomic. */
 private fun takeReference(rawPtr: GDExtensionObjectPtr) {
     val _ = RefCounted(rawPtr).reference()

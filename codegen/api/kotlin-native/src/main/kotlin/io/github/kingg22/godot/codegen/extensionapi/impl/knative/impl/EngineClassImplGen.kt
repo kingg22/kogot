@@ -11,8 +11,10 @@ import com.squareup.kotlinpoet.withIndent
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.buildLazyBlock
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngineClass
+import io.github.kingg22.godot.codegen.types.ATTACH_REF_COUNTED_RELEASE
 import io.github.kingg22.godot.codegen.types.COPAQUE_POINTER
 import io.github.kingg22.godot.codegen.types.KOTLIN_NATIVE_CLEANER
+import io.github.kingg22.godot.codegen.types.TAKE_CONSTRUCTED_REFERENCE
 
 /**
  * Generates the constructor binding and `nativePtr` property for Godot engine classes.
@@ -57,17 +59,24 @@ import io.github.kingg22.godot.codegen.types.KOTLIN_NATIVE_CLEANER
  *
  * ## RefCounted
  *
- * `RefCounted` and its subclasses are `isRefcounted == true` in the JSON. Reference counting is a
- * Godot-side concern managed automatically when Godot constructs/destroys the object; our wrapper
- * simply holds the pointer. No special constructor logic is needed here beyond what every other
- * derived class gets.
+ * `RefCounted` and its subclasses are `isRefcounted == true` in the JSON. Godot has no GC, so a
+ * Kotlin wrapper that holds an engine reference must give it back itself (issue #114). The rule is:
+ * **a live wrapper owns exactly one engine reference and gives it back when it is collected.**
+ * `RefCounted` alone (the anchor of the refcounted branch, see [configureConstructor]) gets one extra
+ * property for this: `kogotReleaseCleaner: kotlin.native.ref.Cleaner?`, set by
+ * `io.github.kingg22.godot.internal.binding.attachRefCountedRelease`. Where a wrapper's reference
+ * comes from depends on how it is built, and the generator covers the two engine-side sources:
+ * - a method or property getter whose return type inherits `RefCounted` — a ptrcall returning a `Ref<T>`
+ *   transfers one owned reference — wraps the result in `adoptReturnedReference(...)` (see
+ *   [Context.inheritsRefCounted] and `buildReturnRead`);
+ * - the public no-arg constructor, which creates the object through `ClassDB.instantiate` — that returns
+ *   a `Variant` holding the only reference — takes a reference of its own before closing the `Variant`
+ *   and then attaches the release, so neither the object nor the `Variant` is left behind.
  *
- * A wrapper materialized for an *existing* `RefCounted` (built via `castTo`/`GD.load`, not via our
- * own `create_instance_func`) implicitly receives an engine reference nothing currently releases —
- * see issue #114. `RefCounted` alone (the anchor of the refcounted branch, see [configureConstructor])
- * gets one extra property for this: `kogotReleaseCleaner: kotlin.native.ref.Cleaner?`, set by
- * `io.github.kingg22.godot.internal.binding.materialize` right after building the wrapper. The
- * cleaner's block never touches the engine directly from the finalizer thread — that was tried once
+ * A wrapper built by `castTo` (a borrowed pointer) takes its own reference in
+ * `io.github.kingg22.godot.internal.binding.materialize`.
+ *
+ * The cleaner's block never touches the engine directly from the finalizer thread — that was tried once
  * and reproducibly crashed ("The caller thread can't call the function `propagate_notification()`...")
  * because Godot's engine calls are not generally safe off the main thread. Instead it only builds a
  * `Callable` around the release and calls `Callable.callDeferred()`, which pushes onto Godot's
@@ -124,19 +133,30 @@ class EngineClassImplGen {
         }
 
         if (!cls.isSingleton || isRoot) {
-            classBuilder.addFunction(
-                FunSpec
-                    .constructorBuilder()
-                    .callThisConstructor(
-                        buildCodeBlock {
-                            add("\n")
+            // `ClassDB.instantiate` hands back a Variant that holds the only reference to a new RefCounted. The
+            // Variant has to be closed (it would otherwise keep that reference alive forever), so the wrapper
+            // takes a reference of its own first and owns it — see the "RefCounted" section above.
+            val ownsReference = ctx.inheritsRefCounted(cls.name)
+            val constructor = FunSpec
+                .constructorBuilder()
+                .callThisConstructor(
+                    buildCodeBlock {
+                        add("\n")
+                        withIndent {
+                            beginControlFlow(
+                                "%T(%S).use { cls ->",
+                                ctx.classNameForOrDefault("StringName"),
+                                cls.shortName,
+                            )
                             withIndent {
-                                beginControlFlow(
-                                    "%T(%S).use { cls ->",
-                                    ctx.classNameForOrDefault("StringName"),
-                                    cls.shortName,
-                                )
-                                withIndent {
+                                if (ownsReference) {
+                                    beginControlFlow(
+                                        "%T.instance.instantiate(cls).use { instance ->",
+                                        ctx.classNameForOrDefault("ClassDB"),
+                                    )
+                                    addStatement("%M(instance.toObject().rawPtr)", TAKE_CONSTRUCTED_REFERENCE)
+                                    endControlFlow()
+                                } else {
                                     addStatement("%T", ctx.classNameForOrDefault("ClassDB"))
                                     withIndent {
                                         addStatement(".instance")
@@ -145,12 +165,13 @@ class EngineClassImplGen {
                                         addStatement(".rawPtr")
                                     }
                                 }
-                                endControlFlow()
                             }
-                        },
-                    )
-                    .build(),
-            )
+                            endControlFlow()
+                        }
+                    },
+                )
+            if (ownsReference) constructor.addStatement("%M(this, rawPtr)", ATTACH_REF_COUNTED_RELEASE)
+            classBuilder.addFunction(constructor.build())
         }
     }
 

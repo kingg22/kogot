@@ -64,6 +64,14 @@ private const val GENERATED_RETURN_GC_RETRY_FRAME = 500
 private const val GENERATED_RETURN_CHECK_FRAME = 530
 private const val GENERATED_RETURN_COUNT = 50
 
+// issue #114, public constructors of RefCounted classes (`Image()`): the wrapper owns the reference the object is
+// created with. Same shape as the generated-return check above.
+private const val CONSTRUCTOR_FRAME = 560
+private const val CONSTRUCTOR_GC_FRAME = 565
+private const val CONSTRUCTOR_GC_RETRY_FRAME = 580
+private const val CONSTRUCTOR_CHECK_FRAME = 610
+private const val CONSTRUCTOR_COUNT = 50
+
 // issue #114, castTo on a *borrowed* pointer: the cast happens at BORROWED_CAST_FRAME and its wrapper is
 // dropped when that call returns; the GC is forced from a worker thread in a later frame (twice, since a
 // single cycle can miss it, see stepRefCountedReleaseTest) and the result is read once the deferred
@@ -83,6 +91,7 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
     private var repeatedAcquireAnchor: Texture2D? = null
     private var repeatedAcquireBaseline = -1
     private var generatedReturnBaseline = -1.0
+    private var constructorBaseline = -1.0
 
     // The Variant is the only real owner of the borrowed Image across the borrowed-cast phases.
     private var borrowedOwner: Variant? = null
@@ -199,6 +208,7 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
                 stepRepeatedAcquisitionTest(currentFrame - START_FRAME)
                 stepBorrowedCastTest(currentFrame - START_FRAME)
                 stepGeneratedReturnTest(currentFrame - START_FRAME)
+                stepConstructorTest(currentFrame - START_FRAME)
 
                 frameIndex += 1
             }
@@ -349,6 +359,41 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
                 println(
                     "[GeneratedReturn] $verdict: object count after collection=$after, " +
                         "baseline=$generatedReturnBaseline (still alive: $leaked of $GENERATED_RETURN_COUNT)",
+                )
+            }
+        }
+    }
+
+    /**
+     * issue #114: `Image()` creates the object through `ClassDB.instantiate`. The wrapper must own the reference
+     * the object is created with and give it back once collected; the `Variant` that call returns must not
+     * keep a reference of its own alive either. Creates [CONSTRUCTOR_COUNT] images, drops them at once and
+     * expects the engine's object count to come back down after the collections.
+     */
+    private fun stepConstructorTest(frameSinceStart: Int) {
+        when (frameSinceStart) {
+            CONSTRUCTOR_FRAME -> {
+                constructorBaseline = objectCount()
+                repeat(CONSTRUCTOR_COUNT) {
+                    val _ = Image()
+                }
+                println(
+                    "[Constructor] object count: baseline=$constructorBaseline, " +
+                        "right after creating $CONSTRUCTOR_COUNT images=${objectCount()}",
+                )
+            }
+
+            CONSTRUCTOR_GC_FRAME, CONSTRUCTOR_GC_RETRY_FRAME -> {
+                CoroutineScope(Dispatchers.Default).launch { GC.collect() }
+            }
+
+            CONSTRUCTOR_CHECK_FRAME -> {
+                val after = objectCount()
+                val leaked = after - constructorBaseline
+                val verdict = if (leaked < CONSTRUCTOR_COUNT / 2) "PASS" else "FAIL"
+                println(
+                    "[Constructor] $verdict: object count after collection=$after, " +
+                        "baseline=$constructorBaseline (still alive: $leaked of $CONSTRUCTOR_COUNT)",
                 )
             }
         }

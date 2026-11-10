@@ -95,6 +95,11 @@ una referencia del motor y la devuelve al recogerse** (`attachRefCountedRelease`
   al recogerse. (Un intento anterior de resolverlo en `GD.load` con una variante `materializeOwned` era más
   rápido de liberar pero dependía de que el call site supiera lo que recibía; se eliminó en favor de esta
   regla única.) `GD.load` y `GD.loadOrNull` son ahora un `castTo` simple.
+- **Los constructores públicos de clases `RefCounted` (`Image()`, `JSON()`, ...).** Crean el objeto con
+  `ClassDB.instantiate`, que devuelve una `Variant` con la única referencia; esa `Variant` no se cerraba
+  nunca y el wrapper no poseía nada, así que cada `Image()` quedaba vivo hasta el final del proceso. El
+  constructor generado ahora toma una referencia propia (`takeConstructedReference`), cierra la `Variant` y
+  hace que el wrapper adopte esa referencia (`attachRefCountedRelease`).
 
 Consecuencia a tener presente: las referencias se devuelven **cuando el GC recoge los wrappers** y el
 `Cleaner` encola la liberación, no en el instante en que el wrapper deja de usarse. Ver el límite de
@@ -108,6 +113,8 @@ Verificado contra el binario dev real (`test_diag.tscn`), 5 de 5 corridas, sin c
   wrapper del cast y vuelve a 1 al recogerse; la `Variant` lo libera al cerrarse.
 - `[GeneratedReturn]`: 50 `Image.createEmpty()` descartados suben `Performance.OBJECT_COUNT` de 1502 a 1552 y,
   tras recolectar, vuelve a **1502** (0 de 50 vivos).
+- `[Constructor]`: lo mismo con 50 `Image()`. Antes del arreglo daba `FAIL` (50 de 50 vivos al recolectar y
+  `50 ObjectDB instances were leaked at exit`); después, 1502 → 1552 → **1502**.
 
 ### Referencias que Kotlin aún posee al cerrar la extensión: vaciado síncrono en `onDeInitScene`
 
@@ -118,9 +125,8 @@ aún debe tiene que saldarse de forma síncrona en el deinit `SCENE`, con todo e
 
 `PendingReleases` (`kotlin-native/api/generated/.../internal/binding/PendingReleases.kt`) lleva, por puntero, cuántas
 liberaciones están pendientes: una por cada wrapper vivo (`attachRefCountedRelease`). Cada unidad se consume
-**exactamente una vez**,
-por quien llegue primero: la liberación diferida en el hilo principal (`settle`) o el vaciado al cerrar
-(`drain`). Eso hace que una liberación diferida que sigue en cola cuando corre el vaciado sea un no-op y no
+**exactamente una vez**, por quien llegue primero: la liberación diferida en el hilo principal (`settle`) o
+el vaciado al cerrar (`drain`). Eso hace que una liberación diferida que sigue en cola cuando corre el vaciado sea un no-op y no
 un `unreference()` doble. El procesador genera `releaseAllPendingRefCountedReferences()` como **primera**
 línea de `onDeInitScene` (antes de desregistrar clases propias: Godot se niega a desregistrar una clase con
 instancias vivas). Después del vaciado, los `Cleaner` y lo que quede en la cola no tocan el motor; `drain`
@@ -135,17 +141,13 @@ el `GeneratedBindings` generado, así que tampoco el vaciado.
 
 ### Abierto, no resuelto aquí
 
-
-1. **Los constructores públicos de clases `RefCounted` (`Image()`, `JSON()`, ...) filtran su referencia.** El
-   constructor sin argumentos generado hace `ClassDB.instantiate(...)`, que devuelve una `Variant` que nunca se
-   cierra, y el wrapper resultante no posee la referencia: ninguna pasa por `adoptReturnedReference`.
-2. **Se asume que todo retorno de una clase `RefCounted` es un `Ref<T>`.** Es la convención de Godot y lo que
+1. **Se asume que todo retorno de una clase `RefCounted` es un `Ref<T>`.** Es la convención de Godot y lo que
    observan los tests, pero no se verificó método por método (hay 543 en la API): un método que devolviera un
    `T*` crudo de una clase `RefCounted` haría que el wrapper devolviera una referencia que nunca recibió.
-3. **`Orphan StringName: Environment` al salir.** Aparece con la extensión cargada incluso en una escena
+2. **`Orphan StringName: Environment` al salir.** Aparece con la extensión cargada incluso en una escena
    vacía (sin el binario de la extensión no aparece), así que sale de la inicialización de código generado,
    no del ciclo de vida de `RefCounted`. Sin localizar todavía.
-4. **La liberación necesita actividad de otro thread para despachar a tiempo.** Con `mi-juego-prueba`
+3. **La liberación necesita actividad de otro thread para despachar a tiempo.** Con `mi-juego-prueba`
    corriendo prácticamente single-threaded, un `GC.collect()` síncrono en el hilo principal seguido de
    ~30 frames de espera **no** alcanza para que el `Cleaner` dispare — pero forzar la MISMA colección
    desde un hilo lanzado con `kotlinx.coroutines` (`Dispatchers.Default`) sí, de forma consistente y

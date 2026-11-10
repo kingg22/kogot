@@ -65,6 +65,10 @@ val KOTLIN_NATIVE_CLEANER = ClassName("kotlin.native.ref", "Cleaner")
 /** Wraps the wrapper built around a `Ref<T>` ptrcall return so it owns (and later gives back) that reference. */
 val ADOPT_RETURNED_REFERENCE = MemberName("io.github.kingg22.godot.internal.binding", "adoptReturnedReference")
 
+/** Takes a reference of its own on an object that only a closing `Variant` still holds; used by constructors. */
+val TAKE_CONSTRUCTED_REFERENCE = MemberName("io.github.kingg22.godot.internal.binding", "takeConstructedReference")
+val ATTACH_REF_COUNTED_RELEASE = MemberName("io.github.kingg22.godot.internal.binding", "attachRefCountedRelease")
+
 val PRIMITIVE_NUMERIC_TYPES = setOf(
     "int8_t", "int8",
     "short", "int16_t", "int16",
