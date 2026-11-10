@@ -441,19 +441,27 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
         // maintain correctness between Kotlin assumptions (equals must be hashCode consistent)
         return when {
             equalsWithString -> CodeBlock.of("return this.toString().hashCode()")
+
             hashMethod -> CodeBlock.of("return this.hash().toInt()")
-            else -> CodeBlock.of("return %T(this).hash().toInt()", ctx.classNameForOrDefault("Variant"))
+
+            // The Variant is a copy of `this` and owns its own storage: it must be closed or each call leaks
+            // that copy (for a StringName it keeps the interned name alive, reported as an `Orphan StringName`).
+            else -> CodeBlock.of("return %T(this).use·{ it.hash().toInt() }", ctx.classNameForOrDefault("Variant"))
         }
     }
 
     /**
      * Builds the `toString(): String` body for a builtin class.
      *
-     * Delegates to `Variant.stringify().toKString()` which returns the Godot string representation.
+     * Delegates to `Variant.stringify().toKString()` which returns the Godot string representation. Both the
+     * throwaway `Variant` (a copy of `this`) and the `GodotString` it produces own native storage and are
+     * closed here — leaving them open leaked one copy of `this` per call (issue #114).
      */
     context(ctx: Context)
-    fun buildToStringBody(): CodeBlock = CodeBlock
-        .of("return %T(this).stringify().toKString()", ctx.classNameForOrDefault("Variant"))
+    fun buildToStringBody(): CodeBlock = CodeBlock.of(
+        "return %T(this).use·{ variant ->·variant.stringify().use·{ string ->·string.toKString() }·}",
+        ctx.classNameForOrDefault("Variant"),
+    )
 
     fun buildToStringConverters(): List<FunSpec> {
         fun factory(
