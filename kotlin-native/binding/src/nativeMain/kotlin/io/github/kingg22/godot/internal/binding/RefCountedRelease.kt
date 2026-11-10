@@ -23,12 +23,29 @@ import kotlin.native.ref.createCleaner
  * The reference is also recorded in [PendingReleases], so whatever is still owed when the extension shuts
  * down is settled synchronously by [releaseAllPendingRefCountedReferences] instead of leaking: a wrapper
  * that is still reachable at exit never fires its cleaner.
+ *
+ * Every tracked wrapper owns **exactly one** engine reference, which the cleaner gives back. Where it
+ * comes from depends on how the pointer reached Kotlin: [takeOwnReference] `false` adopts the reference a
+ * ptrcall return already transferred; `true` is for a *borrowed* pointer (one read out of a `Variant`, an
+ * engine callback argument, a re-cast of something another owner holds) that carried no reference of its
+ * own, so the wrapper takes one itself — adopting nothing there would make the cleaner `unreference()` a
+ * reference that was never taken and let the engine free the object under its real owner.
  */
 @InternalBinding
-public fun attachRefCountedRelease(instance: RefCounted, rawPtr: GDExtensionObjectPtr) {
+public fun attachRefCountedRelease(
+    instance: RefCounted,
+    rawPtr: GDExtensionObjectPtr,
+    takeOwnReference: Boolean = false,
+) {
     // Once shutdown started the drain already settled everything and the engine must not be touched.
     if (!PendingReleases.owe(rawPtr)) return
+    if (takeOwnReference) takeReference(rawPtr)
     instance.kogotReleaseCleaner = createCleaner(rawPtr, ::deferRefCountedRelease)
+}
+
+/** Takes one more engine reference on [rawPtr] (`RefCounted::reference()`); safe from any thread, the count is atomic. */
+private fun takeReference(rawPtr: GDExtensionObjectPtr) {
+    val _ = RefCounted(rawPtr).reference()
 }
 
 /**

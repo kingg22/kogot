@@ -18,8 +18,12 @@ import io.github.kingg22.godot.internal.ffi.GDExtensionObjectPtr
  *
  * [factory] only ever runs for a native pointer's *first* sighting — [materialize] resolves every
  * later cast of the same pointer to the one already-built Kotlin wrapper (see issue #114) instead of
- * fabricating a new one, which for a stateful `@Godot` class would silently discard its live fields,
- * and for a `RefCounted` would leak the engine reference this cast implicitly receives.
+ * fabricating a new one, which for a stateful `@Godot` class would silently discard its live fields.
+ *
+ * A cast never assumes it was handed an engine reference: for a `RefCounted` the new wrapper takes its own
+ * (given back when the wrapper is collected), so casting a pointer borrowed from a `Variant` or a callback
+ * argument is safe. A pointer that did arrive with an owned reference (a ptrcall return) leaves that
+ * reference with whoever received it — see [castToOwnedInternal] for the call sites that hand it over.
  */
 @PublishedApi
 @OptIn(InternalBinding::class)

@@ -3,18 +3,21 @@
 import io.github.kingg22.godot.api.annotations.ExportMethod
 import io.github.kingg22.godot.api.annotations.Godot
 import io.github.kingg22.godot.api.builtin.Callable
+import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.builtin.Vector2i
 import io.github.kingg22.godot.api.builtin.toGodotString
 import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.builtin.toVariant
 import io.github.kingg22.godot.api.core.Node
+import io.github.kingg22.godot.api.core.RefCounted
 import io.github.kingg22.godot.api.core.SceneTree
 import io.github.kingg22.godot.api.core.node.Node2D
 import io.github.kingg22.godot.api.core.node.TextEdit
 import io.github.kingg22.godot.api.core.node.Window
 import io.github.kingg22.godot.api.core.refcounted.Image
 import io.github.kingg22.godot.api.core.refcounted.Texture2D
+import io.github.kingg22.godot.api.singleton.ClassDB
 import io.github.kingg22.godot.api.singleton.Engine
 import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.print
@@ -46,6 +49,15 @@ private const val REPEATED_ACQUIRE_BURST_FRAME = 302
 private const val REPEATED_ACQUIRE_CHECK_FRAME = 304
 private const val REPEATED_ACQUIRE_COUNT = 9
 
+// issue #114, castTo on a *borrowed* pointer: the cast happens at BORROWED_CAST_FRAME and its wrapper is
+// dropped when that call returns; the GC is forced from a worker thread in a later frame (twice, since a
+// single cycle can miss it, see stepRefCountedReleaseTest) and the result is read once the deferred
+// release has had idle frames to run.
+private const val BORROWED_CAST_FRAME = 400
+private const val BORROWED_CAST_GC_FRAME = 405
+private const val BORROWED_CAST_GC_RETRY_FRAME = 420
+private const val BORROWED_CAST_CHECK_FRAME = 450
+
 @Godot class TestOne(nativePtr: COpaquePointer) : Node2D(nativePtr) {
     private val frameTimes = DoubleArray(FRAME_COUNT) { 0.0 }
     private var currentFrame = 0
@@ -55,6 +67,10 @@ private const val REPEATED_ACQUIRE_COUNT = 9
     // Kept strongly reachable across the repeated-acquisition phases on purpose.
     private var repeatedAcquireAnchor: Texture2D? = null
     private var repeatedAcquireBaseline = -1
+
+    // The Variant is the only real owner of the borrowed Image across the borrowed-cast phases.
+    private var borrowedOwner: Variant? = null
+    private var borrowedBaseline = -1
 
     private val callable = Callable {
         println("Hello from Kotlin inside a Callable!")
@@ -165,6 +181,7 @@ private const val REPEATED_ACQUIRE_COUNT = 9
 
                 stepRefCountedReleaseTest(currentFrame - START_FRAME)
                 stepRepeatedAcquisitionTest(currentFrame - START_FRAME)
+                stepBorrowedCastTest(currentFrame - START_FRAME)
 
                 frameIndex += 1
             }
@@ -270,6 +287,50 @@ private const val REPEATED_ACQUIRE_COUNT = 9
                         "(leaked=${after - repeatedAcquireBaseline})",
                 )
                 repeatedAcquireAnchor = null
+            }
+        }
+    }
+
+    /**
+     * issue #114: `castTo` on a pointer the caller holds no reference to. A `Variant` is the only real
+     * owner of an `Image` here (`ClassDB.instantiate` hands it back wrapped in one). The cast wrapper must
+     * take its *own* engine reference and give it back once collected: if it assumed it had been handed one
+     * instead, its cleaner would `unreference()` a reference it never took and the engine would free the
+     * `Image` underneath the `Variant`.
+     *
+     * Passes when the refcount is `baseline + 1` while the wrapper is alive (it took its own) and back at
+     * `baseline` after it is collected (it gave it back, and no more than that).
+     */
+    private fun stepBorrowedCastTest(frameSinceStart: Int) {
+        when (frameSinceStart) {
+            BORROWED_CAST_FRAME -> {
+                val owner = "Image".toStringName().use { ClassDB.instance.instantiate(it) }
+                borrowedOwner = owner
+                val ptr = owner.toObject().rawPtr
+                borrowedBaseline = RefCounted(ptr).getReferenceCount()
+                val cast = ptr.castTo(::Image)
+                val withWrapper = RefCounted(ptr).getReferenceCount()
+                println(
+                    "[BorrowedCast] ${if (withWrapper == borrowedBaseline + 1) "PASS" else "FAIL"}: " +
+                        "wrapper took its own reference, baseline=$borrowedBaseline, with wrapper=$withWrapper " +
+                        "(same object: ${cast.rawPtr == ptr})",
+                )
+            }
+
+            BORROWED_CAST_GC_FRAME, BORROWED_CAST_GC_RETRY_FRAME -> {
+                CoroutineScope(Dispatchers.Default).launch { GC.collect() }
+            }
+
+            BORROWED_CAST_CHECK_FRAME -> {
+                val owner = borrowedOwner ?: return
+                val after = RefCounted(owner.toObject().rawPtr).getReferenceCount()
+                println(
+                    "[BorrowedCast] ${if (after == borrowedBaseline) "PASS" else "FAIL"}: " +
+                        "refcount after the wrapper was collected=$after, baseline=$borrowedBaseline",
+                )
+                // The Variant is the real owner: closing it drops the last reference and frees the Image.
+                owner.close()
+                borrowedOwner = null
             }
         }
     }

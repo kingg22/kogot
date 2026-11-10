@@ -127,6 +127,22 @@ limpio, 3 de 3 corridas cada una, sin crashes. Un punto de entrada escrito a man
 `kotlin-native/sample`) debe llamar a esa función él mismo; y un proyecto sin ninguna clase `@Godot` no recibe
 el `GeneratedBindings` generado, así que tampoco el vaciado.
 
+### `castTo` sobre un puntero prestado: el wrapper toma su propia referencia
+
+`materialize` asumía que todo `RefCounted` que veía por primera vez traía una referencia propia (cierto para un
+retorno de ptrcall, falso para un puntero leído de un `Variant` o recibido como argumento de un callback). Con
+un puntero prestado, el `Cleaner` terminaba haciendo `unreference()` de una referencia que nunca se tomó, y el
+motor liberaba el objeto bajo su dueño real.
+
+Ahora la regla es la misma para todos: **un wrapper vivo posee exactamente una referencia del motor y la
+devuelve al recogerse**. `materialize` (`castTo`) trata el puntero como prestado y el wrapper nuevo hace
+`RefCounted::reference()` por su cuenta (`attachRefCountedRelease(..., takeOwnReference = true)`);
+`materializeOwned` — el call site que sabe que acaba de recibir una referencia — la adopta como antes.
+
+Verificado contra el binario real (`[BorrowedCast]` en `test_diag.tscn`): un `Image` cuyo único dueño es una
+`Variant` pasa de refcount 1 a 2 mientras vive el wrapper del cast y vuelve a 1 al recogerse, 5 de 5 corridas
+(las dos comprobaciones en `PASS`), sin que el motor libere el objeto bajo la `Variant`.
+
 ### Abierto, no resuelto aquí
 
 1. **Los métodos generados que devuelven `Ref<T>` nunca liberan la referencia que reciben.** Cada
@@ -134,14 +150,12 @@ el `GeneratedBindings` generado, así que tampoco el vaciado.
    sin `Cleaner`: solo lo que pasa por `GD.load` (o un `castTo` posterior) queda saldado. Solucionarlo de
    forma general es un cambio de codegen (adoptar la referencia en el sitio de retorno), con la dificultad
    de que `api:generated` no puede depender del módulo `binding` donde vive la liberación diferida.
-2. **`castTo` sobre un puntero prestado puede sobre-liberar.** El primer avistamiento de un `RefCounted`
-   en `materialize` asume que recibió una referencia propia (cierto para retornos de ptrcall, falso para
-   un puntero leído de un `Variant` o recibido como argumento de un callback). Para un puntero prestado,
-   el `Cleaner` terminaría haciendo `unreference()` sobre una referencia que nunca tomó.
-3. **`Orphan StringName: Environment` al salir.** Aparece con la extensión cargada incluso en una escena
+   Con esta regla, un `castTo` manual sobre el retorno de un método generado ya no adopta su referencia: esa
+   referencia queda sin soltar (una fuga segura) hasta que el retorno generado la adopte.
+2. **`Orphan StringName: Environment` al salir.** Aparece con la extensión cargada incluso en una escena
    vacía (sin el binario de la extensión no aparece), así que sale de la inicialización de código generado,
    no del ciclo de vida de `RefCounted`. Sin localizar todavía.
-4. **La liberación necesita actividad de otro thread para despachar a tiempo.** Con `mi-juego-prueba`
+3. **La liberación necesita actividad de otro thread para despachar a tiempo.** Con `mi-juego-prueba`
    corriendo prácticamente single-threaded, un `GC.collect()` síncrono en el hilo principal seguido de
    ~30 frames de espera **no** alcanza para que el `Cleaner` dispare — pero forzar la MISMA colección
    desde un hilo lanzado con `kotlinx.coroutines` (`Dispatchers.Default`) sí, de forma consistente y
@@ -237,14 +251,14 @@ Dart/JVM, no la de Go/D/Rust.
 
 ### Conclusiones para kogot
 
-1. **Liberación de `RefCounted` (issue #114, parte 2, todavía sin implementar)**: seguir el patrón de
-   Go, no el de Dart. Nunca llamar al motor directamente desde el `Cleaner`; encolar la liberación (vía
-   `Callable.callDeferred()`/`MessageQueue`, que ya da orden FIFO gratis) y dejar que el hilo principal
+1. **Liberación de `RefCounted` (issue #114, parte 2, implementada y validada arriba)**: se siguió el
+   patrón de Go, no el de Dart. Nunca llamar al motor directamente desde el `Cleaner`; encolar la liberación
+   (vía `Callable.callDeferred()`/`MessageQueue`, que ya da orden FIFO gratis) y dejar que el hilo principal
    la ejecute. Dart demuestra que la alternativa directa-desde-finalizador es el mismo riesgo que ya se
    revirtió aquí, no una prueba de que sea segura.
 2. **Eliminar el parámetro `factory`**: la convergencia independiente de Dart y godot-kotlin-jvm en un
    registro nombre→constructor generado en compile-time (no reflection) es la señal más fuerte de que
    ese es el diseño correcto para Kotlin específicamente — no es solo copiar a utopia, es el patrón que
    emerge en cualquier binding con objetos reales de heap y constructores reales.
-3. Ninguna de estas conclusiones fue validada todavía contra el binario real de Godot en esta ronda —
-   es investigación comparativa de código fuente, pendiente de implementación y prueba empírica.
+3. La conclusión 1 sí se validó contra el binario real de Godot (ver las secciones de arriba). La 2 sigue
+   siendo investigación comparativa de código fuente, pendiente de implementación y prueba empírica.

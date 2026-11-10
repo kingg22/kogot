@@ -89,9 +89,12 @@ public fun <T : GodotObject> resolveBinding(rawPtr: GDExtensionObjectPtr): T? {
  * as-is (never fabricates a second Kotlin instance for the same native pointer, see issue #114); only
  * on a genuine first sighting is [factory] invoked.
  *
- * Use [materializeOwned] instead when the caller knows [rawPtr] arrived carrying an owned engine
- * reference (a ptrcall return of a `Ref<T>`): this overload cannot tell that apart from re-casting a
- * pointer the caller already holds, so on a cache hit it leaves the engine refcount untouched.
+ * This overload treats [rawPtr] as **borrowed**: it cannot tell a pointer that arrived with an owned
+ * engine reference (a ptrcall return of a `Ref<T>`) from one read out of a `Variant`, handed to a
+ * callback, or re-cast from a wrapper someone else holds. So a `RefCounted` wrapper built on a first
+ * sighting takes its *own* reference (released when the wrapper is collected) and never touches the
+ * caller's; a cache hit leaves the engine refcount untouched. A call site that knows it just received
+ * an owned reference uses [materializeOwned] to hand that reference over instead.
  */
 @InternalBinding
 public fun <T : GodotObject> materialize(
@@ -143,7 +146,9 @@ private fun <T : GodotObject> materializeInternal(
     val instance = factory(rawPtr)
     slot.ref = WeakReference(instance)
     if (instance is RefCounted) {
-        attachRefCountedRelease(instance, rawPtr)
+        // Owned: the ptrcall return already carried the reference this wrapper adopts. Not owned: the
+        // pointer is borrowed from someone else, so the wrapper takes (and later gives back) its own.
+        attachRefCountedRelease(instance, rawPtr, takeOwnReference = !owned)
     }
     instance
 }
