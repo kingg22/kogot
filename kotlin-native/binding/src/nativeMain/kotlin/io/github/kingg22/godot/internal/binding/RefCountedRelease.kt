@@ -1,23 +1,9 @@
-@file:OptIn(InternalBinding::class)
-
 package io.github.kingg22.godot.internal.binding
 
-import io.github.kingg22.godot.api.builtin.StringName
+import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.core.RefCounted
-import io.github.kingg22.godot.api.internal.callable.CallableFactory
-import io.github.kingg22.godot.internal.ffi.GDExtensionMethodBindPtr
 import io.github.kingg22.godot.internal.ffi.GDExtensionObjectPtr
-import kotlinx.cinterop.memScoped
 import kotlin.native.ref.createCleaner
-
-private val unreferenceMethodBind: GDExtensionMethodBindPtr by lazy(LazyThreadSafetyMode.PUBLICATION) {
-    StringName("RefCounted").use { cn ->
-        StringName("unreference").use { mn ->
-            ClassDBBinding.getMethodBindRaw(cn.rawPtr, mn.rawPtr, 2_240_911_060L)
-                ?: error("Missing method bind 'RefCounted.unreference'")
-        }
-    }
-}
 
 /**
  * Attaches the release [kotlin.native.ref.Cleaner] a freshly [materialize]d [RefCounted] wrapper needs:
@@ -77,14 +63,9 @@ public fun releaseOwnedReference(rawPtr: GDExtensionObjectPtr) {
 }
 
 private fun deferRefCountedRelease(rawPtr: GDExtensionObjectPtr) {
-    val callable = CallableFactory.create(arity = 0) { _ ->
-        val shouldFree = memScoped {
-            val retPtr = allocGdBool()
-            ObjectBinding.methodBindPtrcallRaw(unreferenceMethodBind, rawPtr, null, retPtr)
-            retPtr.readGdBool()
-        }
+    Callable {
+        val shouldFree = RefCounted(rawPtr).unreference()
         if (shouldFree) ObjectBinding.destroyRaw(rawPtr)
         null
-    }
-    callable.callDeferred()
+    }.use { it.callDeferred() }
 }
