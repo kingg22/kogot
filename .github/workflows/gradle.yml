@@ -22,10 +22,11 @@ on:
   workflow_dispatch:
 
 concurrency:
-    # One group per PR (or per branch for pushes): a new commit on a PR cancels the run of the commit
-    # it replaces. Pushes to long-lived branches are never cancelled, so every commit there keeps its
+    # PRs: one group per PR, so a new commit cancels the run of the commit it replaces.
+    # Pushes and manual runs: one group per commit. GitHub keeps a single pending run per group and
+    # replaces it when another is queued, so a per-branch group would leave queued commits without a
     # result. Builds that already ran for the same content are skipped by the pre_job below.
-    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.sha }}
     cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -34,8 +35,10 @@ jobs:
   # its PR's synchronize event for the same commit. Manual runs always build.
   pre_job:
     runs-on: ubuntu-latest
+    # Minimum permissions documented by skip-duplicate-actions.
     permissions:
-      actions: read
+      actions: write
+      contents: read
     outputs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
     steps:
@@ -50,17 +53,18 @@ jobs:
     needs: pre_job
     # Skip Renovate's and Dependabot's PRs and commits. Inside Actions the bots' logins are
     # `renovate[bot]` / `dependabot[bot]` (`app/renovate` is only how the `gh` CLI prints them).
-    # `actor` covers the bots' own pushes, `pull_request.user` still matches when someone else
-    # re-runs or rebases the PR, `head_commit.author` covers push events.
-    # A skipped job counts as passing for required status checks.
+    # `actor` is the authenticated identity (the bots' own pushes); `pull_request.user` still matches
+    # when someone else re-runs or rebases the bot's PR. The commit author is not used: anyone can set
+    # it to a bot's no-reply address. A skipped job counts as passing for required status checks.
+    # `!cancelled()` instead of the implicit `success()`: if pre_job fails, its output is empty and the
+    # build runs, so a broken duplicate check can never turn into a green skipped build.
     if: >-
+      !cancelled() &&
       needs.pre_job.outputs.should_skip != 'true' &&
       github.actor != 'renovate[bot]' &&
       github.actor != 'dependabot[bot]' &&
       github.event.pull_request.user.login != 'renovate[bot]' &&
-      github.event.pull_request.user.login != 'dependabot[bot]' &&
-      github.event.head_commit.author.username != 'renovate[bot]' &&
-      github.event.head_commit.author.username != 'dependabot[bot]'
+      github.event.pull_request.user.login != 'dependabot[bot]'
     timeout-minutes: 15
     runs-on: ubuntu-latest
     permissions:
