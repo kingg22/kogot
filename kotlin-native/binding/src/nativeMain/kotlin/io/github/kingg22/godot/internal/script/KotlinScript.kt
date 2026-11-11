@@ -162,14 +162,15 @@ public class KotlinScript(
         val result = GodotArray<VariantDictionary>()
         val entry = KotlinScriptRegistry[scriptPath] ?: return result
         for ((name, type) in entry.properties) {
-            val dict = VariantDictionary()
-            dict["name".toVariant()] = name.toVariant()
-            dict["class_name".toVariant()] = entry.className.toVariant()
-            dict["type".toVariant()] = type.value.toVariant()
-            dict["hint".toVariant()] = PropertyHint.NONE.value.toVariant()
-            dict["hint_string".toVariant()] = "".toVariant()
-            dict["usage".toVariant()] = PropertyUsageFlags.DEFAULT.value.toVariant()
-            result.pushBack(dict.toVariant())
+            VariantDictionary().use { dict ->
+                dict.setEntry("name", name.toVariant())
+                dict.setEntry("class_name", entry.className.toVariant())
+                dict.setEntry("type", type.value.toVariant())
+                dict.setEntry("hint", PropertyHint.NONE.value.toVariant())
+                dict.setEntry("hint_string", "".toVariant())
+                dict.setEntry("usage", PropertyUsageFlags.DEFAULT.value.toVariant())
+                result.add(dict) // the array keeps its own reference, `dict` is closed right after
+            }
         }
         return result
     }
@@ -178,19 +179,25 @@ public class KotlinScript(
         val result = GodotArray<VariantDictionary>()
         val entry = KotlinScriptRegistry[scriptPath] ?: return result
         for ((name) in entry.methods) {
-            val dict = VariantDictionary()
-            dict["name".toVariant()] = name.toVariant()
-            dict["args".toVariant()] = GodotArray<VariantDictionary>().toVariant()
-            dict["default_args".toVariant()] = GodotArray<Variant>().toVariant()
-            dict["flags".toVariant()] = MethodFlags.NORMAL.value.toVariant()
-            dict["id".toVariant()] = 0.toVariant()
-            dict["return".toVariant()] = VariantDictionary().toVariant()
-            result.pushBack(dict.toVariant())
+            VariantDictionary().use { dict ->
+                dict.setEntry("name", name.toVariant())
+                GodotArray<VariantDictionary>().use { dict.setEntry("args", it.toVariant()) }
+                GodotArray<Variant>().use { dict.setEntry("default_args", it.toVariant()) }
+                dict.setEntry("flags", MethodFlags.NORMAL.value.toVariant())
+                dict.setEntry("id", 0.toVariant())
+                VariantDictionary().use { dict.setEntry("return", it.toVariant()) }
+                result.add(dict)
+            }
         }
         return result
     }
 
     override fun _getMembers(): GodotArray<StringName> = GodotArray()
+}
+
+/** Stores `key: value` in this dictionary. The temporaries are closed here: the dictionary keeps its own copies. */
+private fun VariantDictionary.setEntry(key: String, value: Variant) {
+    key.toVariant().use { variantKey -> value.use { this[variantKey] = it } }
 }
 
 private val placeholderInstanceSentinel: COpaquePointer by lazy { nativeHeap.alloc<ByteVar>().ptr }
