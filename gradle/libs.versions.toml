@@ -45,7 +45,7 @@ kotlinx-serialization = "1.11.0"
 kotlinpoet = "2.4.0"
 
 # https://github.com/google/ksp/releases
-ksp-plugin = "2.3.12"
+ksp-plugin = "2.3.13"
 ksp-api = "2.3.12"
 
 # https://plugins.gradle.org/docs/publish-plugin
