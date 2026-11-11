@@ -9,7 +9,7 @@ androidx-room-compiler = "2.8.5"
 apache-commons-compress = "1.28.0"
 
 # https://github.com/Kotlin/dokka/releases
-dokka = "2.2.0"
+dokka = "2.3.0"
 
 # https://github.com/google/error-prone/releases
 errorprone-core = "2.50.0"
