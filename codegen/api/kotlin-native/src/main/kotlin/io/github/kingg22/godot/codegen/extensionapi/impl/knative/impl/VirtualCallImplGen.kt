@@ -312,10 +312,14 @@ class VirtualCallImplGen(private val typeResolver: TypeResolver) {
                 cinteropValue,
             )
 
-            returnType == "Variant" -> addStatement(
-                "%T.newCopyRaw(ret, result.rawPtr)",
-                implPackageRegistry.classNameForOrDefault("VariantBinding"),
-            )
+            returnType == "Variant" -> {
+                addStatement(
+                    "%T.newCopyRaw(ret, result.rawPtr)",
+                    implPackageRegistry.classNameForOrDefault("VariantBinding"),
+                )
+                // The engine holds its own copy now; release the reference `result` owns.
+                addStatement("result.close()")
+            }
 
             ctx.isBuiltin(returnType) || returnType.startsWith("typedarray::") -> {
                 // buildTrampoline calls the `<name>AsGdStr` sibling whenever returnType == "String", so
@@ -324,14 +328,22 @@ class VirtualCallImplGen(private val typeResolver: TypeResolver) {
                 // heapBackedBuiltinName) — its copy constructor already preserves whatever typed state
                 // `result` carries, so it shares the same fptr as plain Array returns.
                 val allocConstTypePtrArrayMember = implPackageRegistry.memberNameForOrDefault("allocConstTypePtrArray")
+                val backing = heapBackedBuiltinName(returnType)
+                val hasDestructor = hasDestructor(backing)
                 beginControlFlow("%M", memScoped)
+                // The engine built `ret` before the call (`PtrToArg<T>::EncodeT ret;`): an Array, for one, already
+                // owns an ArrayPrivate. Copy-constructing over it would orphan that, so destroy it first.
+                if (hasDestructor) addStatement("%N.%M(ret)", destructorFptrPropertyName(backing), cinteropInvoke)
                 addStatement(
                     "%N.%M(ret, %M(result.rawPtr))",
-                    copyCtorFptrPropertyName(heapBackedBuiltinName(returnType)),
+                    copyCtorFptrPropertyName(backing),
                     cinteropInvoke,
                     allocConstTypePtrArrayMember,
                 )
                 endControlFlow()
+                // The engine now holds its own reference (the copy constructor shares it): the one `result` owns
+                // would never be released, since nothing else closes a value an override returns.
+                if (hasDestructor) addStatement("result.close()")
             }
 
             else -> error("Unsupported virtual call return type: $returnType (resolved: $kotlinType)")
@@ -339,6 +351,15 @@ class VirtualCallImplGen(private val typeResolver: TypeResolver) {
     }
 
     // ── Heap-backed builtin return support ──────────────────────────────────
+
+    /** Whether the builtin has a destructor the engine expects to run (`has_destructor` in the JSON). */
+    context(ctx: Context)
+    private fun hasDestructor(builtinTypeName: String): Boolean =
+        ctx.model.builtins.firstOrNull { it.name == builtinTypeName }?.hasDestructor == true
+
+    /** Deterministic name for the file-scoped destructor fptr, one per heap-backed builtin type like the copy constructor. */
+    fun destructorFptrPropertyName(builtinTypeName: String): String =
+        "${safeIdentifier(builtinTypeName.replaceFirstChar(Char::lowercaseChar))}DestructorFptr"
 
     /** Deterministic name for the file-scoped copy-constructor fptr shared by every trampoline in the
      * file that returns [builtinTypeName] — one lookup per type per file, not per method. */
@@ -392,6 +413,31 @@ class VirtualCallImplGen(private val typeResolver: TypeResolver) {
                     addStatement("%T.getPtrConstructorRaw(%N, %L)", variantBinding, variantType, index)
                     withIndent {
                         addStatement("?: error(%S)", "Missing copy constructor for builtin '$builtinTypeName'")
+                    }
+                },
+            )
+            .build()
+    }
+
+    /** Top-level `private val` lazy property caching the destructor fptr of [builtinTypeName], null if it has none. */
+    context(ctx: Context)
+    fun buildDestructorFptrProperty(builtinTypeName: String): PropertySpec? {
+        if (!hasDestructor(builtinTypeName)) return null
+        val variantType = variantTypeConst(builtinTypeName)
+            ?: error("Unknown variant type: $builtinTypeName")
+        val variantBinding = implPackageRegistry.classNameForOrDefault("VariantBinding")
+
+        return PropertySpec
+            .builder(
+                destructorFptrPropertyName(builtinTypeName),
+                implPackageRegistry.classNameForOrDefault("GDExtensionPtrDestructor"),
+                KModifier.PRIVATE,
+            )
+            .delegate(
+                buildLazyBlock {
+                    addStatement("%T.getPtrDestructorRaw(%N)", variantBinding, variantType)
+                    withIndent {
+                        addStatement("?: error(%S)", "Missing destructor for builtin '$builtinTypeName'")
                     }
                 },
             )

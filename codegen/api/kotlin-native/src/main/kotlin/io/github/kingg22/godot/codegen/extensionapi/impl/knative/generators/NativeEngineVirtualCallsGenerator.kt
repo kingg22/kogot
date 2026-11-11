@@ -29,7 +29,10 @@ class NativeEngineVirtualCallsGenerator(private val body: VirtualCallImplGen) {
             .build()
 
         return createFile(typeSpec, objectName, packageName) {
-            body.heapBackedReturnTypes(supported).forEach { addProperty(body.buildCopyCtorFptrProperty(it)) }
+            body.heapBackedReturnTypes(supported).forEach {
+                addProperty(body.buildCopyCtorFptrProperty(it))
+                body.buildDestructorFptrProperty(it)?.let(::addProperty)
+            }
         }
     }
 }
