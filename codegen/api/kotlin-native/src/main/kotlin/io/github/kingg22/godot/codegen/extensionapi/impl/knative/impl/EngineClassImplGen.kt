@@ -11,7 +11,7 @@ import com.squareup.kotlinpoet.withIndent
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.buildLazyBlock
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngineClass
-import io.github.kingg22.godot.codegen.types.ATTACH_REF_COUNTED_RELEASE
+import io.github.kingg22.godot.codegen.types.ADOPT_CONSTRUCTED_REFERENCE
 import io.github.kingg22.godot.codegen.types.COPAQUE_POINTER
 import io.github.kingg22.godot.codegen.types.KOTLIN_NATIVE_CLEANER
 import io.github.kingg22.godot.codegen.types.TAKE_CONSTRUCTED_REFERENCE
@@ -64,7 +64,7 @@ import io.github.kingg22.godot.codegen.types.TAKE_CONSTRUCTED_REFERENCE
  * **a live wrapper owns exactly one engine reference and gives it back when it is collected.**
  * `RefCounted` alone (the anchor of the refcounted branch, see [configureConstructor]) gets one extra
  * property for this: `kogotReleaseCleaner: kotlin.native.ref.Cleaner?`, set by
- * `io.github.kingg22.godot.internal.binding.attachRefCountedRelease`. Where a wrapper's reference
+ * `io.github.kingg22.godot.internal.binding.attachRefCountedRelease` (or `adoptConstructedReference` for constructors). Where a wrapper's reference
  * comes from depends on how it is built, and the generator covers the two engine-side sources:
  * - a method or property getter whose return type inherits `RefCounted` — a ptrcall returning a `Ref<T>`
  *   transfers one owned reference — wraps the result in `adoptReturnedReference(...)` (see
@@ -170,7 +170,7 @@ class EngineClassImplGen {
                         }
                     },
                 )
-            if (ownsReference) constructor.addStatement("%M(this, rawPtr)", ATTACH_REF_COUNTED_RELEASE)
+            if (ownsReference) constructor.addStatement("%M(this)", ADOPT_CONSTRUCTED_REFERENCE)
             classBuilder.addFunction(constructor.build())
         }
     }

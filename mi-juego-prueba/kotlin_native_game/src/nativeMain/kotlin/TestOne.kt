@@ -22,6 +22,7 @@ import io.github.kingg22.godot.api.singleton.Engine
 import io.github.kingg22.godot.api.singleton.Performance
 import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.print
+import io.github.kingg22.godot.api.utils.pushError
 import io.github.kingg22.godot.binding.instantiate
 import io.github.kingg22.godot.castTo
 import io.github.kingg22.godot.load
@@ -395,6 +396,7 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
                     "[Constructor] $verdict: object count after collection=$after, " +
                         "baseline=$constructorBaseline (still alive: $leaked of $CONSTRUCTOR_COUNT)",
                 )
+                if (verdict == "FAIL") GD.pushError("[Constructor] FAIL: $leaked of $CONSTRUCTOR_COUNT images still alive")
             }
         }
     }

@@ -67,7 +67,7 @@ val ADOPT_RETURNED_REFERENCE = MemberName("io.github.kingg22.godot.internal.bind
 
 /** Takes a reference of its own on an object that only a closing `Variant` still holds; used by constructors. */
 val TAKE_CONSTRUCTED_REFERENCE = MemberName("io.github.kingg22.godot.internal.binding", "takeConstructedReference")
-val ATTACH_REF_COUNTED_RELEASE = MemberName("io.github.kingg22.godot.internal.binding", "attachRefCountedRelease")
+val ADOPT_CONSTRUCTED_REFERENCE = MemberName("io.github.kingg22.godot.internal.binding", "adoptConstructedReference")
 
 val PRIMITIVE_NUMERIC_TYPES = setOf(
     "int8_t", "int8",

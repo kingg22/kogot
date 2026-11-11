@@ -61,12 +61,28 @@ public fun <T : RefCounted> adoptReturnedReference(instance: T): T {
  * holding the only reference to the new object, and that `Variant` has to be closed. This takes a reference
  * of its own on [rawPtr] first so the object survives the close, and returns [rawPtr] for the delegation to
  * the primary constructor; the constructor body then makes the new wrapper the owner of that reference with
- * [attachRefCountedRelease].
+ * [adoptConstructedReference].
  */
 @InternalBinding
 public fun takeConstructedReference(rawPtr: GDExtensionObjectPtr): GDExtensionObjectPtr {
     takeReference(rawPtr)
     return rawPtr
+}
+
+/**
+ * Second half of a generated `RefCounted` constructor: makes [instance] the owner of the reference that
+ * [takeConstructedReference] took. If shutdown already started, [PendingReleases] no longer accepts new
+ * entries and nothing would ever give that reference back, so it is released right here instead of leaking.
+ * Using a wrapper constructed while the extension is shutting down is not supported either way.
+ */
+@InternalBinding
+public fun adoptConstructedReference(instance: RefCounted) {
+    val rawPtr = instance.rawPtr
+    if (!PendingReleases.owe(rawPtr)) {
+        val _ = unreferenceAndDestroyIfLast(rawPtr)
+        return
+    }
+    instance.kogotReleaseCleaner = createCleaner(rawPtr, ::deferRefCountedRelease)
 }
 
 /** Takes one more engine reference on [rawPtr] (`RefCounted::reference()`); safe from any thread, the count is atomic. */
