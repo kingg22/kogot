@@ -36,7 +36,7 @@ kotest = "6.2.5"
 kotlin = "2.5.20-dev-2623"
 
 # https://github.com/Kotlin/kotlinx.coroutines/releases
-kotlinx-coroutines = "1.10.2"
+kotlinx-coroutines = "1.11.0"
 
 # https://github.com/Kotlin/kotlinx.serialization/releases
 kotlinx-serialization = "1.11.0"
