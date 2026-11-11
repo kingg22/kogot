@@ -57,6 +57,29 @@ import kotlinx.cinterop.ExperimentalForeignApi
                 }
             }
         }
+        scriptListChecks()
         getTree().quit(checks.finish())
+    }
+
+    /** The editor-facing lists of a `.kt` script (`Script.get_script_property_list`), without opening the editor. */
+    private fun scriptListChecks() = with(checks) {
+        val dir = "res://kotlin_native_game/src/nativeMain/kotlin"
+        // SpriteBench exports 3 properties, TestOne registers 1 method.
+        for ((file, name, expected) in listOf(
+            Triple("SpriteBench.kt", "get_script_property_list", 3),
+            Triple("TestOne.kt", "get_script_method_list", 1),
+        )) {
+            check("script lists: $name of $file has $expected entries and does not leak") {
+                val script = ResourceLoader.instance.load("$dir/$file".toGodotString())
+                val method = name.toStringName()
+                script.call(method).use { list -> list.toArray().use { expect(it.size == expected) { "size=${it.size}" } } }
+                val os = Os.instance
+                val before = os.getStaticMemoryUsage().toLong()
+                repeat(5_000) { script.call(method).close() }
+                val growth = os.getStaticMemoryUsage().toLong() - before
+                println("[VirtualReturnCheck] $name growth=$growth bytes over 5000 calls")
+                expect(growth < 100_000) { "$name grew the static memory by $growth bytes" }
+            }
+        }
     }
 }
