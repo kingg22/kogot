@@ -1,7 +1,7 @@
 package io.github.kingg22.godot.api.internal.callable
 
 import io.github.kingg22.godot.api.builtin.Callable
-import io.github.kingg22.godot.api.builtin.internal.anyToVariantOrNull
+import io.github.kingg22.godot.api.builtin.toVariant
 import io.github.kingg22.godot.api.internal.UsedFromCodegenGeneratedCode
 import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.pushError
@@ -19,7 +19,7 @@ import io.github.kingg22.godot.internal.ffi.GDExtensionConstVariantPtr
 public object CallableFactory {
     init {
         CallableBinding.onError = GD::pushError
-        CallableBinding.onToVariant = ::anyToVariantOrNull
+        CallableBinding.onToVariant = Any?::toVariant
     }
 
     /** Creates a custom [Callable] that receives Godot's raw argument pointers. */

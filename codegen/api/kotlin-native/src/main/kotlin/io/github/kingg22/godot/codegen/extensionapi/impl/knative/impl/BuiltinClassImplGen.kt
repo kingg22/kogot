@@ -106,10 +106,16 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
 
     // ── Storage infrastructure ────────────────────────────────────────────────
 
+    /**
+     * [superclass] and [codecParameters] turn the class into a Kotlin collection view (see `GodotList`, `GodotMap`):
+     * the primary constructor becomes `internal` and takes the codecs after `rawPtr`, which the superclass receives.
+     */
     context(ctx: Context)
     fun configureStorageBackedBuiltin(
         builtinClass: ResolvedBuiltinClass,
         classBuilder: TypeSpec.Builder,
+        superclass: TypeName? = null,
+        codecParameters: List<ParameterSpec> = emptyList(),
     ): TypeSpec.Builder {
         if (builtinClass.name !in STORAGE_BACKED_BUILTINS) return classBuilder
 
@@ -119,9 +125,15 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
         classBuilder.primaryConstructor(
             FunSpec
                 .constructorBuilder()
+                .apply { if (codecParameters.isNotEmpty()) addModifiers(KModifier.INTERNAL) }
                 .addParameter("rawPtr", COPAQUE_POINTER.copy(nullable = true))
+                .addParameters(codecParameters)
                 .build(),
         )
+        if (superclass != null) {
+            classBuilder.superclass(superclass)
+            codecParameters.forEach { classBuilder.addSuperclassConstructorParameter("%N", it) }
+        }
 
         val storageProperty = PropertySpec
             .builder("storage", C_POINTER.parameterizedBy(BYTE_VAR), KModifier.PRIVATE)
@@ -174,12 +186,21 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
         return classBuilder
     }
 
+    /**
+     * A collection view constructor ([codecParameters] not empty) is `internal` and forwards its codecs to the primary
+     * constructor; the caller declares those parameters after the Godot ones.
+     */
     fun configureStorageBackedSecondaryCtor(
         builtinClass: ResolvedBuiltinClass,
         ctorBuilder: FunSpec.Builder,
+        codecParameters: List<ParameterSpec> = emptyList(),
     ): FunSpec.Builder {
         if (builtinClass.name !in STORAGE_BACKED_BUILTINS) return ctorBuilder
-        ctorBuilder.callThisConstructor("null")
+        // `@PublishedApi`: the public `inline` factories call it.
+        if (codecParameters.isNotEmpty()) {
+            ctorBuilder.addModifiers(KModifier.INTERNAL).addAnnotation(PublishedApi::class)
+        }
+        ctorBuilder.callThisConstructor("null", *codecParameters.map { it.name }.toTypedArray())
         return ctorBuilder
     }
 

@@ -12,10 +12,15 @@ package io.github.kingg22.godot.api.builtin
  * | Kotlin              | Godot `Variant.Type` | Sent to Godot | Received from Godot           |
  * |---------------------|----------------------|---------------|-------------------------------|
  * | [Long]              | `INT` (64-bit)       | as is         | as is                         |
- * | [Int], [Short]      | `INT` (64-bit)       | widened       | narrowed, like [Long.toInt]   |
+ * | [Int], [Short]      | `INT` (64-bit)       | widened       | narrowed, only if it fits     |
  * | [Double]            | `FLOAT` (64-bit)     | as is         | as is                         |
- * | [Float]             | `FLOAT` (64-bit)     | widened       | narrowed, like [Double.toFloat] |
+ * | [Float]             | `FLOAT` (64-bit)     | widened       | narrowed, only if it fits     |
  * | [String]            | `STRING`             | as `GodotString` | from `GodotString`         |
+ *
+ * A narrowing never loses a value: an `INT` outside the range of [Int] or [Short], or a `FLOAT` outside the range of
+ * [Float], is an error instead of the silent truncation of [Long.toInt] / [Double.toFloat]. When the full range is
+ * possible, use [Long] or [Double] (the Godot types), and narrow it yourself where truncating is what you want.
+ * A [Float] still rounds to the nearest value, so precision can be lost, like [Double.toFloat].
  *
  * [Byte] is deliberately unsupported: Kotlin bytes are signed while Godot bytes (`PackedByteArray`) are unsigned,
  * so a Byte stored as `INT` would not mean "a Godot byte". Use `Int` or `PackedByteArray` instead.

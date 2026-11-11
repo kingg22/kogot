@@ -1,9 +1,8 @@
-@file:OptIn(ExperimentalAtomicApi::class, ExperimentalForeignApi::class)
+@file:OptIn(ExperimentalAtomicApi::class)
 
 package io.github.kingg22.godot.internal.binding
 
 import io.github.kingg22.godot.internal.ffi.GDExtensionObjectPtr
-import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toLong
 import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi

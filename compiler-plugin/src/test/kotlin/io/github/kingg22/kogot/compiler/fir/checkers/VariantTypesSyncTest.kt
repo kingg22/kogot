@@ -24,7 +24,8 @@ class VariantTypesSyncTest {
 
     @Test
     fun `checker accepts exactly the types anyToVariantOrNull converts`() {
-        val runtimeTypes = Regex("""^\s+is (\w+)(?:<[^>]*>)? ->""", RegexOption.MULTILINE)
+        // A branch is `is X ->`, alone on its line or after other conditions (`null, is Unit ->`).
+        val runtimeTypes = Regex("""(?:^\s+|,\s*)is (\w+)(?:<[^>]*>)? ->""", RegexOption.MULTILINE)
             .findAll(sourceFile("kogot.test.convertToVariant"))
             .map { it.groupValues[1] }
             .map { RUNTIME_ALIASES[it] ?: it }

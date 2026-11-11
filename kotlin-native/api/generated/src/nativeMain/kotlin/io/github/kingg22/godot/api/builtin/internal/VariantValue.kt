@@ -1,9 +1,11 @@
-package io.github.kingg22.godot.api.builtin
+package io.github.kingg22.godot.api.builtin.internal
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
+import io.github.kingg22.godot.api.builtin.MustBeVariant
+import io.github.kingg22.godot.api.builtin.Variant
 
 /**
- * Returns the value of this [Variant].
+ * Returns the value of this [io.github.kingg22.godot.api.builtin.Variant].
  *
  * Prefers explicit converter method over this function.
  *
@@ -14,20 +16,21 @@ import io.github.kingg22.godot.api.ExperimentalGodotKotlin
  * Or use `val value: T by variant`
  *
  * **Safety**:
- * - Nevers returns [kotlin.String]
- * - Never downcasting to [kotlin.Int], [kotlin.Float], [kotlin.Short], [kotlin.Byte]
- * - Can return `null` if the type is [Variant.Type.NIL]
+ * - Nevers returns [String]
+ * - Never downcasting to [Int], [Float], [Short], [Byte]
+ * - Can return `null` if the type is [io.github.kingg22.godot.api.builtin.Variant.Type.NIL]
  * - Never returns specific types like [Texture][io.github.kingg22.godot.api.core.refcounted.Texture] always going to be
- * [Object][io.github.kingg22.godot.api.core.GodotObject] if the type is [Variant.Type.OBJECT]
- * - Always returns [VariantArray] for [Variant.Type.ARRAY]
- * - Always returns [VariantDictionary] for [Variant.Type.DICTIONARY]
- * - Throws [IllegalStateException] if the type of variant is [Variant.Type.MAX]
+ * [Object][io.github.kingg22.godot.api.core.GodotObject] if the type is [io.github.kingg22.godot.api.builtin.Variant.Type.OBJECT]
+ * - Always returns [io.github.kingg22.godot.api.builtin.VariantArray] for [io.github.kingg22.godot.api.builtin.Variant.Type.ARRAY]
+ * - Always returns [io.github.kingg22.godot.api.builtin.VariantDictionary] for [io.github.kingg22.godot.api.builtin.Variant.Type.DICTIONARY]
+ * - Throws [IllegalStateException] if the type of variant is [io.github.kingg22.godot.api.builtin.Variant.Type.MAX]
  *
- * @see Variant.getValue
- * @see Variant.getValueOrNull
+ * @see io.github.kingg22.godot.api.builtin.getValue
+ * @see io.github.kingg22.godot.api.builtin.getValueOrNull
  */
 @ExperimentalGodotKotlin
-public val Variant.value: @MustBeVariant Any? get() = when (getType()) {
+@PublishedApi
+internal val Variant.value: @MustBeVariant Any? get() = when (getType()) {
     NIL -> null
     BOOL -> toBool()
     INT -> toInt()

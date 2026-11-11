@@ -189,7 +189,7 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
                     println("[SpriteBench] Frame count reached, freeing children")
                     val children = getChildren()
                     for (i in 0 until children.size()) {
-                        Node(children[i].toObject().rawPtr).queueFree()
+                        Node(children.getVariant(i).toObject().rawPtr).queueFree()
                     }
 
                     val outText = StringBuilder(FRAME_COUNT * 12)

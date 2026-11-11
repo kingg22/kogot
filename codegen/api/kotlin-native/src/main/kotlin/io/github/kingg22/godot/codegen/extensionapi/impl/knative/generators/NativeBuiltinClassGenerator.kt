@@ -2,13 +2,17 @@ package io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators
 
 import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.BOOLEAN
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.TypeVariableName
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.BuiltinClassImplGen
@@ -123,11 +127,54 @@ class NativeBuiltinClassGenerator(
         // Members that have no storage offset → need fptr lazy props
         val offsetMembers = builtinClass.layout?.memberOffsets?.keys ?: emptySet()
         val utilMembers = builtinClass.raw.members.filter { it.name !in offsetMembers }
+        val genericConfig = if (genericInterceptor.requiresGenerics(builtinClass.raw)) {
+            genericInterceptor.getGenericConfig(builtinClass.raw)
+        } else {
+            null
+        }
         return createFile(spec.name!!, context.packageForOrDefault(godotName)) {
             typeAliasGenerator.generateTypeAliasSpec(builtinClass.raw)?.let { addTypeAlias(it) }
             addType(spec)
+            addFunctions(buildCollectionFactories(builtinClass, spec.name!!, genericConfig))
             addProperties(body.buildTopLevelFptrProperties(builtinClass, utilMembers))
         }
+    }
+
+    /**
+     * Public `inline` factories for the constructors of the generic collections (`GodotArray<T>()`,
+     * `GodotArray<T>(from)`, `Dictionary<K, V>()`...). The constructors themselves are `internal`: they need an
+     * `ElementCodec`, and the factories pick it from the reified types so it always matches.
+     *
+     * The typed constructor (type, class name and script as arguments) has no factory: the factories type the
+     * collection from `T` instead.
+     */
+    context(context: Context)
+    private fun buildCollectionFactories(
+        builtinClass: ResolvedBuiltinClass,
+        kotlinName: String,
+        genericConfig: GenericBuiltinInterceptor.GenericConfig?,
+    ): List<FunSpec> {
+        if (genericConfig == null) return emptyList()
+        val typeNames = genericConfig.typeVariableNames
+        val returnType = ClassName(context.packageForOrDefault(builtinClass.name), kotlinName)
+            .parameterizedBy(typeNames.map { TypeVariableName(it) })
+        val codecs = typeNames.map { "ElementCodec.of<$it>()" }
+
+        return builtinClass.constructors
+            .filter { it.raw != null && it.arguments.size <= 1 }
+            .map { ctor ->
+                val parameters = ctor.arguments.map { methodGen.buildParameter(it) }
+                FunSpec
+                    .builder(kotlinName)
+                    .addKdocIfPresent(ctor.raw!!)
+                    .addModifiers(KModifier.INLINE)
+                    // Prefixed names: see `contractedTypeVariable`.
+                    .addTypeVariables(typeNames.map { contractedTypeVariable(it).copy(reified = true) })
+                    .addParameters(parameters)
+                    .returns(returnType)
+                    .addStatement("return %L(%L)", kotlinName, (parameters.map { it.name } + codecs).joinToString())
+                    .build()
+            }
     }
 
     /** Generates the [TypeSpec] for [builtinClass], or null if it belongs to [NativeBuiltinClassGenerator.SKIPPED_TYPES]. */
@@ -139,22 +186,16 @@ class NativeBuiltinClassGenerator(
 
         val kotlinName = builtinClass.name.renameGodotClass(requiresGenerics)
 
+        // ── GENERIC INTERCEPTION ──────────────────────────────────────────────
+        val genericConfig = if (requiresGenerics) genericInterceptor.getGenericConfig(raw) else null
+        val codecParameters = genericConfig?.codecParameters.orEmpty()
+
         val classBuilder = TypeSpec
             .classBuilder(kotlinName)
             .experimentalApiAnnotation(builtinClass.name)
             .addKdocIfPresent(raw)
-            .let { body.configureStorageBackedBuiltin(builtinClass, it) }
-
-        // ── GENERIC INTERCEPTION ──────────────────────────────────────────────
-        val genericConfig = if (requiresGenerics) {
-            val config = genericInterceptor.getGenericConfig(raw)
-            config?.typeVariables?.let {
-                classBuilder.addTypeVariables(it)
-            }
-            config
-        } else {
-            null
-        }
+            .let { body.configureStorageBackedBuiltin(builtinClass, it, genericConfig?.superclass, codecParameters) }
+        genericConfig?.let { classBuilder.addTypeVariables(it.typeVariables) }
 
         // ── Destructor annotation / marker ───────────────────────────────────
         if (builtinClass.hasDestructor) {
@@ -193,14 +234,15 @@ class NativeBuiltinClassGenerator(
 
         // ── Constructors ─────────────────────────────────────────────────────
         // Godot constructors become secondary constructors (or companion factory funs if static-style).
-        // No primary constructor is ever generated for builtins.
+        // The primary constructor only wraps the storage (see `configureStorageBackedBuiltin`).
         // Index 0 is always the no-arg constructor.
         val constructorsSpecs = builtinClass.constructors.filter { it.raw != null }.flatMap { ctor ->
             val ctorBuilder = FunSpec
                 .constructorBuilder()
                 .addKdocIfPresent(ctor.raw!!)
-                .let { body.configureStorageBackedSecondaryCtor(builtinClass, it) }
+                .let { body.configureStorageBackedSecondaryCtor(builtinClass, it, codecParameters) }
                 .addParameters(ctor.arguments.map { arg -> methodGen.buildParameter(arg) })
+                .addParameters(codecParameters)
                 .addCode(body.constructorBodyFor(builtinClass, ctor))
                 .build()
 
@@ -352,11 +394,26 @@ class NativeBuiltinClassGenerator(
             }
         }
 
+        // The engine methods that implement the abstract members of the collection view: `override`, no String overloads.
+        val viewName = genericConfig?.viewMethods?.get(method.name)
+        if (viewName != null) return listOf(original.asViewMember(viewName))
+
         // String overloads if needed
         return overloadGen.buildOverloadsForMethod(method, original, TypeOverloadGenerator.GodotStringMapping).ifEmpty {
             listOf(original)
         }
     }
+
+    /**
+     * This engine method as the implementation of an abstract member of the collection view: renamed to [name],
+     * `override` and with no `operator` and no default values, which an override cannot declare again.
+     */
+    private fun FunSpec.asViewMember(name: String): FunSpec = toBuilder(name)
+        .apply {
+            modifiers.remove(KModifier.OPERATOR)
+            modifiers += KModifier.OVERRIDE
+            parameters.replaceAll { it.toBuilder().defaultValue(null as CodeBlock?).build() }
+        }.build()
 
     // ── Operator generation ───────────────────────────────────────────────────
 

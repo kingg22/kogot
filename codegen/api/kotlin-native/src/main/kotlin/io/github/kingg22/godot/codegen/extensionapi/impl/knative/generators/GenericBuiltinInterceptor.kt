@@ -1,5 +1,7 @@
 package io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators
 
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
@@ -13,14 +15,15 @@ import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
  *
  * Actúa como decorator sobre NativeBuiltinClassGenerator, interceptando
  * la construcción de clases que requieren type parameters:
- * - Array → Array<T>
- * - Dictionary → Dictionary<K, V> (futuro)
+ * - Array → GodotArray<@MustBeVariant T>, una `MutableList<T>` (vía `GodotList<T>`)
+ * - Dictionary → Dictionary<@MustBeVariant K, @MustBeVariant V>, un `MutableMap<K, V>` (vía `GodotMap<K, V>`)
  *
  * ## Responsabilidades:
  * 1. Detectar clases genéricas (Array, Dictionary)
- * 2. Añadir TypeVariables al TypeSpec
- * 3. Modificar tipos de retorno/parámetros para usar type variables
- * 4. Generar typealiases para versiones untyped
+ * 2. Añadir TypeVariables (con su contrato `@MustBeVariant`) al TypeSpec
+ * 3. Dar la clase base de la vista, los parámetros del codec de elementos y los métodos del JSON que la implementan
+ * 4. Modificar tipos de retorno/parámetros para usar type variables
+ * 5. Generar typealiases para versiones untyped
  */
 class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
 
@@ -41,10 +44,13 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
 
     /** Configuración de genéricos para una clase builtin. */
     interface GenericConfig {
-        /** Type variables a añadir a la clase (ej: T, K, V) */
-        context(context: Context)
-        val typeVariables: List<TypeVariableName>
+        /** Nombres de los type variables de la clase (ej: `T`, o `K` y `V`). */
+        val typeVariableNames: List<String>
             get() = emptyList()
+
+        /** Type variables a añadir a la clase (ej: T, K, V), con su contrato `@MustBeVariant`. */
+        val typeVariables: List<TypeVariableName>
+            get() = typeVariableNames.map(::contractedTypeVariable)
 
         /** Typealias para versión untyped (ej: VariantArray = GodotArray<Variant>) */
         context(context: Context)
@@ -67,15 +73,50 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
         context(context: Context)
         fun transformOperatorReturnType(operator: BuiltinClass.Operator, originalType: TypeName): TypeName =
             originalType
+
+        /**
+         * Clase base escrita a mano que da a la clase generada su vista de colección de Kotlin (`GodotList<T>`,
+         * `GodotMap<K, V>`), o null si no tiene.
+         */
+        context(context: Context)
+        val superclass: TypeName?
+            get() = null
+
+        /**
+         * Parámetros del codec de elementos que reciben el constructor primario y cada constructor secundario, en el
+         * orden en que la superclase los espera (`codec`, o `keyCodec` y `valueCodec`).
+         */
+        context(context: Context)
+        val codecParameters: List<ParameterSpec>
+            get() = emptyList()
+
+        /**
+         * Métodos del JSON que implementan los miembros abstractos de [superclass]: nombre del JSON → nombre en Kotlin.
+         * Se generan con `override`, sin valores por defecto y sin `operator`.
+         */
+        val viewMethods: Map<String, String>
+            get() = emptyMap()
     }
 
     private class ArrayGenericConfig(private val builtinClass: BuiltinClass, private val typeResolver: TypeResolver) :
         GenericConfig {
-        context(_: Context)
-        private val typeT get() = TypeVariableName.invoke("T")
+        override val typeVariableNames: List<String> = listOf("T")
 
         context(context: Context)
-        override val typeVariables: List<TypeVariableName> get() = listOf(typeT)
+        override val superclass: TypeName get() = collectionBase("GodotList", "T")
+
+        context(context: Context)
+        override val codecParameters: List<ParameterSpec> get() = listOf(codecParameter("codec", "T"))
+
+        override val viewMethods: Map<String, String> = mapOf(
+            "size" to "size",
+            "is_empty" to "isEmpty",
+            "clear" to "clear",
+            "get" to "getVariant",
+            "set" to "setVariant",
+            "insert" to "insert",
+            "remove_at" to "removeAt",
+        )
 
         context(context: Context)
         override val untypedAlias: Pair<String, ParameterizedTypeName>
@@ -91,14 +132,25 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
     }
 
     private class DictionaryGenericConfig : GenericConfig {
-        context(_: Context)
-        private val typeKeys get() = TypeVariableName.invoke("K")
-
-        context(_: Context)
-        private val typeValues get() = TypeVariableName.invoke("V")
+        override val typeVariableNames: List<String> = listOf("K", "V")
 
         context(context: Context)
-        override val typeVariables: List<TypeVariableName> get() = listOf(typeKeys, typeValues)
+        override val superclass: TypeName get() = collectionBase("GodotMap", "K", "V")
+
+        context(context: Context)
+        override val codecParameters: List<ParameterSpec>
+            get() = listOf(codecParameter("keyCodec", "K"), codecParameter("valueCodec", "V"))
+
+        override val viewMethods: Map<String, String> = mapOf(
+            "size" to "size",
+            "is_empty" to "isEmpty",
+            "clear" to "clear",
+            "has" to "has",
+            "erase" to "erase",
+            "get" to "getVariant",
+            "set" to "setVariant",
+            "keys" to "keys",
+        )
 
         context(context: Context)
         override val untypedAlias: Pair<String, ParameterizedTypeName>
@@ -113,3 +165,25 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
         // Los factory methods (ofIntInt, etc.) se generan aparte
     }
 }
+
+/**
+ * `@MustBeVariant [name]`: the contract the compiler plugin enforces where the container is built or written down.
+ *
+ * KotlinPoet only emits TypeVariableName annotations at use sites, but the compiler plugin reads them from the
+ * declaration (`class GodotArray<@MustBeVariant T>`). Prefixing the name emits it in the declaration; no import is
+ * needed because MustBeVariant lives in the same package as the generated builtins.
+ */
+internal fun contractedTypeVariable(name: String): TypeVariableName = TypeVariableName("@MustBeVariant $name")
+
+/** A parameter named [name] of type `ElementCodec<[element]>`. */
+context(context: Context)
+private fun codecParameter(name: String, element: String): ParameterSpec {
+    val codec = ClassName(context.classNameForOrDefault("Variant").packageName, "ElementCodec")
+    return ParameterSpec.builder(name, codec.parameterizedBy(TypeVariableName(element))).build()
+}
+
+/** The hand-written collection view [name] over [elements], in the builtin package. */
+context(context: Context)
+private fun collectionBase(name: String, vararg elements: String): TypeName =
+    ClassName(context.classNameForOrDefault("Variant").packageName, name)
+        .parameterizedBy(elements.map { TypeVariableName(it) })
