@@ -1,6 +1,7 @@
 package io.github.kingg22.kogot.compiler.fir.checkers
 
 import io.github.kingg22.kogot.compiler.diagnostics.KogotDiagnostics
+import org.jetbrains.kotlin.KtRealSourceElementKind
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
 import org.jetbrains.kotlin.fir.FirSession
@@ -50,6 +51,10 @@ object MustBeVariantCallChecker : FirFunctionCallChecker(MppCheckerKind.Common) 
             val typeArgument = expression.typeArguments.getOrNull(index) ?: return@forEachIndexed
             val type = typeArgument.toConeTypeProjection().type ?: return@forEachIndexed
             validated = true
+            // A written container (`GodotArray<GodotArray<Byte>>()`) reports its own arguments through its type reference.
+            if (typeArgument.source?.kind is KtRealSourceElementKind && type.carriesOwnContract(session)) {
+                return@forEachIndexed
+            }
             checkVariantType(type, typeArgument.source ?: expression.source, "type parameter '${typeParameter.name}'")
         }
         if (checkCallArguments(expression)) validated = true

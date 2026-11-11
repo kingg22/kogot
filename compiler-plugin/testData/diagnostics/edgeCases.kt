@@ -34,13 +34,14 @@ fun literals() {
 
 fun typedContainers(variant: Variant) {
     // Godot typed containers: their element types must be Variant compatible too.
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!>GodotArray<Regex>()<!>)
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!>Dictionary<String, Char>()<!>)
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!>GodotArray<GodotArray<Byte>>()<!>)
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(GodotArray<GodotArray<Vector2>>())
-    // Untyped Godot containers hold any Variant.
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(GodotArray<Any?>())
-    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(Dictionary<Any?, Any?>())
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!><!MUST_BE_VARIANT_CHECKED!>GodotArray<!><<!NOT_VARIANT_COMPATIBLE!>Regex<!>>()<!>)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!><!MUST_BE_VARIANT_CHECKED!>Dictionary<!><String, <!NOT_VARIANT_COMPATIBLE!>Char<!>>()<!>)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!NOT_VARIANT_COMPATIBLE!><!MUST_BE_VARIANT_CHECKED!>GodotArray<!><GodotArray<<!NOT_VARIANT_COMPATIBLE!>Byte<!>>>()<!>)
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_CHECKED!>GodotArray<!><GodotArray<Vector2>>())
+    // A container with an open element type is Godot's untyped one and can be passed on, but building it that way
+    // warns: the element type parameter carries the contract, spell the untyped container `GodotArray<Variant>`.
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_CHECKED!>GodotArray<!><<!MUST_BE_VARIANT_UNKNOWN_TYPE!>Any?<!>>())
+    <!MUST_BE_VARIANT_CHECKED!>anyToVariant<!>(<!MUST_BE_VARIANT_CHECKED!>Dictionary<!><<!MUST_BE_VARIANT_UNKNOWN_TYPE!>Any?<!>, <!MUST_BE_VARIANT_UNKNOWN_TYPE!>Any?<!>>())
     <!MUST_BE_VARIANT_CHECKED!>variantOf<!><GodotArray<*>>()
 }
 
