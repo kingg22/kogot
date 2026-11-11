@@ -28,7 +28,6 @@ public object CallableFactory {
         Callable(null).also { create(it, arity, invoker) }
 
     /** Initializes the empty [callable] (e.g. from a `Callable` constructor) as a custom callable. */
-    @UsedFromCodegenGeneratedCode
     public fun create(
         callable: Callable,
         arity: Int,

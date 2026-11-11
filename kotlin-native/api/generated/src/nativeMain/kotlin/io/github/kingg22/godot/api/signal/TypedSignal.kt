@@ -1,6 +1,5 @@
 package io.github.kingg22.godot.api.signal
 
-import io.github.kingg22.godot.api.GodotEnum
 import io.github.kingg22.godot.api.GodotError
 import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.Signal
@@ -8,9 +7,8 @@ import io.github.kingg22.godot.api.builtin.StringName
 import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.api.internal.UsedFromCodegenGeneratedCode
+import io.github.kingg22.godot.api.internal.checkGodotError
 import io.github.kingg22.godot.api.toEnumMask
-import kotlin.properties.ReadOnlyProperty
-import kotlin.reflect.KProperty
 
 /**
  * A signal of [owner] whose parameters are described by the function type [F], e.g. `(value: Long) -> Unit`.
@@ -32,6 +30,7 @@ import kotlin.reflect.KProperty
  * on `NOTIFICATION_PREDELETE`. Closing it does not disconnect anything; connections live in Godot until they are
  * closed (see [SignalConnection]) or [owner] is freed.
  */
+@UsedFromCodegenGeneratedCode
 public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
     /** The object that declares and emits this signal. */
     public val owner: GodotObject,
@@ -117,11 +116,9 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
     @PublishedApi
     @UsedFromCodegenGeneratedCode
     internal fun connectCallable(callable: Callable, flags: Array<out GodotObject.ConnectFlags>): SignalConnection {
-        if (GodotObject.ConnectFlags.APPEND_SOURCE_OBJECT in flags) {
+        require(GodotObject.ConnectFlags.APPEND_SOURCE_OBJECT !in flags) {
             callable.close()
-            throw IllegalArgumentException(
-                "APPEND_SOURCE_OBJECT adds an argument the typed handler of '$name' does not declare",
-            )
+            "APPEND_SOURCE_OBJECT adds an argument the typed handler of '$name' does not declare"
         }
         return connectOwned(callable, flags)
     }
@@ -134,8 +131,8 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
         try {
             checkOpen()
             val mask = flags.toEnumMask().value
-            val error = GodotEnum.fromValue<GodotError>(signal.connect(callable, mask))
-            check(error == GodotError.OK) { "Cannot connect to signal '$name': $error" }
+            val error = signal.connect(callable, mask)
+            checkGodotError("connect to signal '$name'", error)
         } catch (e: Throwable) {
             callable.close()
             throw e
@@ -156,26 +153,4 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
     private fun checkOpen() = check(!closed) { "Signal '$name' is closed" }
 
     override fun toString(): String = "TypedSignal($name)"
-}
-
-/**
- * Declares a [TypedSignal] named after the property of `() -> Unit`.
- *
- * Register it with `@RegisterSignal` so Godot knows the signal.
- */
-public fun signal(): ReadOnlyProperty<GodotObject, TypedSignal<() -> Unit>> = SignalDelegate()
-
-/**
- * Declares a [TypedSignal] named after the property; [F] describes its parameters, e.g. `(value: Long) -> Unit`.
- *
- * Register it with `@RegisterSignal` so Godot knows the signal.
- */
-public fun <F : Function<Unit>> signal(): ReadOnlyProperty<GodotObject, TypedSignal<F>> = SignalDelegate()
-
-/** Property delegate behind [signal]: creates the [TypedSignal] on first access. */
-private class SignalDelegate<F : Function<Unit>> : ReadOnlyProperty<GodotObject, TypedSignal<F>> {
-    private var signal: TypedSignal<F>? = null
-
-    override operator fun getValue(thisRef: GodotObject, property: KProperty<*>): TypedSignal<F> =
-        signal ?: TypedSignal<F>(thisRef, property.name).also { signal = it }
 }

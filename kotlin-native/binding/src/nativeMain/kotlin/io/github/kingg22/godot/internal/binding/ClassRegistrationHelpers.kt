@@ -1,6 +1,6 @@
 package io.github.kingg22.godot.internal.binding
 
-import io.github.kingg22.godot.api.annotations.GodotNotification
+import io.github.kingg22.godot.api.GodotNotification
 import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.internal.ffi.*

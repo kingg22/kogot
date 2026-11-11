@@ -1,4 +1,6 @@
-package io.github.kingg22.godot.api.annotations
+@file:Suppress("ktlint:standard:function-naming", "FunctionName")
+
+package io.github.kingg22.godot.api
 
 /**
  * Opt-in hook for the engine `notification` callback on a `@Godot` class.
@@ -9,7 +11,7 @@ package io.github.kingg22.godot.api.annotations
  *
  * Kotlin/Native's GC will eventually reclaim Kotlin objects, but Godot has no GC and tears the engine
  * down first, so any native handle a class holds for its whole lifetime — a builtin like
- * [io.github.kingg22.godot.api.builtin.StringName] / `Signal` / `Callable`, or a manually created
+ * `StringName` / `Signal` / `Callable`, or a manually created
  * engine object — must be released here or it is reported as leaked at exit
  * (`Orphan StringName …` / `ObjectDB instances were leaked`).
  *

@@ -1,8 +1,8 @@
 @file:OptIn(ExperimentalForeignApi::class)
 
+import io.github.kingg22.godot.api.GodotNotification
 import io.github.kingg22.godot.api.annotations.Export
 import io.github.kingg22.godot.api.annotations.Godot
-import io.github.kingg22.godot.api.annotations.GodotNotification
 import io.github.kingg22.godot.api.annotations.RegisterSignal
 import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.Vector2
@@ -45,7 +45,7 @@ typealias Moved = (position: Vector2, source: GodotObject?) -> Unit
      * freed, or they leak (`Orphan StringName: hint/punch …` at exit).
      */
     override fun _notification(what: Int) {
-        if (what == GodotObject.NOTIFICATION_PREDELETE.toInt()) {
+        if (what == NOTIFICATION_PREDELETE.toInt()) {
             println("[SpriteBench] NOTIFICATION_PREDELETE: releasing native handles")
             connections.forEach(SignalConnection::close)
             hint.close()
@@ -59,7 +59,7 @@ typealias Moved = (position: Vector2, source: GodotObject?) -> Unit
         try {
             connections += hint.connect { println("hint: received") }
             connections += punch.connect { value -> println("punch: received $value") }
-            connections += punch.connect(GodotObject.ConnectFlags.ONE_SHOT) { value -> println("punch one-shot: $value") }
+            connections += punch.connect(ConnectFlags.ONE_SHOT) { value -> println("punch one-shot: $value") }
 
             println("emit hint: ${hint.emit()}")
             println("emit punch 12: ${punch.emit(12L)}") // both handlers
