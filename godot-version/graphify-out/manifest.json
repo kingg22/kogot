@@ -1,0 +1,187 @@
+{
+  "track.sh": {
+    "mtime": 1785112890.3662436,
+    "ast_hash": "974a41b59e553dab78cb14cf51cca682",
+    "semantic_hash": ""
+  },
+  "v4_6_0/extension_api.json": {
+    "mtime": 1785109347.975869,
+    "ast_hash": "6106b971c09a8474ba2433e740657aea",
+    "semantic_hash": ""
+  },
+  "v4_6_0/extension_api_without_docs.json": {
+    "mtime": 1785109347.9798932,
+    "ast_hash": "873fc73fce637c58a0160a5eb7cb4b5e",
+    "semantic_hash": ""
+  },
+  "v4_6_0/gdextension_interface.h": {
+    "mtime": 1785109347.9840026,
+    "ast_hash": "a9679a49f25a9dd35dcc3b638cab48d0",
+    "semantic_hash": ""
+  },
+  "v4_6_0/gdextension_interface.json": {
+    "mtime": 1785109347.9841893,
+    "ast_hash": "f424956267070ec77e01ad284a89ec91",
+    "semantic_hash": ""
+  },
+  "v4_6_0/gdextension_interface.schema.json": {
+    "mtime": 1785109347.9842985,
+    "ast_hash": "79605885751d7bc6e3863ba64066380a",
+    "semantic_hash": ""
+  },
+  "v4_6_1/extension_api.json": {
+    "mtime": 1785109347.998342,
+    "ast_hash": "f4778fd1ebdd0c3b1af3ebce31262d90",
+    "semantic_hash": ""
+  },
+  "v4_6_1/extension_api_without_docs.json": {
+    "mtime": 1785109348.0001485,
+    "ast_hash": "0ab33ce307b96686da94e55bd8c2d523",
+    "semantic_hash": ""
+  },
+  "v4_6_1/gdextension_interface.h": {
+    "mtime": 1785109348.0003774,
+    "ast_hash": "a9679a49f25a9dd35dcc3b638cab48d0",
+    "semantic_hash": ""
+  },
+  "v4_6_1/gdextension_interface.json": {
+    "mtime": 1785109348.0013683,
+    "ast_hash": "8ad88279ef00f88633254b29f23f2b9f",
+    "semantic_hash": ""
+  },
+  "v4_6_1/gdextension_interface.schema.json": {
+    "mtime": 1785109348.001467,
+    "ast_hash": "79605885751d7bc6e3863ba64066380a",
+    "semantic_hash": ""
+  },
+  "v4_6_2/extension_api.json": {
+    "mtime": 1785109348.0100644,
+    "ast_hash": "43cdba4354ae46590ea16df3ac667825",
+    "semantic_hash": ""
+  },
+  "v4_6_2/extension_api_without_docs.json": {
+    "mtime": 1785109348.0126114,
+    "ast_hash": "be3057b66f9e113469619998da867002",
+    "semantic_hash": ""
+  },
+  "v4_6_2/gdextension_interface.h": {
+    "mtime": 1785109348.0167792,
+    "ast_hash": "a9679a49f25a9dd35dcc3b638cab48d0",
+    "semantic_hash": ""
+  },
+  "v4_6_2/gdextension_interface.json": {
+    "mtime": 1785109348.0169199,
+    "ast_hash": "f424956267070ec77e01ad284a89ec91",
+    "semantic_hash": ""
+  },
+  "v4_6_2/gdextension_interface.schema.json": {
+    "mtime": 1785109348.0170233,
+    "ast_hash": "79605885751d7bc6e3863ba64066380a",
+    "semantic_hash": ""
+  },
+  "v4_6_3/extension_api.json": {
+    "mtime": 1785112890.3889122,
+    "ast_hash": "3dd9e62edef1abba11471cb758a87d0a",
+    "semantic_hash": ""
+  },
+  "v4_6_3/extension_api_without_docs.json": {
+    "mtime": 1785112890.395508,
+    "ast_hash": "29d5ff674f71a2c99ca5c23f80f8a30b",
+    "semantic_hash": ""
+  },
+  "v4_6_3/gdextension_interface.h": {
+    "mtime": 1785112890.3974018,
+    "ast_hash": "a9679a49f25a9dd35dcc3b638cab48d0",
+    "semantic_hash": ""
+  },
+  "v4_6_3/gdextension_interface.json": {
+    "mtime": 1785112890.3975897,
+    "ast_hash": "f424956267070ec77e01ad284a89ec91",
+    "semantic_hash": ""
+  },
+  "v4_6_3/gdextension_interface.schema.json": {
+    "mtime": 1785112890.397708,
+    "ast_hash": "79605885751d7bc6e3863ba64066380a",
+    "semantic_hash": ""
+  },
+  "v4_7_0/extension_api.json": {
+    "mtime": 1785112890.4245026,
+    "ast_hash": "ecce7ed112e9998f50ac8209fd6635a6",
+    "semantic_hash": ""
+  },
+  "v4_7_0/extension_api_without_docs.json": {
+    "mtime": 1785112890.4318275,
+    "ast_hash": "4c18a2d3aeb631edfb41fc69ef757208",
+    "semantic_hash": ""
+  },
+  "v4_7_0/gdextension_interface.h": {
+    "mtime": 1785112890.433524,
+    "ast_hash": "9097bc7ce5072f317a82c47902311557",
+    "semantic_hash": ""
+  },
+  "v4_7_0/gdextension_interface.json": {
+    "mtime": 1785112890.4360123,
+    "ast_hash": "a7c43dfc14182ce33335bf017ea8c097",
+    "semantic_hash": ""
+  },
+  "v4_7_0/gdextension_interface.schema.json": {
+    "mtime": 1785112890.436141,
+    "ast_hash": "79605885751d7bc6e3863ba64066380a",
+    "semantic_hash": ""
+  },
+  "v4_7_1/extension_api.json": {
+    "mtime": 1785112890.559616,
+    "ast_hash": "e29db0c81e83e90d4628b7590fd4699a",
+    "semantic_hash": ""
+  },
+  "v4_7_1/extension_api_without_docs.json": {
+    "mtime": 1785112890.5706775,
+    "ast_hash": "04ee9685fd76df1386640c457aee3dab",
+    "semantic_hash": ""
+  },
+  "v4_7_1/gdextension_interface.h": {
+    "mtime": 1785112890.5709875,
+    "ast_hash": "9097bc7ce5072f317a82c47902311557",
+    "semantic_hash": ""
+  },
+  "v4_7_1/gdextension_interface.json": {
+    "mtime": 1785112890.5713017,
+    "ast_hash": "a7c43dfc14182ce33335bf017ea8c097",
+    "semantic_hash": ""
+  },
+  "v4_7_1/gdextension_interface.schema.json": {
+    "mtime": 1785112890.571418,
+    "ast_hash": "79605885751d7bc6e3863ba64066380a",
+    "semantic_hash": ""
+  },
+  "v4_7_2/extension_api.json": {
+    "mtime": 1791146037.2084012,
+    "ast_hash": "be55556592629cc94bb69c18ad6f15d7",
+    "semantic_hash": ""
+  },
+  "v4_7_2/extension_api_without_docs.json": {
+    "mtime": 1791146036.6438973,
+    "ast_hash": "12ad475f6270f167b8a50d1161d4ea68",
+    "semantic_hash": ""
+  },
+  "v4_7_2/gdextension_interface.h": {
+    "mtime": 1791146037.3222709,
+    "ast_hash": "9097bc7ce5072f317a82c47902311557",
+    "semantic_hash": ""
+  },
+  "v4_7_2/gdextension_interface.json": {
+    "mtime": 1791146037.4584312,
+    "ast_hash": "a7c43dfc14182ce33335bf017ea8c097",
+    "semantic_hash": ""
+  },
+  "v4_7_2/gdextension_interface.schema.json": {
+    "mtime": 1791146037.8512595,
+    "ast_hash": "79605885751d7bc6e3863ba64066380a",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1785109347.9650788,
+    "ast_hash": "d5988dc57b8984a190a21b27d40c11d2",
+    "semantic_hash": ""
+  }
+}
