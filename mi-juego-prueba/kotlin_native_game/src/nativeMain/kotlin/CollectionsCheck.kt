@@ -4,7 +4,11 @@ import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.annotations.Godot
 import io.github.kingg22.godot.api.builtin.Dictionary
 import io.github.kingg22.godot.api.builtin.GodotArray
+import io.github.kingg22.godot.api.builtin.PackedFloat32Array
 import io.github.kingg22.godot.api.builtin.PackedInt64Array
+import io.github.kingg22.godot.api.builtin.PackedStringArray
+import io.github.kingg22.godot.api.builtin.PackedVector2Array
+import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.VariantArray
 import io.github.kingg22.godot.api.builtin.VariantDictionary
@@ -27,6 +31,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
         strictReadChecks()
         mapChecks()
         typingChecks()
+        packedChecks()
         getTree().quit(checks.finish())
     }
 
@@ -257,6 +262,45 @@ import kotlinx.cinterop.ExperimentalForeignApi
                 longs.add(7L)
                 val view = GodotArray<Long>(longs.rawPtr)
                 expect(view[0] == 7L) { "view=${view.toList()}" }
+            }
+        }
+    }
+
+    private fun packedChecks() = with(checks) {
+        check("packed: PackedInt64Array is a MutableList") {
+            PackedInt64Array().use { packed ->
+                val list: MutableList<Long> = packed
+                list.add(3L)
+                list.add(1L)
+                list.add(0, 9L)
+                expect(list.size == 3 && list == listOf(9L, 3L, 1L)) { "list=$list" }
+                expect(list.set(1, 4L) == 3L && packed[1L] == 4L) { "set" }
+                expect(list.removeAt(0) == 9L && list.toList() == listOf(4L, 1L)) { "removeAt=$list" }
+                expect(list.indexOf(1L) == 1 && 4L in list && list.sum() == 5L) { "search" }
+                expectThrows<IndexOutOfBoundsException>("get(5)") { list[5] }
+            }
+        }
+        check("packed: float, string and vector arrays") {
+            PackedFloat32Array().use { floats ->
+                floats.add(1.5)
+                expect(floats[0] == 1.5 && floats.size == 1) { "floats=$floats" }
+            }
+            PackedStringArray().use { strings ->
+                strings.add("a")
+                strings.add("b")
+                expect(strings.toList() == listOf("a", "b") && strings.joinToString() == "a, b") { "strings=$strings" }
+            }
+            PackedVector2Array().use { vectors ->
+                vectors.add(Vector2(1.0, 2.0))
+                expect(vectors.first() == Vector2(1.0, 2.0)) { "vectors" }
+            }
+        }
+        check("packed: iteration, isEmpty, clear and write through the shared buffer") {
+            PackedInt64Array().use { packed ->
+                (1L..4L).forEach { packed.add(it) }
+                expect(packed.sum() == 10L && packed.map { it * 2 } == listOf(2L, 4L, 6L, 8L)) { "iteration" }
+                packed.clear()
+                expect(packed.isEmpty() && packed.size == 0) { "clear" }
             }
         }
     }

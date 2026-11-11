@@ -1,9 +1,12 @@
 package io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators
 
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.DOUBLE
+import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeVariableName
 import io.github.kingg22.godot.codegen.extensionapi.Context
@@ -39,7 +42,7 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
     fun getGenericConfig(builtinClass: BuiltinClass): GenericConfig? = when (builtinClass.name) {
         "Array" -> ArrayGenericConfig(builtinClass, typeResolver)
         "Dictionary" -> DictionaryGenericConfig()
-        else -> null
+        else -> PACKED_ELEMENTS[builtinClass.name]?.let(::PackedListConfig)
     }
 
     /** Configuración de genéricos para una clase builtin. */
@@ -96,6 +99,43 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
          */
         val viewMethods: Map<String, String>
             get() = emptyMap()
+
+        /**
+         * Tipo Kotlin de los elementos si la clase es una `MutableList` de tamaño fijo en tipo (los `Packed*Array`):
+         * el generador añade los miembros de `List` que puentean los métodos del JSON. Null si no lo es.
+         */
+        context(context: Context)
+        val listElementType: TypeName?
+            get() = null
+    }
+
+    /** `Packed*Array` as `AbstractMutableList<E>` + `RandomAccess`: not generic, the element type is fixed. */
+    private class PackedListConfig(private val element: String) : GenericConfig {
+        context(context: Context)
+        override val listElementType: TypeName get() = packedElementType(element)
+
+        context(context: Context)
+        override val superclass: TypeName
+            get() = ClassName("kotlin.collections", "AbstractMutableList").parameterizedBy(listElementType)
+
+        // Abstract members of AbstractMutableList that the engine methods implement; `size` is bridged by hand.
+        override val viewMethods: Map<String, String> = mapOf("is_empty" to "isEmpty", "clear" to "clear")
+    }
+
+    private companion object {
+        /** `Packed*Array` name → the element type its `get` returns. */
+        val PACKED_ELEMENTS = mapOf(
+            "PackedByteArray" to "Long",
+            "PackedInt32Array" to "Long",
+            "PackedInt64Array" to "Long",
+            "PackedFloat32Array" to "Double",
+            "PackedFloat64Array" to "Double",
+            "PackedStringArray" to "String",
+            "PackedVector2Array" to "Vector2",
+            "PackedVector3Array" to "Vector3",
+            "PackedColorArray" to "Color",
+            "PackedVector4Array" to "Vector4",
+        )
     }
 
     private class ArrayGenericConfig(private val builtinClass: BuiltinClass, private val typeResolver: TypeResolver) :
@@ -187,3 +227,11 @@ context(context: Context)
 private fun collectionBase(name: String, vararg elements: String): TypeName =
     ClassName(context.classNameForOrDefault("Variant").packageName, name)
         .parameterizedBy(elements.map { TypeVariableName(it) })
+
+context(context: Context)
+private fun packedElementType(name: String): TypeName = when (name) {
+    "Long" -> LONG
+    "Double" -> DOUBLE
+    "String" -> STRING
+    else -> context.classNameForOrDefault(name)
+}

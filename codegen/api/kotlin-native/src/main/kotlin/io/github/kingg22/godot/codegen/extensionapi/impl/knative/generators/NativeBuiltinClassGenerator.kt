@@ -11,6 +11,7 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.STRING
+import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeVariableName
 import io.github.kingg22.godot.codegen.extensionapi.Context
@@ -127,11 +128,7 @@ class NativeBuiltinClassGenerator(
         // Members that have no storage offset → need fptr lazy props
         val offsetMembers = builtinClass.layout?.memberOffsets?.keys ?: emptySet()
         val utilMembers = builtinClass.raw.members.filter { it.name !in offsetMembers }
-        val genericConfig = if (genericInterceptor.requiresGenerics(builtinClass.raw)) {
-            genericInterceptor.getGenericConfig(builtinClass.raw)
-        } else {
-            null
-        }
+        val genericConfig = genericInterceptor.getGenericConfig(builtinClass.raw)
         return createFile(spec.name!!, context.packageForOrDefault(godotName)) {
             typeAliasGenerator.generateTypeAliasSpec(builtinClass.raw)?.let { addTypeAlias(it) }
             addType(spec)
@@ -154,7 +151,7 @@ class NativeBuiltinClassGenerator(
         kotlinName: String,
         genericConfig: GenericBuiltinInterceptor.GenericConfig?,
     ): List<FunSpec> {
-        if (genericConfig == null) return emptyList()
+        if (genericConfig == null || genericConfig.typeVariableNames.isEmpty()) return emptyList()
         val typeNames = genericConfig.typeVariableNames
         val returnType = ClassName(context.packageForOrDefault(builtinClass.name), kotlinName)
             .parameterizedBy(typeNames.map { TypeVariableName(it) })
@@ -192,7 +189,7 @@ class NativeBuiltinClassGenerator(
         val kotlinName = builtinClass.name.renameGodotClass(requiresGenerics)
 
         // ── GENERIC INTERCEPTION ──────────────────────────────────────────────
-        val genericConfig = if (requiresGenerics) genericInterceptor.getGenericConfig(raw) else null
+        val genericConfig = genericInterceptor.getGenericConfig(raw)
         val codecParameters = genericConfig?.codecParameters.orEmpty()
 
         val classBuilder = TypeSpec
@@ -281,6 +278,14 @@ class NativeBuiltinClassGenerator(
 
         // ── Operators ────────────────────────────────────────────────────────
         classBuilder.addFunctions(generateOperators(builtinClass, genericConfig))
+
+        // ── MutableList bridge (Packed*Array) ─────────────────────────────────
+        genericConfig?.listElementType?.let {
+            addPackedListBridge(classBuilder, it)
+            // A List is equal to any List with the same elements, and its hash agrees: the engine's own `==` and
+            // `hash()` only know Godot values, so `list == listOf(...)` and `hashCode` come from AbstractList.
+            classBuilder.funSpecs.removeAll { fn -> fn.name == "equals" || fn.name == "hashCode" }
+        }
 
         // ── Instance methods ──────────────────────────────────────────────────
         val (staticMethods, instanceMethods) = raw.methods.partition { it.isStatic }
@@ -407,6 +412,72 @@ class NativeBuiltinClassGenerator(
         return overloadGen.buildOverloadsForMethod(method, original, TypeOverloadGenerator.GodotStringMapping).ifEmpty {
             listOf(original)
         }
+    }
+
+    /**
+     * The `MutableList` members of a `Packed*Array`, written over the engine methods (`size()`, `get`, `set`, `insert`,
+     * `removeAt` taking a `Long`). Reads are one engine call per element and nothing is copied, so the list is a live
+     * view: writes go through the engine, which detaches a shared buffer (copy-on-write) before changing it.
+     */
+    private fun addPackedListBridge(classBuilder: TypeSpec.Builder, element: TypeName) {
+        classBuilder.addSuperinterface(ClassName("kotlin.collections", "RandomAccess"))
+        classBuilder.addProperty(
+            PropertySpec
+                .builder("size", INT, KModifier.OVERRIDE)
+                .getter(FunSpec.getterBuilder().addStatement("return size().toInt()").build())
+                .build(),
+        )
+        val checkIndex = "if (index !in 0 until size) throw IndexOutOfBoundsException(\"Index: \$index, Size: \$size\")"
+        classBuilder.addFunction(
+            FunSpec
+                .builder("get")
+                .addModifiers(KModifier.OVERRIDE, KModifier.OPERATOR)
+                .addParameter("index", INT)
+                .returns(element)
+                .addStatement(checkIndex)
+                .addStatement("return get(index.toLong())")
+                .build(),
+        )
+        classBuilder.addFunction(
+            FunSpec
+                .builder("set")
+                .addModifiers(KModifier.OVERRIDE, KModifier.OPERATOR)
+                .addParameter("index", INT)
+                .addParameter("element", element)
+                .returns(element)
+                .addStatement(checkIndex)
+                .addStatement("val previous = get(index.toLong())")
+                .addStatement("set(index.toLong(), element)")
+                .addStatement("return previous")
+                .build(),
+        )
+        classBuilder.addFunction(
+            FunSpec
+                .builder("add")
+                .addModifiers(KModifier.OVERRIDE)
+                .addParameter("index", INT)
+                .addParameter("element", element)
+                .addStatement(
+                    "if (index !in 0..size) throw IndexOutOfBoundsException(\"Index: \$index, Size: \$size\")",
+                )
+                .addStatement("val error = insert(index.toLong(), element)")
+                .addStatement("check(error == 0L) { \"The engine could not insert at \$index (error \$error)\" }")
+                .addStatement("modCount++")
+                .build(),
+        )
+        classBuilder.addFunction(
+            FunSpec
+                .builder("removeAt")
+                .addModifiers(KModifier.OVERRIDE)
+                .addParameter("index", INT)
+                .returns(element)
+                .addStatement(checkIndex)
+                .addStatement("val previous = get(index.toLong())")
+                .addStatement("removeAt(index.toLong())")
+                .addStatement("modCount++")
+                .addStatement("return previous")
+                .build(),
+        )
     }
 
     /**
