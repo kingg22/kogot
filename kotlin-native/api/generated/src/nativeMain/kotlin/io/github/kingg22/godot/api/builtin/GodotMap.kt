@@ -15,8 +15,8 @@ import org.jetbrains.annotations.ApiStatus.NonExtendable
 @NonExtendable
 @SubclassOptInRequired(InternalForInheritanceGodotApi::class)
 public abstract class GodotMap<@MustBeVariant K, @MustBeVariant V> internal constructor(
-    private val keyCodec: ElementCodec<K>,
-    private val valueCodec: ElementCodec<V>,
+    internal val keyCodec: ElementCodec<K>,
+    internal val valueCodec: ElementCodec<V>,
 ) : AbstractMutableMap<K, V>() {
 
     /** Number of entries. */

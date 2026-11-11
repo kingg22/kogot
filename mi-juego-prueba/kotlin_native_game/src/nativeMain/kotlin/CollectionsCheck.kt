@@ -26,6 +26,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
         constructorChecks()
         strictReadChecks()
         mapChecks()
+        typingChecks()
         getTree().quit(checks.finish())
     }
 
@@ -142,7 +143,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
         check("strict: a String element read as Long throws ClassCastException") {
             VariantArray().use { untyped ->
                 untyped.add(Variant.from("text"))
-                GodotArray<Long>(untyped.rawPtr).use { asLongs ->
+                GodotArray<Long?>(untyped.rawPtr).use { asLongs ->
                     expectThrows<ClassCastException>("read String as Long") { asLongs[0] }
                 }
             }
@@ -150,16 +151,17 @@ import kotlinx.cinterop.ExperimentalForeignApi
         check("strict: a Long that does not fit in Int throws ArithmeticException") {
             VariantArray().use { untyped ->
                 untyped.add(Variant.from(5_000_000_000L))
-                GodotArray<Int>(untyped.rawPtr).use { asInts ->
+                GodotArray<Int?>(untyped.rawPtr).use { asInts ->
                     expectThrows<ArithmeticException>("5e9 as Int") { asInts[0] }
                 }
             }
         }
-        check("strict: NIL read as a non-nullable type throws") {
+        check("strict: NIL reads as null only for a nullable element type") {
             VariantArray().use { untyped ->
                 untyped.add(Variant())
-                GodotArray<Long>(untyped.rawPtr).use { asLongs ->
-                    expectThrows<ClassCastException>("NIL as Long") { asLongs[0] }
+                GodotArray<Long?>(untyped.rawPtr).use { asLongs -> expect(asLongs[0] == null) { "NIL as Long?" } }
+                expectThrows<IllegalStateException>("untyped array as non-nullable Long") {
+                    GodotArray<Long>(untyped.rawPtr)
                 }
             }
         }
@@ -214,6 +216,47 @@ import kotlinx.cinterop.ExperimentalForeignApi
             Dictionary<String, Long?>().use { map ->
                 map["n"] = null
                 expect(map.containsKey("n") && map["n"] == null) { "null value" }
+            }
+        }
+    }
+
+    private fun typingChecks() = with(checks) {
+        check("typing: factory types the array in the engine") {
+            GodotArray<Long>().use { list ->
+                expect(list.isTyped() && list.getTypedBuiltin() == Variant.Type.INT.value) { "builtin=${list.getTypedBuiltin()}" }
+            }
+            GodotArray<String>().use { list ->
+                expect(list.getTypedBuiltin() == Variant.Type.STRING.value) { "builtin=${list.getTypedBuiltin()}" }
+            }
+        }
+        check("typing: Variant and nullable elements stay untyped") {
+            GodotArray<Variant>().use { expect(!it.isTyped()) { "Variant typed" } }
+            GodotArray<Long?>().use { expect(!it.isTyped()) { "Long? typed" } }
+        }
+        check("typing: nested arrays are typed as ARRAY") {
+            GodotArray<GodotArray<Long>>().use { list ->
+                expect(list.getTypedBuiltin() == Variant.Type.ARRAY.value) { "builtin=${list.getTypedBuiltin()}" }
+            }
+        }
+        check("typing: factory types the dictionary key and value") {
+            Dictionary<String, Long>().use { map ->
+                expect(map.getTypedKeyBuiltin() == Variant.Type.STRING.value) { "key=${map.getTypedKeyBuiltin()}" }
+                expect(map.getTypedValueBuiltin() == Variant.Type.INT.value) { "value=${map.getTypedValueBuiltin()}" }
+            }
+        }
+        check("typing: wrapping an engine array with another type fails") {
+            GodotArray<String>().use { strings ->
+                expectThrows<IllegalStateException>("wrap String array as Long") { GodotArray<Long>(strings.rawPtr) }
+            }
+            VariantArray().use { untyped ->
+                expectThrows<IllegalStateException>("wrap untyped array as Long") { GodotArray<Long>(untyped.rawPtr) }
+            }
+        }
+        check("typing: wrapping with the right type works") {
+            GodotArray<Long>().use { longs ->
+                longs.add(7L)
+                val view = GodotArray<Long>(longs.rawPtr)
+                expect(view[0] == 7L) { "view=${view.toList()}" }
             }
         }
     }

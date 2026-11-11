@@ -13,7 +13,7 @@ import org.jetbrains.annotations.ApiStatus.NonExtendable
  */
 @NonExtendable
 @SubclassOptInRequired(InternalForInheritanceGodotApi::class)
-public abstract class GodotList<@MustBeVariant T> internal constructor(private val codec: ElementCodec<T>) :
+public abstract class GodotList<@MustBeVariant T> internal constructor(internal val codec: ElementCodec<T>) :
     AbstractMutableList<T>(),
     RandomAccess {
 

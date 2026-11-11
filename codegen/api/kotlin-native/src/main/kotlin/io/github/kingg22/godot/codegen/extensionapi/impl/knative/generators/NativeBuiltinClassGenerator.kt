@@ -172,7 +172,12 @@ class NativeBuiltinClassGenerator(
                     .addTypeVariables(typeNames.map { contractedTypeVariable(it).copy(reified = true) })
                     .addParameters(parameters)
                     .returns(returnType)
-                    .addStatement("return %L(%L)", kotlinName, (parameters.map { it.name } + codecs).joinToString())
+                    .addStatement(
+                        // A new empty collection is typed in the engine; one built from other data keeps its content.
+                        if (parameters.isEmpty()) "return %L(%L).applyGodotType()" else "return %L(%L)",
+                        kotlinName,
+                        (parameters.map { it.name } + codecs).joinToString(),
+                    )
                     .build()
             }
     }
