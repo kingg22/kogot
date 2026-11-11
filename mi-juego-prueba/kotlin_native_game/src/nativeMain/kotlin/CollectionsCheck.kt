@@ -13,6 +13,8 @@ import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.VariantArray
 import io.github.kingg22.godot.api.builtin.VariantDictionary
 import io.github.kingg22.godot.api.builtin.from
+import io.github.kingg22.godot.api.builtin.toDictionary
+import io.github.kingg22.godot.api.builtin.toGodotArray
 import io.github.kingg22.godot.api.builtin.getValue
 import io.github.kingg22.godot.api.core.Node
 import kotlinx.cinterop.COpaquePointer
@@ -32,6 +34,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
         mapChecks()
         typingChecks()
         packedChecks()
+        conversionChecks()
         getTree().quit(checks.finish())
     }
 
@@ -302,6 +305,28 @@ import kotlinx.cinterop.ExperimentalForeignApi
                 packed.clear()
                 expect(packed.isEmpty() && packed.size == 0) { "clear" }
             }
+        }
+    }
+
+    private fun conversionChecks() = with(checks) {
+        check("convert: List to a typed GodotArray, a copy") {
+            val source = mutableListOf(1L, 2L, 3L)
+            source.toGodotArray().use { array ->
+                source.add(4L)
+                expect(array.toList() == listOf(1L, 2L, 3L) && array.getTypedBuiltin() == Variant.Type.INT.value) {
+                    "array=${array.toList()}"
+                }
+            }
+        }
+        check("convert: Map to a typed Dictionary") {
+            mapOf("a" to 1L, "b" to 2L).toDictionary().use { map ->
+                expect(map["a"] == 1L && map["b"] == 2L && map.size == 2) { "map=${map.entries.map { it.key to it.value }}" }
+                expect(map.getTypedKeyBuiltin() == Variant.Type.STRING.value) { "key type" }
+            }
+        }
+        check("convert: empty collections") {
+            emptyList<String>().toGodotArray().use { expect(it.isEmpty()) { "array" } }
+            emptyMap<String, Long>().toDictionary().use { expect(it.isEmpty()) { "dictionary" } }
         }
     }
 }

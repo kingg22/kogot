@@ -20,6 +20,46 @@ public fun VariantArray(): VariantArray = GodotArray(ElementCodec.VARIANT)
 /** A new, empty untyped dictionary. The caller owns it and must close it. */
 public fun VariantDictionary(): VariantDictionary = Dictionary(ElementCodec.VARIANT, ElementCodec.VARIANT)
 
+// ── From Kotlin collections ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Copies this collection into a new Godot array typed as [T] (see [GodotArray]). The elements are converted one by
+ * one: the result does not share memory with the receiver, later changes to either are not seen by the other.
+ *
+ * The caller owns the result and must close it.
+ *
+ * @throws ClassCastException if an element cannot be sent to Godot as a [T]; the partial array is closed first.
+ */
+public inline fun <@MustBeVariant reified T> Iterable<T>.toGodotArray(): GodotArray<T> {
+    val array = GodotArray<T>()
+    try {
+        array.addAll(this)
+    } catch (e: Throwable) {
+        array.close()
+        throw e
+    }
+    return array
+}
+
+/**
+ * Copies this map into a new Godot dictionary typed as [K] and [V] (see [Dictionary]). Keys and values are converted
+ * one by one: the result does not share memory with the receiver.
+ *
+ * The caller owns the result and must close it.
+ *
+ * @throws ClassCastException if a key or a value cannot be sent to Godot; the partial dictionary is closed first.
+ */
+public inline fun <@MustBeVariant reified K, @MustBeVariant reified V> Map<K, V>.toDictionary(): Dictionary<K, V> {
+    val dictionary = Dictionary<K, V>()
+    try {
+        dictionary.putAll(this)
+    } catch (e: Throwable) {
+        dictionary.close()
+        throw e
+    }
+    return dictionary
+}
+
 // ── Wrappers over a pointer owned by someone else (engine arguments, borrowed values) ────────────
 
 /** Wraps the array at [rawPtr] without owning it: closing the wrapper never destroys the array. */
