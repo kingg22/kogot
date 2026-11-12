@@ -10,6 +10,12 @@ import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinLayout
 import io.github.kingg22.godot.codegen.types.*
 
+/** `ElementCodec` of the hand-written collection views, in the same module as the generated API. */
+private val ELEMENT_CODEC = ClassName("io.github.kingg22.godot.api.builtin", "ElementCodec")
+
+/** Checks a typed collection returned by the engine against the type the API declares. */
+private val CHECKED_FROM_ENGINE = MemberName("io.github.kingg22.godot.api.builtin", "checkedFromEngine", true)
+
 fun buildLayoutConstants(layout: ResolvedBuiltinLayout): List<PropertySpec> =
     layout.memberOffsets.map { (member, offset) ->
         PropertySpec
@@ -258,6 +264,16 @@ fun buildReturnAlloc(
             // assignment into the destination (releasing/retaining the internal refcounted pointer),
             // not a raw pointer write — the destination must be an already-constructed, valid empty
             // container. Same fix pattern as the scalar builtins above.
+            // A typed return is built over an untyped buffer: the engine's assignment replaces it with its own
+            // typed array, which `checkedFromEngine` verifies after the call (see buildReturnRead).
+            (returnType.startsWith("typedarray") || returnType.startsWith("typeddictionary")) &&
+                kotlinType is ParameterizedTypeName -> {
+                val codecs = kotlinType.typeArguments
+                    .map { CodeBlock.of("%T.of<%T>()", ELEMENT_CODEC, it) }
+                    .joinToCode()
+                addStatement("val retPtr = %T(%L)", kotlinType, codecs)
+            }
+
             returnType.startsWith("array") ||
                 returnType.startsWith("dictionary") ||
                 returnType.startsWith("typeddictionary") ||
@@ -335,10 +351,12 @@ fun buildReturnRead(
 
         // retPtr is already the constructed container instance (see buildReturnAlloc) — ptrcall
         // assigned straight into it, so there's no pointer to dereference or null-check either.
+        // A typed array/dictionary the engine returned is checked against the type the API declares.
+        returnType.startsWith("typeddictionary") || returnType.startsWith("typedarray") ->
+            CodeBlock.ofStatement("${preAppendReturn}retPtr.%M()", CHECKED_FROM_ENGINE)
+
         returnType.startsWith("array") ||
-            returnType.startsWith("dictionary") ||
-            returnType.startsWith("typeddictionary") ||
-            returnType.startsWith("typedarray") -> CodeBlock.ofStatement("${preAppendReturn}retPtr")
+            returnType.startsWith("dictionary") -> CodeBlock.ofStatement("${preAppendReturn}retPtr")
 
         ctx.isEngineClass(returnType) -> {
             val adopt = adoptRefCounted && ctx.inheritsRefCounted(returnType)

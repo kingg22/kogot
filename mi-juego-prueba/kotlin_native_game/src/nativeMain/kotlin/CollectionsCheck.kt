@@ -13,6 +13,7 @@ import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.VariantArray
 import io.github.kingg22.godot.api.builtin.VariantDictionary
 import io.github.kingg22.godot.api.builtin.from
+import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.builtin.toDictionary
 import io.github.kingg22.godot.api.builtin.toGodotArray
 import io.github.kingg22.godot.api.builtin.getValue
@@ -35,6 +36,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
         typingChecks()
         packedChecks()
         conversionChecks()
+        engineReturnChecks()
         getTree().quit(checks.finish())
     }
 
@@ -327,6 +329,22 @@ import kotlinx.cinterop.ExperimentalForeignApi
         check("convert: empty collections") {
             emptyList<String>().toGodotArray().use { expect(it.isEmpty()) { "array" } }
             emptyMap<String, Long>().toDictionary().use { expect(it.isEmpty()) { "dictionary" } }
+        }
+    }
+
+    private fun engineReturnChecks() = with(checks) {
+        check("engine returns: typedarray::StringName is typed and readable") {
+            addToGroup("probe".toStringName())
+            getGroups().use { groups ->
+                expect(groups.getTypedBuiltin() == Variant.Type.STRING_NAME.value) { "builtin=${groups.getTypedBuiltin()}" }
+                expect(groups.any { it.toString() == "probe" }) { "groups=${groups.map { it.toString() }}" }
+            }
+        }
+        check("engine returns: typedarray::Dictionary is typed and readable") {
+            getPropertyList().use { properties ->
+                expect(properties.getTypedBuiltin() == Variant.Type.DICTIONARY.value) { "builtin" }
+                expect(properties.isNotEmpty()) { "no properties" }
+            }
         }
     }
 }

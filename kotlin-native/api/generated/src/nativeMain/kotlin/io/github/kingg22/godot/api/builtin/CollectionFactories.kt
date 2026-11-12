@@ -88,14 +88,14 @@ public inline fun <@MustBeVariant reified K, @MustBeVariant reified V> Dictionar
 
 @PublishedApi
 internal fun <@MustBeVariant T> wrapGodotArray(rawPtr: COpaquePointer, codec: ElementCodec<T>): GodotArray<T> =
-    GodotArray(rawPtr, codec).also { it.requireGodotType() }
+    GodotArray(rawPtr, codec).checkedFromEngine()
 
 @PublishedApi
 internal fun <@MustBeVariant K, @MustBeVariant V> wrapDictionary(
     rawPtr: COpaquePointer,
     keyCodec: ElementCodec<K>,
     valueCodec: ElementCodec<V>,
-): Dictionary<K, V> = Dictionary(rawPtr, keyCodec, valueCodec).also { it.requireGodotType() }
+): Dictionary<K, V> = Dictionary(rawPtr, keyCodec, valueCodec).checkedFromEngine()
 
 // ── Godot-side typing ────────────────────────────────────────────────────────────────────────────
 
@@ -103,28 +103,35 @@ internal fun <@MustBeVariant K, @MustBeVariant V> wrapDictionary(
  * Fixes the element type of this new, empty array in the engine to the type of its codec, so Godot itself rejects a
  * wrong element. An untyped codec (`Variant`, nullable, object) leaves the array untyped.
  */
+@IgnorableReturnValue
 @PublishedApi
 internal fun <T> GodotArray<T>.applyGodotType(): GodotArray<T> {
-    val type = codec.godotType
+    val type = this.codec.godotType
+
     if (type == Variant.Type.NIL) return this
+
     StringName().use { className ->
         Variant().use { script ->
-            ArrayBinding.setTypedRaw(rawPtr, type.toGDE(), className.rawPtr, script.rawPtr)
+            ArrayBinding.setTypedRaw(this.rawPtr, type.toGDE(), className.rawPtr, script.rawPtr)
         }
     }
+
     return this
 }
 
 /** Same as [applyGodotType] for a new, empty dictionary, with the key and the value type. */
+@IgnorableReturnValue
 @PublishedApi
 internal fun <K, V> Dictionary<K, V>.applyGodotType(): Dictionary<K, V> {
-    val keyType = keyCodec.godotType
-    val valueType = valueCodec.godotType
+    val keyType = this.keyCodec.godotType
+    val valueType = this.valueCodec.godotType
+
     if (keyType == Variant.Type.NIL && valueType == Variant.Type.NIL) return this
+
     StringName().use { className ->
         Variant().use { script ->
             DictionaryBinding.setTypedRaw(
-                rawPtr,
+                this.rawPtr,
                 keyType.toGDE(),
                 className.rawPtr,
                 script.rawPtr,
@@ -138,30 +145,45 @@ internal fun <K, V> Dictionary<K, V>.applyGodotType(): Dictionary<K, V> {
 }
 
 /**
- * Checks that an array that came from the engine is typed the way the codec expects. A codec with a Godot type needs
- * an array typed with that same type; an untyped codec accepts any array.
+ * Checks that an array that came from the engine is typed the way the codec expects,
+ * and returns it. A codec with a Godot type needs an array typed with that same type;
+ * an untyped codec accepts any array.
  *
  * @throws IllegalStateException if the array is not typed as the codec expects.
  */
-private fun <T> GodotArray<T>.requireGodotType() {
+@IgnorableReturnValue
+@PublishedApi
+internal fun <T> GodotArray<T>.checkedFromEngine(): GodotArray<T> {
     val expected = codec.godotType
-    if (expected == Variant.Type.NIL) return
-    val actual = if (isTyped()) getTypedBuiltin() else Variant.Type.NIL.value
+    if (expected == Variant.Type.NIL) return this
+    // `getTypedBuiltin` is `NIL` for an untyped array: one engine call is enough.
+    val actual = getTypedBuiltin()
     check(actual == expected.value) {
         "Expected an array typed as $expected but the engine array is typed as " +
             "${Variant.Type.entries.firstOrNull { it.value == actual }}"
     }
+    return this
 }
 
-private fun <K, V> Dictionary<K, V>.requireGodotType() {
+/**
+ * Checks that a dictionary that came from the engine is typed the way the codec expects,
+ * and returns it. A codec with a Godot type needs a dictionary typed with that same type;
+ * an untyped codec accepts any dictionary.
+ *
+ * @throws IllegalStateException if the dictionary is not typed as the codec expects.
+ */
+@IgnorableReturnValue
+@PublishedApi
+internal fun <K, V> Dictionary<K, V>.checkedFromEngine(): Dictionary<K, V> {
     val key = keyCodec.godotType
     val value = valueCodec.godotType
     if (key != Variant.Type.NIL) {
-        val actual = if (isTypedKey()) getTypedKeyBuiltin() else Variant.Type.NIL.value
+        val actual = getTypedKeyBuiltin()
         check(actual == key.value) { "Expected dictionary keys typed as $key but they are typed as $actual" }
     }
     if (value != Variant.Type.NIL) {
-        val actual = if (isTypedValue()) getTypedValueBuiltin() else Variant.Type.NIL.value
+        val actual = getTypedValueBuiltin()
         check(actual == value.value) { "Expected dictionary values typed as $value but they are typed as $actual" }
     }
+    return this
 }
