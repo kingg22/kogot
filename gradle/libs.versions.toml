@@ -39,7 +39,7 @@ kotlin = "2.5.20-dev-2623"
 kotlinx-coroutines = "1.10.2"
 
 # https://github.com/Kotlin/kotlinx.serialization/releases
-kotlinx-serialization = "1.11.0"
+kotlinx-serialization = "1.13.0"
 
 # https://github.com/square/kotlinpoet/releases
 kotlinpoet = "2.4.0"
