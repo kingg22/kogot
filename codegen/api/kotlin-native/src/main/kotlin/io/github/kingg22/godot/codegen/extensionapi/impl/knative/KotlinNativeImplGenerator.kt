@@ -27,7 +27,7 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
     private val builtinClassImplGen = BuiltinClassImplGen(typeResolver, BuiltinMethodImplGen(typeResolver))
     private val defaultValue = DefaultValueGenerator(typeResolver)
     private val methodGenerator = NativeMethodGenerator(typeResolver, defaultValue)
-    private val genericInterceptor = GenericBuiltinInterceptor(typeResolver)
+    private val genericInterceptor = GenericBuiltinInterceptor()
     private val enumGen = NativeEnumGenerator()
     private val typeAliasGen = TypeAliasGenerator(genericInterceptor)
     private val overloadGen = TypeOverloadGenerator(typeResolver)

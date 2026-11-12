@@ -166,7 +166,11 @@ class NativeBuiltinClassGenerator(
                     .addKdocIfPresent(ctor.raw!!)
                     .addModifiers(KModifier.INLINE)
                     // Prefixed names: see `contractedTypeVariable`.
-                    .addTypeVariables(typeNames.map { contractedTypeVariable(it).copy(reified = true) })
+                    .addTypeVariables(
+                        typeNames.map { type ->
+                            GenericBuiltinInterceptor.contractedTypeVariable(type).copy(reified = true)
+                        },
+                    )
                     .addParameters(parameters)
                     .returns(returnType)
                     .addStatement(

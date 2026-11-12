@@ -1,16 +1,13 @@
 package io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators
 
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.DOUBLE
-import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeVariableName
 import io.github.kingg22.godot.codegen.extensionapi.Context
-import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
+import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.interceptors.ArrayGenericConfig
+import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.interceptors.DictionaryGenericConfig
+import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.interceptors.PackedListConfig
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
 
 /**
@@ -28,7 +25,7 @@ import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
  * 4. Modificar tipos de retorno/parámetros para usar type variables
  * 5. Generar typealiases para versiones untyped
  */
-class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
+class GenericBuiltinInterceptor {
 
     /** Detecta si una clase builtin debe ser genérica. */
     fun requiresGenerics(builtinClass: BuiltinClass): Boolean = when (builtinClass.name) {
@@ -38,11 +35,10 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
     }
 
     /** Obtiene la configuración de genéricos para una clase. */
-    context(_: Context)
     fun getGenericConfig(builtinClass: BuiltinClass): GenericConfig? = when (builtinClass.name) {
-        "Array" -> ArrayGenericConfig(builtinClass, typeResolver)
+        "Array" -> ArrayGenericConfig()
         "Dictionary" -> DictionaryGenericConfig()
-        else -> PACKED_ELEMENTS[builtinClass.name]?.let(::PackedListConfig)
+        else -> PackedListConfig.PACKED_ELEMENTS[builtinClass.name]?.let(::PackedListConfig)
     }
 
     /** Configuración de genéricos para una clase builtin. */
@@ -109,129 +105,14 @@ class GenericBuiltinInterceptor(private val typeResolver: TypeResolver) {
             get() = null
     }
 
-    /** `Packed*Array` as `AbstractMutableList<E>` + `RandomAccess`: not generic, the element type is fixed. */
-    private class PackedListConfig(private val element: String) : GenericConfig {
-        context(context: Context)
-        override val listElementType: TypeName get() = packedElementType(element)
-
-        context(context: Context)
-        override val superclass: TypeName
-            get() = ClassName("kotlin.collections", "AbstractMutableList").parameterizedBy(listElementType)
-
-        // Abstract members of AbstractMutableList that the engine methods implement; `size` is bridged by hand.
-        override val viewMethods: Map<String, String> = mapOf("is_empty" to "isEmpty", "clear" to "clear")
+    companion object {
+        /**
+         * `@MustBeVariant [name]`: the contract the compiler plugin enforces where the container is built or written down.
+         *
+         * KotlinPoet only emits TypeVariableName annotations at use sites, but the compiler plugin reads them from the
+         * declaration (`class GodotArray<@MustBeVariant T>`). Prefixing the name emits it in the declaration; no import is
+         * needed because MustBeVariant lives in the same package as the generated builtins.
+         */
+        fun contractedTypeVariable(name: String): TypeVariableName = TypeVariableName("@MustBeVariant $name")
     }
-
-    private companion object {
-        /** `Packed*Array` name → the element type its `get` returns. */
-        val PACKED_ELEMENTS = mapOf(
-            "PackedByteArray" to "Long",
-            "PackedInt32Array" to "Long",
-            "PackedInt64Array" to "Long",
-            "PackedFloat32Array" to "Double",
-            "PackedFloat64Array" to "Double",
-            "PackedStringArray" to "String",
-            "PackedVector2Array" to "Vector2",
-            "PackedVector3Array" to "Vector3",
-            "PackedColorArray" to "Color",
-            "PackedVector4Array" to "Vector4",
-        )
-    }
-
-    private class ArrayGenericConfig(private val builtinClass: BuiltinClass, private val typeResolver: TypeResolver) :
-        GenericConfig {
-        override val typeVariableNames: List<String> = listOf("T")
-
-        context(context: Context)
-        override val superclass: TypeName get() = collectionBase("GodotList", "T")
-
-        context(context: Context)
-        override val codecParameters: List<ParameterSpec> get() = listOf(codecParameter("codec", "T"))
-
-        override val viewMethods: Map<String, String> = mapOf(
-            "size" to "size",
-            "is_empty" to "isEmpty",
-            "clear" to "clear",
-            "get" to "getVariant",
-            "set" to "setVariant",
-            "insert" to "insert",
-            "remove_at" to "removeAt",
-        )
-
-        context(context: Context)
-        override val untypedAlias: Pair<String, ParameterizedTypeName>
-            get() {
-                val godotArrayClass = context.classNameForOrDefault("Array", "GodotArray")
-                val variantClass = context.classNameForOrDefault("Variant")
-                val untypedArray = godotArrayClass.parameterizedBy(variantClass)
-                return "VariantArray" to untypedArray
-            }
-
-        // NO transformar tipos de parámetros - Array<T> internamente usa Variant
-        // Los factory methods (ofInt, ofLong, etc.) se generan aparte
-    }
-
-    private class DictionaryGenericConfig : GenericConfig {
-        override val typeVariableNames: List<String> = listOf("K", "V")
-
-        context(context: Context)
-        override val superclass: TypeName get() = collectionBase("GodotMap", "K", "V")
-
-        context(context: Context)
-        override val codecParameters: List<ParameterSpec>
-            get() = listOf(codecParameter("keyCodec", "K"), codecParameter("valueCodec", "V"))
-
-        override val viewMethods: Map<String, String> = mapOf(
-            "size" to "size",
-            "is_empty" to "isEmpty",
-            "clear" to "clear",
-            "has" to "has",
-            "erase" to "erase",
-            "get" to "getVariant",
-            "set" to "setVariant",
-            "keys" to "keys",
-        )
-
-        context(context: Context)
-        override val untypedAlias: Pair<String, ParameterizedTypeName>
-            get() {
-                val godotDictClass = context.classNameForOrDefault("Dictionary", typedClass = true)
-                val variantClass = context.classNameForOrDefault("Variant")
-                val untypedDict = godotDictClass.parameterizedBy(variantClass, variantClass)
-                return "VariantDictionary" to untypedDict
-            }
-
-        // NO transformar tipos de parámetros - Dictionary<K, V> internamente usa Variant
-        // Los factory methods (ofIntInt, etc.) se generan aparte
-    }
-}
-
-/**
- * `@MustBeVariant [name]`: the contract the compiler plugin enforces where the container is built or written down.
- *
- * KotlinPoet only emits TypeVariableName annotations at use sites, but the compiler plugin reads them from the
- * declaration (`class GodotArray<@MustBeVariant T>`). Prefixing the name emits it in the declaration; no import is
- * needed because MustBeVariant lives in the same package as the generated builtins.
- */
-internal fun contractedTypeVariable(name: String): TypeVariableName = TypeVariableName("@MustBeVariant $name")
-
-/** A parameter named [name] of type `ElementCodec<[element]>`. */
-context(context: Context)
-private fun codecParameter(name: String, element: String): ParameterSpec {
-    val codec = ClassName(context.classNameForOrDefault("Variant").packageName, "ElementCodec")
-    return ParameterSpec.builder(name, codec.parameterizedBy(TypeVariableName(element))).build()
-}
-
-/** The hand-written collection view [name] over [elements], in the builtin package. */
-context(context: Context)
-private fun collectionBase(name: String, vararg elements: String): TypeName =
-    ClassName(context.classNameForOrDefault("Variant").packageName, name)
-        .parameterizedBy(elements.map { TypeVariableName(it) })
-
-context(context: Context)
-private fun packedElementType(name: String): TypeName = when (name) {
-    "Long" -> LONG
-    "Double" -> DOUBLE
-    "String" -> STRING
-    else -> context.classNameForOrDefault(name)
 }
