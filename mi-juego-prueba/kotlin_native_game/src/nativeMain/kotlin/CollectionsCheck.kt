@@ -367,28 +367,29 @@ import kotlinx.cinterop.ExperimentalForeignApi
                 expect(map.hashCode() == mapOf("a" to 1L, "b" to 2L).hashCode()) { "hash" }
             }
         }
-        check("equality: the engine comparison is the typed equals, not the Kotlin one") {
+        check("equality: a Godot collection against its own type goes through the engine") {
             VariantArray().use { first ->
                 VariantArray().use { second ->
                     Variant.from(1L).use { first.add(it) }
                     Variant.from(1L).use { second.add(it) }
-                    expect(first.equals(second)) { "engine equals" }
+                    expect(first == second) { "engine equals" }
                 }
             }
             PackedInt64Array().use { a ->
                 PackedInt64Array().use { b ->
                     a.add(5L)
                     b.add(5L)
-                    expect(a.equals(b) && a == b) { "packed" }
+                    expect(a == b) { "packed" }
                 }
             }
         }
     }
 
     /**
-     * `==` between a Kotlin collection and a [Variant] that wraps the same content. The compiler gives no diagnostic
-     * (the types are open, a subtype of both could exist); the result is Kotlin's `equals(Any?)`: not equal. The
-     * engine's answer is the typed `equals(other: Variant)`.
+     * `==` between a collection and a [Variant] that wraps the same content. The compiler gives no diagnostic (the
+     * types are open, a subtype of both could exist). A Godot collection compares a [Variant] and its own type with
+     * the engine, and anything else (a Kotlin `List` or `Map`) with the inherited Kotlin equality; a Kotlin `List` knows
+     * nothing about a [Variant], so it is never equal to it.
      */
     private fun variantEqualityChecks() = with(checks) {
         check("variant equality: == between a Kotlin collection and a Variant, printed") {
@@ -398,13 +399,11 @@ import kotlinx.cinterop.ExperimentalForeignApi
                     val kotlinList = listOf(1L, 2L)
                     val kotlinVsVariant = kotlinList == variant
                     val godotVsVariant = array == variant
-                    val engineVsVariant = array.equals(variant)
                     println(
-                        "[CollectionsCheck] List == Variant: $kotlinVsVariant, GodotArray == Variant: " +
-                            "$godotVsVariant, GodotArray.equals(Variant): $engineVsVariant",
+                        "[CollectionsCheck] List == Variant: $kotlinVsVariant, GodotArray == Variant: $godotVsVariant",
                     )
-                    expect(!kotlinVsVariant && !godotVsVariant) { "Kotlin == must not equal a Variant" }
-                    expect(engineVsVariant) { "the engine compares the Variant by content" }
+                    expect(!kotlinVsVariant) { "a Kotlin List is never equal to a Variant" }
+                    expect(godotVsVariant) { "the engine compares the Variant by content" }
                 }
             }
         }
@@ -413,9 +412,8 @@ import kotlinx.cinterop.ExperimentalForeignApi
                 map["a"] = 1L
                 Variant(map).use { variant ->
                     val godotVsVariant = map == variant
-                    val engineVsVariant = map.equals(variant)
-                    println("[CollectionsCheck] Dictionary == Variant: $godotVsVariant, equals(Variant): $engineVsVariant")
-                    expect(!godotVsVariant && engineVsVariant) { "Kotlin vs engine" }
+                    println("[CollectionsCheck] Dictionary == Variant: $godotVsVariant")
+                    expect(godotVsVariant) { "the engine compares the Variant by content" }
                 }
             }
         }

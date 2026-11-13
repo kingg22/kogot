@@ -858,8 +858,8 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
     fun buildOperatorBody(operator: BuiltinClass.Operator) = methodImplGen.buildOperatorBody(operator)
 
     context(_: Context)
-    fun buildEqualsOperatorBody(resolvedBuiltinClass: ResolvedBuiltinClass) =
-        methodImplGen.buildEqualsOperatorBody(resolvedBuiltinClass)
+    fun buildEqualsOperatorBody(resolvedBuiltinClass: ResolvedBuiltinClass, fallbackToSuper: Boolean = false) =
+        methodImplGen.buildEqualsOperatorBody(resolvedBuiltinClass, fallbackToSuper)
 
     context(_: Context)
     fun buildCompareToBody(resolvedClass: ResolvedBuiltinClass) = methodImplGen.buildCompareToBody(resolvedClass)

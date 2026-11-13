@@ -287,99 +287,108 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
     }
 
     context(ctx: Context)
-    fun buildEqualsOperatorBody(resolvedClass: ResolvedBuiltinClass): CodeBlock = buildCodeBlock {
-        val equalsOps = resolvedClass.raw.operators.filter { it.name == "==" }
-        require(equalsOps.isNotEmpty()) { "No equals operators found for ${resolvedClass.name}" }
+    fun buildEqualsOperatorBody(resolvedClass: ResolvedBuiltinClass, fallbackToSuper: Boolean = false): CodeBlock =
+        buildCodeBlock {
+            val equalsOps = resolvedClass.raw.operators.filter { it.name == "==" }
+            require(equalsOps.isNotEmpty()) { "No equals operators found for ${resolvedClass.name}" }
 
-        val concreteOps = equalsOps.filter { it.rightType != null && it.rightType != "Variant" }
-        val hasVariant = equalsOps.any { it.rightType == "Variant" }
+            val concreteOps = equalsOps.filter { it.rightType != null && it.rightType != "Variant" }
+            val hasVariant = equalsOps.any { it.rightType == "Variant" }
 
-        // ── fast paths ───────────────────────────────────────────────────────
-        addStatement("// Fast paths")
-        addStatement("if (this === other) return true")
-        addStatement("if (other == null) return false")
-        add("\n")
+            // ── fast paths ───────────────────────────────────────────────────────
+            addStatement("// Fast paths")
+            addStatement("if (this === other) return true")
+            addStatement("if (other == null) return false")
+            add("\n")
 
-        // ── vars ─────────────────────────────────────────────────────────────
-        addStatement("val ftptr: %T", implPackageRegistry.classNameForOrDefault("GDExtensionPtrOperatorEvaluator"))
-        addStatement("val rhsPtr: %T", COPAQUE_POINTER)
-        addStatement("")
+            // ── vars ─────────────────────────────────────────────────────────────
+            addStatement("val ftptr: %T", implPackageRegistry.classNameForOrDefault("GDExtensionPtrOperatorEvaluator"))
+            addStatement("val rhsPtr: %T", COPAQUE_POINTER)
+            addStatement("")
 
-        // ── when(other) ──────────────────────────────────────────────────────
-        beginControlFlow("when (other)")
+            // ── when(other) ──────────────────────────────────────────────────────
+            beginControlFlow("when (other)")
 
-        // ── concrete types ───────────────────────────────────────────────────
-        for (op in concreteOps) {
-            val rightType = op.rightType!!
-            val kotlinType = when {
-                rightType.equals("Array", true) ->
-                    ctx.classNameForOrDefault("Array", typedClass = true).parameterizedBy(STAR)
-
-                rightType.equals("Dictionary", true) ->
-                    ctx.classNameForOrDefault("Dictionary", typedClass = true).parameterizedBy(STAR, STAR)
-
-                else -> ctx.classNameForOrDefault(rightType.renameGodotClass())
-            }
-
-            val fptrName = operatorFptrName(op)
-
-            beginControlFlow("is %T ->", kotlinType)
-                .addStatement("ftptr = %N", fptrName)
-                .addStatement("rhsPtr = other.rawPtr")
-            endControlFlow()
-
-            // Allows compare with kotlin.String if it's already compared to GodotString
-            if (rightType == "String") {
-                beginControlFlow("is %T ->", STRING)
-                    .addStatement("ftptr = %N", fptrName)
-                    .addStatement("rhsPtr = %T(other).rawPtr", ctx.classNameForOrDefault("String"))
-                endControlFlow()
-            }
-        }
-
-        // ── Variant branch ───────────────────────────────────────────────────
-        if (hasVariant) {
-            val variantTypeName = ctx.classNameForOrDefault("Variant")
-            beginControlFlow("is %T ->", variantTypeName)
-                .addStatement("val type = other.getType()")
-            beginControlFlow("when (type)")
-
+            // ── concrete types ───────────────────────────────────────────────────
             for (op in concreteOps) {
                 val rightType = op.rightType!!
-                val variantType = rightType.toScreamingSnakeCase()
+                val kotlinType = when {
+                    rightType.equals("Array", true) ->
+                        ctx.classNameForOrDefault("Array", typedClass = true).parameterizedBy(STAR)
+
+                    rightType.equals("Dictionary", true) ->
+                        ctx.classNameForOrDefault("Dictionary", typedClass = true).parameterizedBy(STAR, STAR)
+
+                    else -> ctx.classNameForOrDefault(rightType.renameGodotClass())
+                }
+
                 val fptrName = operatorFptrName(op)
 
-                beginControlFlow("%T.Type.%L ->", variantTypeName, variantType)
-                    // FIXME here can lead memory leaks
-                    .addStatement(
-                        "val tmp = other.to%L()",
-                        rightType.renameAllUpperCaseToCamelCase().takeUnless { it == "String" } ?: "GodotString",
-                    )
+                beginControlFlow("is %T ->", kotlinType)
                     .addStatement("ftptr = %N", fptrName)
-                    .addStatement("rhsPtr = tmp.rawPtr")
+                    .addStatement("rhsPtr = other.rawPtr")
                 endControlFlow()
+
+                // Allows compare with kotlin.String if it's already compared to GodotString
+                if (rightType == "String") {
+                    beginControlFlow("is %T ->", STRING)
+                        .addStatement("ftptr = %N", fptrName)
+                        .addStatement("rhsPtr = %T(other).rawPtr", ctx.classNameForOrDefault("String"))
+                    endControlFlow()
+                }
             }
 
-            addStatement("else -> return false")
-            endControlFlow() // when(type)
+            // ── Variant branch ───────────────────────────────────────────────────
+            if (hasVariant) {
+                val variantTypeName = ctx.classNameForOrDefault("Variant")
+                beginControlFlow("is %T ->", variantTypeName)
+                    .addStatement("val type = other.getType()")
+                beginControlFlow("when (type)")
 
-            endControlFlow() // is Variant
+                for (op in concreteOps) {
+                    val rightType = op.rightType!!
+                    val variantType = rightType.toScreamingSnakeCase()
+                    val fptrName = operatorFptrName(op)
+
+                    beginControlFlow("%T.Type.%L ->", variantTypeName, variantType)
+                        // FIXME here can lead memory leaks
+                        .addStatement(
+                            "val tmp = other.to%L()",
+                            rightType.renameAllUpperCaseToCamelCase().takeUnless { it == "String" } ?: "GodotString",
+                        )
+                        .addStatement("ftptr = %N", fptrName)
+                        .addStatement("rhsPtr = tmp.rawPtr")
+                    endControlFlow()
+                }
+
+                addStatement("else -> return false")
+                endControlFlow() // when(type)
+
+                endControlFlow() // is Variant
+            }
+
+            // ── fallback ─────────────────────────────────────────────────────────
+            // A Kotlin collection compares anything the engine does not know (another List or Map) with the inherited
+            // equality, which does not go through the engine.
+            if (fallbackToSuper) {
+                addStatement(
+                    "else -> return super.equals(other)",
+                )
+            } else {
+                addStatement("else -> return false")
+            }
+
+            endControlFlow() // when(other)
+
+            add("\n")
+
+            // ── invoke ───────────────────────────────────────────────────────────
+            beginControlFlow("%M", memScoped)
+                .addStatement("val retPtr = %M()", implPackageRegistry.memberNameForOrDefault("allocGdBool"))
+                .addStatement("ftptr.%M(rawPtr, rhsPtr, retPtr)", cinteropInvoke)
+                .addStatement("return retPtr.%M()", implPackageRegistry.memberNameForOrDefault("readGdBool"))
+            endControlFlow()
         }
-
-        // ── fallback ─────────────────────────────────────────────────────────
-        addStatement("else -> return false")
-
-        endControlFlow() // when(other)
-
-        add("\n")
-
-        // ── invoke ───────────────────────────────────────────────────────────
-        beginControlFlow("%M", memScoped)
-            .addStatement("val retPtr = %M()", implPackageRegistry.memberNameForOrDefault("allocGdBool"))
-            .addStatement("ftptr.%M(rawPtr, rhsPtr, retPtr)", cinteropInvoke)
-            .addStatement("return retPtr.%M()", implPackageRegistry.memberNameForOrDefault("readGdBool"))
-        endControlFlow()
-    }
 
     /**
      * Builds the `compareTo(other: T): Int` body using only the `<` (LESS) fptr.

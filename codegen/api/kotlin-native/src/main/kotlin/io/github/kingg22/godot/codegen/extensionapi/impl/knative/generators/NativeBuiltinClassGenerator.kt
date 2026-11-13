@@ -455,7 +455,6 @@ class NativeBuiltinClassGenerator(
         val builtinClass = resolvedClass.raw
         var compareToGenerated = false
         var equalsGenerated = false
-        var toStringGenerated = false
 
         // Group operators by symbol to handle overloads (e.g., * with int and with Vector2)
         return builtinClass.operators.mapNotNull { op ->
@@ -475,26 +474,6 @@ class NativeBuiltinClassGenerator(
 
                 // Recognized operator with a Kotlin keyword
                 kotlinOpName != null -> {
-                    if (kotlinOpName == "equals" && genericConfig?.kotlinCollectionEquality == true) {
-                        // Kotlin equality is inherited: the engine's `==` becomes `equals(other: Type)`, one per type.
-                        val typed = buildEngineEquals(op, resolvedClass, genericConfig)
-                        if (toStringGenerated) return@mapNotNull listOf(typed)
-                        toStringGenerated = true
-                        return@mapNotNull listOf(
-                            typed,
-                            FunSpec
-                                .builder("toString")
-                                .addModifiers(KModifier.OVERRIDE)
-                                .returns(STRING)
-                                .addCode(body.buildToStringBody())
-                                .addKdoc(
-                                    "Returns the Godot string representation via [%T.stringify]",
-                                    ctx.classNameForOrDefault("Variant"),
-                                )
-                                .build(),
-                        )
-                    }
-
                     if (kotlinOpName == "equals") {
                         if (equalsGenerated) {
                             return@mapNotNull null
@@ -529,8 +508,15 @@ class NativeBuiltinClassGenerator(
                                 .builder("hashCode")
                                 .addModifiers(KModifier.OVERRIDE)
                                 .returns(INT)
-                                .addCode(body.buildHashCodeBody(resolvedClass))
                                 .apply {
+                                    if (genericConfig?.kotlinCollectionEquality == true) {
+                                        // The List/Map contract: equal to a Kotlin collection with the same content,
+                                        // so the hash is the inherited one, not the engine's `hash()`.
+                                        addCode("return super.hashCode()")
+                                        addKdoc("The hash of a `List` or `Map` of Kotlin; the engine's is [hash].")
+                                        return@apply
+                                    }
+                                    addCode(body.buildHashCodeBody(resolvedClass))
                                     val hasMethod = resolvedClass.raw.methods.any { it.name == "hash" }
                                     val targetClass = if (hasMethod) {
                                         typeResolver.resolve(resolvedClass.shortName)
@@ -568,33 +554,6 @@ class NativeBuiltinClassGenerator(
         }.flatten()
     }
 
-    /**
-     * The engine's `==` against [operator]'s right type, as `equals(other: Type)` with no `override`: the `Any?` one
-     * stays the Kotlin collection equality. Compare with the engine's semantics by calling this one.
-     */
-    context(ctx: Context)
-    private fun buildEngineEquals(
-        operator: BuiltinClass.Operator,
-        cls: ResolvedBuiltinClass,
-        genericConfig: GenericBuiltinInterceptor.GenericConfig?,
-    ): FunSpec {
-        val rightTypeName = typeResolver.resolve(operator.rightType!!)
-        return FunSpec
-            .builder("equals")
-            .addKdocIfPresent(operator)
-            .addParameter("other", rightTypeName)
-            .returns(BOOLEAN)
-            .apply {
-                if (operator.rightType == "Variant") {
-                    // The engine compares a Variant through the Variant's own `==`, which dispatches on its type.
-                    addStatement("return %T(this).use { it == other }", ctx.classNameForOrDefault("Variant"))
-                } else {
-                    addCode(body.buildOperatorBody(operator))
-                }
-            }
-            .build()
-    }
-
     /** Builds a standard Kotlin operator fun (plus, minus, times, equals, not, etc). */
     context(_: Context)
     private fun buildKotlinOperator(
@@ -619,7 +578,7 @@ class NativeBuiltinClassGenerator(
             builder.addModifiers(KModifier.OVERRIDE)
             builder.returns(BOOLEAN)
             builder.addParameter("other", ANY.copy(nullable = true))
-            builder.addCode(body.buildEqualsOperatorBody(cls))
+            builder.addCode(body.buildEqualsOperatorBody(cls, genericConfig?.kotlinCollectionEquality == true))
         } else {
             builder.addModifiers(KModifier.OPERATOR)
             builder.returns(returnTypeName)
