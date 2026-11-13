@@ -59,7 +59,7 @@ object SignalDeclarationCallChecker : FirFunctionCallChecker(MppCheckerKind.Comm
 
 /**
  * A property delegated to `signal(...)` must be registered with `@RegisterSignal`: otherwise Godot does not know the
- * signal and rejects every `emit` and `connect` at runtime.
+ * signal and rejects every `emit` and `connect` at runtime. A custom name does not change that.
  */
 object SignalRegistrationPropertyChecker : FirPropertyChecker(MppCheckerKind.Common) {
     context(context: CheckerContext, reporter: DiagnosticReporter)

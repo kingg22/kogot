@@ -30,4 +30,10 @@ class Player : Node2D() {
     // Not registered: Godot would reject every emit and connect.
     val <!SIGNAL_NOT_REGISTERED!>forgotten<!> by signal()
     val <!SIGNAL_NOT_REGISTERED!>forgottenTyped<!> by <!MUST_BE_VARIANT_CHECKED!>signal<!><(value: Long) -> Unit>()
+
+    // A custom name (e.g. snake_case) changes nothing: it is registered and checked like any other signal.
+    @RegisterSignal val named by signal("custom_name")
+    @RegisterSignal val namedTyped by <!MUST_BE_VARIANT_CHECKED!>signal<!><(node: Node) -> Unit>("custom_typed")
+    val <!SIGNAL_NOT_REGISTERED!>namedForgotten<!> by signal("forgotten_name")
+    @RegisterSignal val badNamed by <!MUST_BE_VARIANT_CHECKED!>signal<!><<!NOT_VARIANT_COMPATIBLE!>(pattern: Regex) -> Unit<!>>("bad")
 }
