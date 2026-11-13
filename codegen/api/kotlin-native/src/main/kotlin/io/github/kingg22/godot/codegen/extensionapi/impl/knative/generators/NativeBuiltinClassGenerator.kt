@@ -16,6 +16,7 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeVariableName
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
+import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.interceptors.PackedListConfig
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.BuiltinClassImplGen
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.buildLayoutConstants
 import io.github.kingg22.godot.codegen.extensionapi.resolver.addKdocIfPresent
@@ -283,11 +284,9 @@ class NativeBuiltinClassGenerator(
         // ── Operators ────────────────────────────────────────────────────────
         classBuilder.addFunctions(generateOperators(builtinClass, genericConfig))
 
-        // ── MutableList bridge (Packed*Array) ─────────────────────────────────
-        genericConfig?.listElementType?.let {
-            addPackedListBridge(classBuilder, it)
-            // A List is equal to any List with the same elements, and its hash agrees: the engine's own `==` and
-            // `hash()` only know Godot values, so `list == listOf(...)` and `hashCode` come from AbstractList.
+        // A List is equal to any List with the same elements, and its hash agrees: the engine's own `==` and
+        // `hash()` only know Godot values, so for the packed arrays `list == listOf(...)` comes from AbstractList.
+        if (genericConfig is PackedListConfig) {
             classBuilder.funSpecs.removeAll { fn -> fn.name == "equals" || fn.name == "hashCode" }
         }
 
@@ -410,78 +409,24 @@ class NativeBuiltinClassGenerator(
 
         // The engine methods that implement the abstract members of the collection view: `override`, no String overloads.
         val viewName = genericConfig?.viewMethods?.get(method.name)
-        if (viewName != null) return listOf(original.asViewMember(viewName))
+        if (viewName != null) {
+            val signature = genericConfig.viewSignature(method.name)
+            if (signature == null) return listOf(original.asViewMember(viewName))
+            // Several overloads (String): all are kept, the one whose types match the abstract member overrides it.
+            val candidates = overloadGen
+                .buildOverloadsForMethod(method, original, TypeOverloadGenerator.GodotStringMapping)
+                .ifEmpty { listOf(original) }
+            val member = candidates.first {
+                it.parameters.map { p -> p.type } == signature.parameters &&
+                    (signature.returns == null || it.returnType == signature.returns)
+            }
+            return candidates.map { if (it === member) it.asViewMember(viewName) else it }
+        }
 
         // String overloads if needed
         return overloadGen.buildOverloadsForMethod(method, original, TypeOverloadGenerator.GodotStringMapping).ifEmpty {
             listOf(original)
         }
-    }
-
-    /**
-     * The `MutableList` members of a `Packed*Array`, written over the engine methods (`size()`, `get`, `set`, `insert`,
-     * `removeAt` taking a `Long`). Reads are one engine call per element and nothing is copied, so the list is a live
-     * view: writes go through the engine, which detaches a shared buffer (copy-on-write) before changing it.
-     */
-    private fun addPackedListBridge(classBuilder: TypeSpec.Builder, element: TypeName) {
-        classBuilder.addSuperinterface(ClassName("kotlin.collections", "RandomAccess"))
-        classBuilder.addProperty(
-            PropertySpec
-                .builder("size", INT, KModifier.OVERRIDE)
-                .getter(FunSpec.getterBuilder().addStatement("return size().toInt()").build())
-                .build(),
-        )
-        val checkIndex = "if (index !in 0 until size) throw IndexOutOfBoundsException(\"Index: \$index, Size: \$size\")"
-        classBuilder.addFunction(
-            FunSpec
-                .builder("get")
-                .addModifiers(KModifier.OVERRIDE, KModifier.OPERATOR)
-                .addParameter("index", INT)
-                .returns(element)
-                .addStatement(checkIndex)
-                .addStatement("return get(index.toLong())")
-                .build(),
-        )
-        classBuilder.addFunction(
-            FunSpec
-                .builder("set")
-                .addModifiers(KModifier.OVERRIDE, KModifier.OPERATOR)
-                .addParameter("index", INT)
-                .addParameter("element", element)
-                .returns(element)
-                .addStatement(checkIndex)
-                .addStatement("val previous = get(index.toLong())")
-                .addStatement("set(index.toLong(), element)")
-                .addStatement("return previous")
-                .build(),
-        )
-        classBuilder.addFunction(
-            FunSpec
-                .builder("add")
-                .addModifiers(KModifier.OVERRIDE)
-                .addParameter("index", INT)
-                .addParameter("element", element)
-                .addStatement(
-                    "if (index !in 0..size) throw IndexOutOfBoundsException(\"Index: \$index, Size: \$size\")",
-                )
-                .addStatement("val error = insert(index.toLong(), element)")
-                .addStatement("check(error == 0L) { \"The engine could not insert at \$index (error \$error)\" }")
-                .addStatement("modCount++")
-                .build(),
-        )
-        classBuilder.addFunction(
-            FunSpec
-                .builder("removeAt")
-                .addModifiers(KModifier.OVERRIDE)
-                .addParameter("index", INT)
-                .returns(element)
-                .addStatement(checkIndex)
-                .addStatement("val previous = get(index.toLong())")
-                .addStatement("removeAt(index.toLong())")
-                .addStatement("modCount++")
-                .addStatement("return previous")
-                .build(),
-        )
     }
 
     /**
@@ -492,6 +437,7 @@ class NativeBuiltinClassGenerator(
         .apply {
             modifiers.remove(KModifier.OPERATOR)
             modifiers += KModifier.OVERRIDE
+            modifiers.remove(KModifier.INLINE) // an override is final, not inlined
             parameters.replaceAll { it.toBuilder().defaultValue(null as CodeBlock?).build() }
         }.build()
 

@@ -12,14 +12,33 @@ import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.Gene
 /** `Packed*Array` as `AbstractMutableList<E>` + `RandomAccess`: not generic, the element type is fixed. */
 class PackedListConfig(private val element: String) : GenericBuiltinInterceptor.GenericConfig {
     context(context: Context)
-    override val listElementType: TypeName get() = packedElementType(element)
-
-    context(context: Context)
     override val superclass: TypeName
-        get() = ClassName("kotlin.collections", "AbstractMutableList").parameterizedBy(listElementType)
+        get() = ClassName(
+            "io.github.kingg22.godot.api.builtin",
+            "GodotPackedList",
+        ).parameterizedBy(packedElementType(element))
 
-    // Abstract members of AbstractMutableList that the engine methods implement; `size` is bridged by hand.
-    override val viewMethods: Map<String, String> = mapOf("is_empty" to "isEmpty", "clear" to "clear")
+    // The engine methods are the abstract members of `GodotPackedList`: they only need `override`.
+    override val viewMethods: Map<String, String> = mapOf(
+        "size" to "size",
+        "is_empty" to "isEmpty",
+        "clear" to "clear",
+        "get" to "get",
+        "set" to "set",
+        "insert" to "insert",
+        "remove_at" to "removeAt",
+    )
+
+    // `get` and `set` have String overloads (GodotString and String): the one that matches the element type overrides.
+    context(context: Context)
+    override fun viewSignature(engineName: String): GenericBuiltinInterceptor.ViewSignature? {
+        val elementType = packedElementType(element)
+        return when (engineName) {
+            "get" -> GenericBuiltinInterceptor.ViewSignature(listOf(LONG), elementType)
+            "set", "insert" -> GenericBuiltinInterceptor.ViewSignature(listOf(LONG, elementType), null)
+            else -> null
+        }
+    }
 
     companion object {
 

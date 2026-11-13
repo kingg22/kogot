@@ -97,13 +97,15 @@ class GenericBuiltinInterceptor {
             get() = emptyMap()
 
         /**
-         * Tipo Kotlin de los elementos si la clase es una `MutableList` de tamaño fijo en tipo (los `Packed*Array`):
-         * el generador añade los miembros de `List` que puentean los métodos del JSON. Null si no lo es.
+         * Firma que debe tener el método del JSON [engineName] para implementar su miembro abstracto, si el método
+         * tiene varias sobrecargas (String): se usa la que coincide. Null si basta el método original.
          */
         context(context: Context)
-        val listElementType: TypeName?
-            get() = null
+        fun viewSignature(engineName: String): ViewSignature? = null
     }
+
+    /** Tipos de los parámetros (y del retorno, si importa) de un miembro abstracto de la vista. */
+    class ViewSignature(val parameters: List<TypeName>, val returns: TypeName?)
 
     companion object {
         /**
