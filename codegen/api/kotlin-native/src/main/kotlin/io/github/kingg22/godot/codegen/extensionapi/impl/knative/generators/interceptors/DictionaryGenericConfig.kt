@@ -17,6 +17,8 @@ class DictionaryGenericConfig : GenericBuiltinInterceptor.GenericConfig {
     override val codecParameters: List<ParameterSpec>
         get() = listOf(codecParameter("keyCodec", "K"), codecParameter("valueCodec", "V"))
 
+    override val kotlinCollectionEquality: Boolean = true
+
     override val viewMethods: Map<String, String> = mapOf(
         "size" to "size",
         "is_empty" to "isEmpty",

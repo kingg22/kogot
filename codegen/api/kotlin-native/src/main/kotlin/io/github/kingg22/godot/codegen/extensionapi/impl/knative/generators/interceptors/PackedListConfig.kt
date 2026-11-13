@@ -14,6 +14,8 @@ class PackedListConfig(private val element: String) : GenericBuiltinInterceptor.
         get() = collectionBase("GodotPackedList", packedElementType(element))
 
     // The engine methods are the abstract members of `GodotPackedList`: they only need `override`.
+    override val kotlinCollectionEquality: Boolean = true
+
     override val viewMethods: Map<String, String> = mapOf(
         "size" to "size",
         "is_empty" to "isEmpty",

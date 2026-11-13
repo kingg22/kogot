@@ -97,6 +97,14 @@ class GenericBuiltinInterceptor {
             get() = emptyMap()
 
         /**
+         * Si la clase es una `List`/`Map` de Kotlin: su `equals(Any?)` y `hashCode()` son los heredados de
+         * `AbstractList`/`AbstractMap`, y las comparaciones del motor (`==` del JSON) se generan como sobrecargas
+         * `equals(other: Tipo)` sin `override`, una por tipo del operador.
+         */
+        val kotlinCollectionEquality: Boolean
+            get() = false
+
+        /**
          * Firma que debe tener el método del JSON [engineName] para implementar su miembro abstracto, si el método
          * tiene varias sobrecargas (String): se usa la que coincide. Null si basta el método original.
          */

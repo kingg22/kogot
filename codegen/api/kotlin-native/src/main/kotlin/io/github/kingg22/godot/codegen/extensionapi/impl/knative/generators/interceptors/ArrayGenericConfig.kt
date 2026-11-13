@@ -16,6 +16,8 @@ class ArrayGenericConfig : GenericBuiltinInterceptor.GenericConfig {
     context(context: Context)
     override val codecParameters: List<ParameterSpec> get() = listOf(codecParameter("codec", "T"))
 
+    override val kotlinCollectionEquality: Boolean = true
+
     override val viewMethods: Map<String, String> = mapOf(
         "size" to "size",
         "is_empty" to "isEmpty",

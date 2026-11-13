@@ -294,12 +294,6 @@ class NativeBuiltinClassGenerator(
         // ── Operators ────────────────────────────────────────────────────────
         classBuilder.addFunctions(generateOperators(builtinClass, genericConfig))
 
-        // A List is equal to any List with the same elements, and its hash agrees: the engine's own `==` and
-        // `hash()` only know Godot values, so for the packed arrays `list == listOf(...)` comes from AbstractList.
-        if (genericConfig is PackedListConfig) {
-            classBuilder.funSpecs.removeAll { fn -> fn.name == "equals" || fn.name == "hashCode" }
-        }
-
         // ── Instance methods ──────────────────────────────────────────────────
         val (staticMethods, instanceMethods) = raw.methods.partition { it.isStatic }
 
@@ -461,6 +455,7 @@ class NativeBuiltinClassGenerator(
         val builtinClass = resolvedClass.raw
         var compareToGenerated = false
         var equalsGenerated = false
+        var toStringGenerated = false
 
         // Group operators by symbol to handle overloads (e.g., * with int and with Vector2)
         return builtinClass.operators.mapNotNull { op ->
@@ -480,6 +475,26 @@ class NativeBuiltinClassGenerator(
 
                 // Recognized operator with a Kotlin keyword
                 kotlinOpName != null -> {
+                    if (kotlinOpName == "equals" && genericConfig?.kotlinCollectionEquality == true) {
+                        // Kotlin equality is inherited: the engine's `==` becomes `equals(other: Type)`, one per type.
+                        val typed = buildEngineEquals(op, resolvedClass, genericConfig)
+                        if (toStringGenerated) return@mapNotNull listOf(typed)
+                        toStringGenerated = true
+                        return@mapNotNull listOf(
+                            typed,
+                            FunSpec
+                                .builder("toString")
+                                .addModifiers(KModifier.OVERRIDE)
+                                .returns(STRING)
+                                .addCode(body.buildToStringBody())
+                                .addKdoc(
+                                    "Returns the Godot string representation via [%T.stringify]",
+                                    ctx.classNameForOrDefault("Variant"),
+                                )
+                                .build(),
+                        )
+                    }
+
                     if (kotlinOpName == "equals") {
                         if (equalsGenerated) {
                             return@mapNotNull null
@@ -551,6 +566,33 @@ class NativeBuiltinClassGenerator(
             }
             return@mapNotNull listOf(operator)
         }.flatten()
+    }
+
+    /**
+     * The engine's `==` against [operator]'s right type, as `equals(other: Type)` with no `override`: the `Any?` one
+     * stays the Kotlin collection equality. Compare with the engine's semantics by calling this one.
+     */
+    context(ctx: Context)
+    private fun buildEngineEquals(
+        operator: BuiltinClass.Operator,
+        cls: ResolvedBuiltinClass,
+        genericConfig: GenericBuiltinInterceptor.GenericConfig?,
+    ): FunSpec {
+        val rightTypeName = typeResolver.resolve(operator.rightType!!)
+        return FunSpec
+            .builder("equals")
+            .addKdocIfPresent(operator)
+            .addParameter("other", rightTypeName)
+            .returns(BOOLEAN)
+            .apply {
+                if (operator.rightType == "Variant") {
+                    // The engine compares a Variant through the Variant's own `==`, which dispatches on its type.
+                    addStatement("return %T(this).use { it == other }", ctx.classNameForOrDefault("Variant"))
+                } else {
+                    addCode(body.buildOperatorBody(operator))
+                }
+            }
+            .build()
     }
 
     /** Builds a standard Kotlin operator fun (plus, minus, times, equals, not, etc). */

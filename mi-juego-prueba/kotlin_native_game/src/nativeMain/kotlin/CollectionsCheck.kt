@@ -37,6 +37,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
         packedChecks()
         conversionChecks()
         engineReturnChecks()
+        equalityChecks()
         getTree().quit(checks.finish())
     }
 
@@ -344,6 +345,41 @@ import kotlinx.cinterop.ExperimentalForeignApi
             getPropertyList().use { properties ->
                 expect(properties.getTypedBuiltin() == Variant.Type.DICTIONARY.value) { "builtin" }
                 expect(properties.isNotEmpty()) { "no properties" }
+            }
+        }
+    }
+
+    private fun equalityChecks() = with(checks) {
+        check("equality: GodotArray is equal to a List with the same elements, and the hash agrees") {
+            GodotArray<Long>().use { array ->
+                array.addAll(listOf(1L, 2L, 3L))
+                expect(array == listOf(1L, 2L, 3L) && listOf(1L, 2L, 3L) == array) { "array == list" }
+                expect(array.hashCode() == listOf(1L, 2L, 3L).hashCode()) { "hash" }
+                expect(array != listOf(1L, 2L)) { "different list" }
+            }
+        }
+        check("equality: Dictionary is equal to a Map with the same entries") {
+            Dictionary<String, Long>().use { map ->
+                map["a"] = 1L
+                map["b"] = 2L
+                expect(map == mapOf("a" to 1L, "b" to 2L) && mapOf("b" to 2L, "a" to 1L) == map) { "map == map" }
+                expect(map.hashCode() == mapOf("a" to 1L, "b" to 2L).hashCode()) { "hash" }
+            }
+        }
+        check("equality: the engine comparison is the typed equals, not the Kotlin one") {
+            VariantArray().use { first ->
+                VariantArray().use { second ->
+                    Variant.from(1L).use { first.add(it) }
+                    Variant.from(1L).use { second.add(it) }
+                    expect(first.equals(second)) { "engine equals" }
+                }
+            }
+            PackedInt64Array().use { a ->
+                PackedInt64Array().use { b ->
+                    a.add(5L)
+                    b.add(5L)
+                    expect(a.equals(b) && a == b) { "packed" }
+                }
             }
         }
     }
