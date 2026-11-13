@@ -13,7 +13,11 @@ import io.github.kingg22.godot.api.toEnumMask
 /**
  * A signal of [owner] whose parameters are described by the function type [F], e.g. `(value: Long) -> Unit`.
  *
- * Declare it with the [signal] delegate; the signal name is the property name:
+ * The engine classes already expose theirs as properties, named like in Godot:
+ * ```
+ * node.childEnteredTree.connect { node -> ... }
+ * ```
+ * Your own are declared with the [signal] delegate (the name is the property name, or the argument of `signal(name)`):
  * ```
  * @RegisterSignal
  * val punch by signal<(value: Long) -> Unit>()
@@ -26,10 +30,8 @@ import io.github.kingg22.godot.api.toEnumMask
  * The typed `emit` and `connect` overloads (zero to 23 parameters) are generated extensions; their parameter types
  * are `@MustBeVariant`, so the kogot compiler plugin checks every argument and handler at the call site.
  *
- * A [TypedSignal] holds no native handle: each operation creates the ones it needs and releases them, so a signal
- * is cheap to create (the generated `node.signals.childEnteredTree` builds a new one per access) and never leaks.
- * [close] only stops it from being used and forgets the handles of the untyped [connect]; it does not disconnect
- * anything. Connections live in Godot until they are closed (see [SignalConnection]) or [owner] is freed.
+ * It holds no native handle, so there is nothing to release: [close] only stops it from being used. Connections live
+ * in Godot until they are closed (see [SignalConnection]) or [owner] is freed.
  */
 @UsedFromCodegenGeneratedCode
 public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
