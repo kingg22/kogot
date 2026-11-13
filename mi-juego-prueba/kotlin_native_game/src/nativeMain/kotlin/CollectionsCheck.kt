@@ -38,6 +38,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
         conversionChecks()
         engineReturnChecks()
         equalityChecks()
+        variantEqualityChecks()
         getTree().quit(checks.finish())
     }
 
@@ -379,6 +380,42 @@ import kotlinx.cinterop.ExperimentalForeignApi
                     a.add(5L)
                     b.add(5L)
                     expect(a.equals(b) && a == b) { "packed" }
+                }
+            }
+        }
+    }
+
+    /**
+     * `==` between a Kotlin collection and a [Variant] that wraps the same content. The compiler gives no diagnostic
+     * (the types are open, a subtype of both could exist); the result is Kotlin's `equals(Any?)`: not equal. The
+     * engine's answer is the typed `equals(other: Variant)`.
+     */
+    private fun variantEqualityChecks() = with(checks) {
+        check("variant equality: == between a Kotlin collection and a Variant, printed") {
+            GodotArray<Long>().use { array ->
+                array.addAll(listOf(1L, 2L))
+                Variant(array).use { variant ->
+                    val kotlinList = listOf(1L, 2L)
+                    val kotlinVsVariant = kotlinList == variant
+                    val godotVsVariant = array == variant
+                    val engineVsVariant = array.equals(variant)
+                    println(
+                        "[CollectionsCheck] List == Variant: $kotlinVsVariant, GodotArray == Variant: " +
+                            "$godotVsVariant, GodotArray.equals(Variant): $engineVsVariant",
+                    )
+                    expect(!kotlinVsVariant && !godotVsVariant) { "Kotlin == must not equal a Variant" }
+                    expect(engineVsVariant) { "the engine compares the Variant by content" }
+                }
+            }
+        }
+        check("variant equality: Dictionary and a Variant") {
+            Dictionary<String, Long>().use { map ->
+                map["a"] = 1L
+                Variant(map).use { variant ->
+                    val godotVsVariant = map == variant
+                    val engineVsVariant = map.equals(variant)
+                    println("[CollectionsCheck] Dictionary == Variant: $godotVsVariant, equals(Variant): $engineVsVariant")
+                    expect(!godotVsVariant && engineVsVariant) { "Kotlin vs engine" }
                 }
             }
         }
