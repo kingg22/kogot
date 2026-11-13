@@ -95,13 +95,16 @@ class NativeEngineClassGenerator(
                 }
 
                 classBuilder.addFunctions(
-                    overloadGen.buildOverloadsForMethod(
+                    overloadGen.withVariantOverloads(
                         method,
-                        original,
-                        TypeOverloadGenerator.GodotStringMapping,
-                    ).ifEmpty {
-                        listOf(original)
-                    },
+                        overloadGen.buildOverloadsForMethod(
+                            method,
+                            original,
+                            TypeOverloadGenerator.GodotStringMapping,
+                        ).ifEmpty {
+                            listOf(original)
+                        },
+                    ),
                 )
             }
 
@@ -129,13 +132,16 @@ class NativeEngineClassGenerator(
                 )
 
                 companionBuilder.addFunctions(
-                    overloadGen.buildOverloadsForMethod(
+                    overloadGen.withVariantOverloads(
                         method,
-                        original,
-                        TypeOverloadGenerator.GodotStringMapping,
-                    ).ifEmpty {
-                        listOf(original)
-                    },
+                        overloadGen.buildOverloadsForMethod(
+                            method,
+                            original,
+                            TypeOverloadGenerator.GodotStringMapping,
+                        ).ifEmpty {
+                            listOf(original)
+                        },
+                    ),
                 )
             }
 

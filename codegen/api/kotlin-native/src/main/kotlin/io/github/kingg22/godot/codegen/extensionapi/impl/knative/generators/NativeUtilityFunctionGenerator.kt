@@ -72,13 +72,16 @@ class NativeUtilityFunctionGenerator(
                         }
                     }
 
-                    overloadGen.buildOverloadsForMethod(
+                    overloadGen.withVariantOverloads(
                         fn,
-                        original,
-                        TypeOverloadGenerator.GodotStringMapping,
-                    ).ifEmpty {
-                        listOf(original)
-                    }
+                        overloadGen.buildOverloadsForMethod(
+                            fn,
+                            original,
+                            TypeOverloadGenerator.GodotStringMapping,
+                        ).ifEmpty {
+                            listOf(original)
+                        },
+                    )
                 }
             }
 

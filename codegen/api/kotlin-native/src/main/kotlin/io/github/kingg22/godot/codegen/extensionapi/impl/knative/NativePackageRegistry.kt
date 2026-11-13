@@ -64,6 +64,10 @@ class NativePackageRegistry private constructor(private val typeToPackage: Map<S
             // Variant is injected manually in Context but not in builtinClasses
             register("Variant", "$rootPackage.api.builtin")
 
+            // Hand-written Variant conversion, used by the `Any?` overloads of the Variant parameters.
+            register("toVariant", "$rootPackage.api.builtin")
+            register("MustBeVariant", "$rootPackage.api.builtin")
+
             // Hand-written classes of the generated API: the collection views the generated builtins extend, and the
             // codec they share. They are not in the JSON, so they are registered here to be resolved through the Context.
             listOf("GodotList", "GodotMap", "GodotPackedList", "ElementCodec", "applyGodotType").forEach {

@@ -11,14 +11,12 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.STRING
-import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.joinToCode
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
-import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.interceptors.PackedListConfig
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.BuiltinClassImplGen
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl.buildLayoutConstants
 import io.github.kingg22.godot.codegen.extensionapi.resolver.addKdocIfPresent
@@ -343,11 +341,14 @@ class NativeBuiltinClassGenerator(
                 builtinClass.name,
                 codeBody = body.buildMethodBody(method, builtinClass.name),
             )
-            overloadGen.buildOverloadsForMethod(
+            overloadGen.withVariantOverloads(
                 method,
-                original,
-                TypeOverloadGenerator.GodotStringMapping,
-            ).ifEmpty { listOf(original) }
+                overloadGen.buildOverloadsForMethod(
+                    method,
+                    original,
+                    TypeOverloadGenerator.GodotStringMapping,
+                ).ifEmpty { listOf(original) },
+            )
         }
         companionBuilder.addFunctions(staticMethodSpecs)
 
@@ -414,8 +415,7 @@ class NativeBuiltinClassGenerator(
         // The engine methods that implement the abstract members of the collection view: `override`, no String overloads.
         val viewName = genericConfig?.viewMethods?.get(method.name)
         if (viewName != null) {
-            val signature = genericConfig.viewSignature(method.name)
-            if (signature == null) return listOf(original.asViewMember(viewName))
+            val signature = genericConfig.viewSignature(method.name) ?: return listOf(original.asViewMember(viewName))
             // Several overloads (String): all are kept, the one whose types match the abstract member overrides it.
             val candidates = overloadGen
                 .buildOverloadsForMethod(method, original, TypeOverloadGenerator.GodotStringMapping)
@@ -424,13 +424,19 @@ class NativeBuiltinClassGenerator(
                 it.parameters.map { p -> p.type } == signature.parameters &&
                     (signature.returns == null || it.returnType == signature.returns)
             }
-            return candidates.map { if (it === member) it.asViewMember(viewName) else it }
+            return overloadGen.withVariantOverloads(
+                method,
+                candidates.map { if (it === member) it.asViewMember(viewName) else it },
+            )
         }
 
-        // String overloads if needed
-        return overloadGen.buildOverloadsForMethod(method, original, TypeOverloadGenerator.GodotStringMapping).ifEmpty {
-            listOf(original)
-        }
+        // String and Variant overloads if needed
+        return overloadGen.withVariantOverloads(
+            method,
+            overloadGen.buildOverloadsForMethod(method, original, TypeOverloadGenerator.GodotStringMapping).ifEmpty {
+                listOf(original)
+            },
+        )
     }
 
     /**

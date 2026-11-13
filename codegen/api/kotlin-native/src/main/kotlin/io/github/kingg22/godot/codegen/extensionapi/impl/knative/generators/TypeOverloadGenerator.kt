@@ -1,5 +1,7 @@
 package io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators
 
+import com.squareup.kotlinpoet.ANY
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
@@ -50,6 +52,32 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
                 callThisConstructor(args)
             },
         )
+
+        /**
+         * `Variant` parameters also accept any value: `fun x(@MustBeVariant a: Any?) = x(a.toVariant())`.
+         * Only parameters are mapped, return types stay as they are (use `toX()`, `toXOrNull()` or `by Variant()`).
+         */
+        @JvmField
+        val VariantMapping = TypeMapping(
+            matches = { type -> type == contextOf<Context>().classNameForOrDefault("Variant") },
+            sourceType = { contextOf<Context>().classNameForOrDefault("Variant") },
+            targetType = {
+                ANY.copy(
+                    nullable = true,
+                    annotations = listOf(
+                        AnnotationSpec.builder(contextOf<Context>().classNameForOrDefault("MustBeVariant")).build(),
+                    ),
+                )
+            },
+            rawSuffix = "",
+            wrap = { name, isVararg ->
+                require(!isVararg) { "Doesn't support vararg for Variant overloads" }
+                val toVariant = with(contextOf<Context>()) { memberNameForOrDefault("toVariant") }
+                CodeBlock.of("%N.%M()", name, toVariant)
+            },
+            unwrapSuffix = { CodeBlock.of("") },
+            mapReturn = false,
+        )
     }
 
     /**
@@ -68,6 +96,7 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
      *                                 resolved target [TypeName]. Return `null` to drop the default — never return
      *                                 the source-typed CodeBlock from the original [ParameterSpec], as that would
      *                                 reproduce the bug this field exists to fix.
+     * @property mapReturn             When `false` the return type is never mapped, only the parameters.
      */
     data class TypeMapping(
         val matches: context(Context) (type: TypeName) -> Boolean,
@@ -82,6 +111,7 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
             mappedIndices: List<Int>,
             wrappedArgs: List<CodeBlock>,
         ) -> Unit = { _, _ -> },
+        val mapReturn: Boolean = true,
     )
 
     // ── Public API ────────────────────────────────────────────────────────────────
@@ -98,23 +128,26 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
     }
 
     /**
+     * Adds to every spec of [specs] the overload that accepts `Any?` where it takes a `Variant`
+     * (see [VariantMapping]). Specs that override a member are kept untouched, an override cannot gain overloads.
+     */
+    context(_: Context)
+    fun withVariantOverloads(method: MethodDescriptor, specs: List<FunSpec>): List<FunSpec> = specs.flatMap { spec ->
+        // A spec whose Variant parameter was already retyped (generic collections) has nothing left to map.
+        val retyped = spec.parameters.zip(method.arguments).any { (param, arg) ->
+            VariantMapping.matches(typeResolver.resolve(arg)) &&
+                param.type.copy(nullable = false) != typeResolver.resolve(arg)
+        }
+        if (KModifier.OVERRIDE in spec.modifiers || retyped) {
+            listOf(spec)
+        } else {
+            buildOverloadsForMethod(method, spec, VariantMapping).ifEmpty { listOf(spec) }
+        }
+    }
+
+    /**
      * Builds a constructor overload for [constructor]/[original] using [mapping], or an empty list if no
      * parameters match.
-     *
-     * The [configure] lambda receives a [FunSpec.Builder] already populated with target-typed parameters
-     * (with adapted defaults) and the pre-built `wrappedArgs` per mapped param. Use them to set up
-     * delegation and/or the constructor body.
-     *
-     * ```kotlin
-     * generator.buildOverloadsForConstructor(method, original, GodotStringMapping) { _, wrappedArgs ->
-     *     callThisConstructor(CodeBlock.of("null"))
-     *     addCode(buildCodeBlock {
-     *         beginControlFlow("memScoped")
-     *         addStatement("fptr.invoke(rawPtr, allocConstTypePtrArray(%L))", wrappedArgs.joinToCode(", "))
-     *         endControlFlow()
-     *     })
-     * }
-     * ```
      */
     context(_: Context)
     fun buildOverloadsForConstructor(
@@ -150,7 +183,7 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
 
     context(_: Context)
     private fun detectReturnTypeMapping(method: MethodDescriptor, mapping: TypeMapping): Boolean =
-        resolveReturnType(method)?.let { mapping.matches(it) } ?: false
+        mapping.mapReturn && (resolveReturnType(method)?.let { mapping.matches(it) } ?: false)
 
     context(_: Context)
     private fun resolveReturnType(method: MethodDescriptor): TypeName? = when (method) {
