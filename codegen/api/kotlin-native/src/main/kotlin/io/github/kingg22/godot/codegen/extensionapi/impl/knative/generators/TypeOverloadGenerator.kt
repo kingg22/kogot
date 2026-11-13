@@ -1,11 +1,13 @@
 package io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators
 
 import com.squareup.kotlinpoet.ANY
+import com.squareup.kotlinpoet.ARRAY
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.buildCodeBlock
@@ -71,12 +73,27 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
             },
             rawSuffix = "",
             wrap = { name, isVararg ->
-                require(!isVararg) { "Doesn't support vararg for Variant overloads" }
-                val toVariant = with(contextOf<Context>()) { memberNameForOrDefault("toVariant") }
-                CodeBlock.of("%N.%M()", name, toVariant)
+                val ctx = contextOf<Context>()
+                val toVariant = with(ctx) { memberNameForOrDefault("toVariant") }
+                if (isVararg) {
+                    // (first: Any?, vararg Any?) -> first, then the spread of an Array<Variant>
+                    val array = ARRAY.parameterizedBy(ctx.classNameForOrDefault("Variant"))
+                    CodeBlock.of(
+                        "%N.%M(), *%T(%N.size) { %N[it].%M() }",
+                        "first",
+                        toVariant,
+                        array,
+                        name,
+                        name,
+                        toVariant,
+                    )
+                } else {
+                    CodeBlock.of("%N.%M()", name, toVariant)
+                }
             },
             unwrapSuffix = { CodeBlock.of("") },
             mapReturn = false,
+            varargLeadParameter = "first",
         )
     }
 
@@ -97,6 +114,9 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
      *                                 the source-typed CodeBlock from the original [ParameterSpec], as that would
      *                                 reproduce the bug this field exists to fix.
      * @property mapReturn             When `false` the return type is never mapped, only the parameters.
+     * @property varargLeadParameter   When set, a mapped `vararg` becomes `(name: Target, vararg Target)` and [wrap]
+     *                                 receives that name as the first value. A bare `vararg Target` next to the
+     *                                 original `vararg Source` is ambiguous for a call with no variadic arguments.
      */
     data class TypeMapping(
         val matches: context(Context) (type: TypeName) -> Boolean,
@@ -112,6 +132,7 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
             wrappedArgs: List<CodeBlock>,
         ) -> Unit = { _, _ -> },
         val mapReturn: Boolean = true,
+        val varargLeadParameter: String? = null,
     )
 
     // ── Public API ────────────────────────────────────────────────────────────────
@@ -122,7 +143,11 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
      */
     context(_: Context)
     fun buildOverloadsForMethod(method: MethodDescriptor, original: FunSpec, mapping: TypeMapping): List<FunSpec> {
-        val mappedIndices = detectMapping(method.arguments, mapping)
+        // The trailing vararg is not part of `method.arguments`: it is mapped too when its type matches.
+        val varargIndex = original.parameters.lastIndex.takeIf { i ->
+            method.isVararg && i >= method.arguments.size && mapping.matches(original.parameters[i].type)
+        }
+        val mappedIndices = detectMapping(method.arguments, mapping) + listOfNotNull(varargIndex)
         val hasReturnMapping = detectReturnTypeMapping(method, mapping)
         return buildOverloads(original, mappedIndices, hasReturnMapping, mapping, method.arguments)
     }
@@ -322,6 +347,9 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         clearBody() // we'll go to use all the original FunSpec, but we don't want to copy the body
         parameters.clear()
         original.parameters.forEachIndexed { i, param ->
+            if (i in mappedIndices && param.isVararg() && mapping.varargLeadParameter != null) {
+                addParameter(ParameterSpec.builder(mapping.varargLeadParameter, mapping.targetType()).build())
+            }
             addParameter(
                 if (i in mappedIndices) {
                     adaptParameter(param, mapping, methodArgs.getOrNull(i))
