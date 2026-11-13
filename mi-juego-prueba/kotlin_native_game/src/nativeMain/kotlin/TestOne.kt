@@ -1,6 +1,6 @@
-@file:OptIn(ExperimentalForeignApi::class, NativeRuntimeApi::class, ExperimentalGodotApi::class)
+@file:OptIn(ExperimentalForeignApi::class, NativeRuntimeApi::class, ExperimentalGodotKotlin::class)
 
-import io.github.kingg22.godot.api.ExperimentalGodotApi
+import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.annotations.ExportMethod
 import io.github.kingg22.godot.api.annotations.Godot
 import io.github.kingg22.godot.api.builtin.Callable

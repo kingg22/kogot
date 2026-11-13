@@ -3,6 +3,7 @@ package io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators
 import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.ARRAY
 import com.squareup.kotlinpoet.AnnotationSpec
+import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
@@ -182,10 +183,13 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
     fun variantConstructorOverload(constructor: BuiltinClass.Constructor, original: FunSpec): FunSpec? =
         buildOverloadsForConstructor(constructor, original, VariantMapping)?.experimental()
 
-    /** The overloads built over `toVariant` depend on an experimental API: they are experimental too. */
+    /**
+     * The overloads built over `toVariant` rely on an unsafe, experimental part of the Kotlin API (not of Godot's):
+     * they are `ExperimentalGodotKotlin`, constructors included.
+     */
     context(ctx: Context)
     private fun FunSpec.experimental(): FunSpec {
-        val experimental = ctx.classNameOfExperimentalAnnotation()
+        val experimental = ClassName(ctx.classNameOfExperimentalAnnotation().packageName, "ExperimentalGodotKotlin")
         if (annotations.any { it.typeName == experimental }) return this
         return toBuilder().addAnnotation(AnnotationSpec.builder(experimental).build()).build()
     }
