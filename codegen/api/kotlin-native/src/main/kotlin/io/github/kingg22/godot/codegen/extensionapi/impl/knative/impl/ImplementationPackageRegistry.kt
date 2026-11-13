@@ -14,6 +14,7 @@ class ImplementationPackageRegistry(packageStr: String, interfaceModel: GDExtens
     } else {
         "$packageStr.api.builtin.internal"
     }
+    private val builtinPackage = if (packageStr.endsWith(".api")) "$packageStr.builtin" else "$packageStr.api.builtin"
     private val apiInternalPackage = if (packageStr.endsWith(".api")) {
         "$packageStr.internal"
     } else {
@@ -35,6 +36,7 @@ class ImplementationPackageRegistry(packageStr: String, interfaceModel: GDExtens
         put("toBoolean", bindingPackage)
         put("getBuiltin", bindingPackage)
         put("setBuiltin", bindingPackage)
+        put("checkedFromEngine", builtinPackage)
         put("toGDE", builtinInternalBind)
         put("anyToVariant", builtinInternalBind)
         put("anyToVariantOrNull", builtinInternalBind)

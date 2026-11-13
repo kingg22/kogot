@@ -1,22 +1,17 @@
 package io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.interceptors
 
-import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.DOUBLE
 import com.squareup.kotlinpoet.LONG
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.GenericBuiltinInterceptor
 
-/** `Packed*Array` as `AbstractMutableList<E>` + `RandomAccess`: not generic, the element type is fixed. */
+/** `Packed*Array` as a `MutableList<E>` through `GodotPackedList<E>`: not generic, the element type is fixed. */
 class PackedListConfig(private val element: String) : GenericBuiltinInterceptor.GenericConfig {
     context(context: Context)
     override val superclass: TypeName
-        get() = ClassName(
-            "io.github.kingg22.godot.api.builtin",
-            "GodotPackedList",
-        ).parameterizedBy(packedElementType(element))
+        get() = collectionBase("GodotPackedList", packedElementType(element))
 
     // The engine methods are the abstract members of `GodotPackedList`: they only need `override`.
     override val viewMethods: Map<String, String> = mapOf(

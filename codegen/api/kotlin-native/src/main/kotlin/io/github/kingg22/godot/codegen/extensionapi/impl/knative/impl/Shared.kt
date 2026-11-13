@@ -10,12 +10,6 @@ import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinLayout
 import io.github.kingg22.godot.codegen.types.*
 
-/** `ElementCodec` of the hand-written collection views, in the same module as the generated API. */
-private val ELEMENT_CODEC = ClassName("io.github.kingg22.godot.api.builtin", "ElementCodec")
-
-/** Checks a typed collection returned by the engine against the type the API declares. */
-private val CHECKED_FROM_ENGINE = MemberName("io.github.kingg22.godot.api.builtin", "checkedFromEngine", true)
-
 fun buildLayoutConstants(layout: ResolvedBuiltinLayout): List<PropertySpec> =
     layout.memberOffsets.map { (member, offset) ->
         PropertySpec
@@ -269,7 +263,7 @@ fun buildReturnAlloc(
             (returnType.startsWith("typedarray") || returnType.startsWith("typeddictionary")) &&
                 kotlinType is ParameterizedTypeName -> {
                 val codecs = kotlinType.typeArguments
-                    .map { CodeBlock.of("%T.of<%T>()", ELEMENT_CODEC, it) }
+                    .map { CodeBlock.of("%T.of<%T>()", ctx.classNameForOrDefault("ElementCodec"), it) }
                     .joinToCode()
                 addStatement("val retPtr = %T(%L)", kotlinType, codecs)
             }
@@ -353,7 +347,10 @@ fun buildReturnRead(
         // assigned straight into it, so there's no pointer to dereference or null-check either.
         // A typed array/dictionary the engine returned is checked against the type the API declares.
         returnType.startsWith("typeddictionary") || returnType.startsWith("typedarray") ->
-            CodeBlock.ofStatement("${preAppendReturn}retPtr.%M()", CHECKED_FROM_ENGINE)
+            CodeBlock.ofStatement(
+                "${preAppendReturn}retPtr.%M()",
+                implPackageRegistry.memberNameForOrDefault("checkedFromEngine", isExtension = true),
+            )
 
         returnType.startsWith("array") ||
             returnType.startsWith("dictionary") -> CodeBlock.ofStatement("${preAppendReturn}retPtr")
