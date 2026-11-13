@@ -38,7 +38,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
         conversionChecks()
         engineReturnChecks()
         equalityChecks()
-        variantEqualityChecks()
+        hashChecks()
         getTree().quit(checks.finish())
     }
 
@@ -350,70 +350,175 @@ import kotlinx.cinterop.ExperimentalForeignApi
         }
     }
 
+    /**
+     * `==` of the Godot collections. The rule: against a [Variant] or against its own Godot type the engine compares
+     * (by content, `1` and `1.0` are equal there); against anything else, a Kotlin `List` or `Map`, the inherited
+     * Kotlin equality runs. The compiler gives no diagnostic for `==` between these types (they are open, a subtype of
+     * both could exist), so the cases below are the documentation of what each one does.
+     */
     private fun equalityChecks() = with(checks) {
-        check("equality: GodotArray is equal to a List with the same elements, and the hash agrees") {
+        // ── GodotArray ──
+        check("equality array: equal to a List, to another GodotArray and to a VariantArray") {
             GodotArray<Long>().use { array ->
                 array.addAll(listOf(1L, 2L, 3L))
-                expect(array == listOf(1L, 2L, 3L) && listOf(1L, 2L, 3L) == array) { "array == list" }
-                expect(array.hashCode() == listOf(1L, 2L, 3L).hashCode()) { "hash" }
-                expect(array != listOf(1L, 2L)) { "different list" }
+                expect(array == listOf(1L, 2L, 3L) && listOf(1L, 2L, 3L) == array) { "List" }
+                GodotArray<Long>().use { other ->
+                    other.addAll(listOf(1L, 2L, 3L))
+                    expect(array == other && other == array) { "GodotArray<Long>" }
+                }
+                VariantArray().use { untyped ->
+                    for (i in 1L..3L) Variant.from(i).use { untyped.add(it) }
+                    expect(array == untyped) { "VariantArray" }
+                }
+                Variant(array).use { variant -> expect(array == variant) { "Variant" } }
             }
         }
-        check("equality: Dictionary is equal to a Map with the same entries") {
+        check("equality array: negatives") {
+            GodotArray<Long>().use { array ->
+                array.addAll(listOf(1L, 2L, 3L))
+                expect(array != listOf(1L, 2L)) { "shorter List" }
+                expect(array != listOf(1L, 2L, 4L)) { "different element" }
+                expect(array != listOf(3L, 2L, 1L)) { "different order" }
+                expect(array != listOf("1", "2", "3")) { "List of another type" }
+                val notACollection: Any = "text" // `array != "text"` does not compile: String is final, so the types are incompatible
+                expect(array != notACollection && !array.equals(null)) { "not a collection, null" }
+                GodotArray<Long>().use { other ->
+                    other.addAll(listOf(1L, 2L, 4L))
+                    expect(array != other) { "GodotArray with another element" }
+                }
+                Variant.from(5L).use { variant -> expect(!array.equals(variant)) { "Variant of another type" } }
+                Variant(array).use { variant -> expect(listOf(1L, 2L, 3L) != variant) { "List vs Variant" } }
+            }
+        }
+        // ── Dictionary ──
+        check("equality dictionary: equal to a Map, to another Dictionary and to a VariantDictionary") {
             Dictionary<String, Long>().use { map ->
                 map["a"] = 1L
                 map["b"] = 2L
-                expect(map == mapOf("a" to 1L, "b" to 2L) && mapOf("b" to 2L, "a" to 1L) == map) { "map == map" }
-                expect(map.hashCode() == mapOf("a" to 1L, "b" to 2L).hashCode()) { "hash" }
+                expect(map == mapOf("a" to 1L, "b" to 2L) && mapOf("b" to 2L, "a" to 1L) == map) { "Map" }
+                Dictionary<String, Long>().use { other ->
+                    other["b"] = 2L // another insertion order
+                    other["a"] = 1L
+                    expect(map == other && other == map) { "Dictionary<String, Long>" }
+                }
+                VariantDictionary().use { untyped ->
+                    Variant.from("a").use { k -> Variant.from(1L).use { v -> untyped[k] = v } }
+                    Variant.from("b").use { k -> Variant.from(2L).use { v -> untyped[k] = v } }
+                    expect(map == untyped) { "VariantDictionary" }
+                }
+                Variant(map).use { variant -> expect(map == variant) { "Variant" } }
             }
         }
-        check("equality: a Godot collection against its own type goes through the engine") {
-            VariantArray().use { first ->
-                VariantArray().use { second ->
-                    Variant.from(1L).use { first.add(it) }
-                    Variant.from(1L).use { second.add(it) }
-                    expect(first == second) { "engine equals" }
+        check("equality dictionary: negatives") {
+            Dictionary<String, Long>().use { map ->
+                map["a"] = 1L
+                map["b"] = 2L
+                expect(map != mapOf("a" to 1L)) { "smaller Map" }
+                expect(map != mapOf("a" to 1L, "b" to 3L)) { "different value" }
+                expect(map != mapOf("a" to 1L, "c" to 2L)) { "different key" }
+                expect(map != listOf("a", "b") && !map.equals(null)) { "not a map, null" }
+                Dictionary<String, Long>().use { other ->
+                    other["a"] = 1L
+                    expect(map != other) { "Dictionary with fewer entries" }
                 }
+                Variant.from("a").use { variant -> expect(!map.equals(variant)) { "Variant of another type" } }
+                Variant(map).use { variant -> expect(mapOf("a" to 1L, "b" to 2L) != variant) { "Map vs Variant" } }
             }
-            PackedInt64Array().use { a ->
-                PackedInt64Array().use { b ->
-                    a.add(5L)
-                    b.add(5L)
-                    expect(a == b) { "packed" }
+        }
+        // ── Packed*Array ──
+        check("equality packed: equal to a List, to another packed of the same type and to a Variant") {
+            PackedInt64Array().use { packed ->
+                packed.addAll(listOf(5L, 6L))
+                expect(packed == listOf(5L, 6L) && listOf(5L, 6L) == packed) { "List" }
+                PackedInt64Array().use { other ->
+                    other.addAll(listOf(5L, 6L))
+                    expect(packed == other && other == packed) { "PackedInt64Array" }
                 }
+                Variant(packed).use { variant -> expect(packed == variant) { "Variant" } }
+            }
+            PackedStringArray().use { strings ->
+                strings.addAll(listOf("x", "y"))
+                expect(strings == listOf("x", "y")) { "strings vs List" }
+                Variant(strings).use { variant -> expect(strings == variant) { "strings vs Variant" } }
+            }
+            PackedVector2Array().use { vectors ->
+                vectors.add(Vector2(1.0, 2.0))
+                expect(vectors == listOf(Vector2(1.0, 2.0))) { "vectors vs List" }
+            }
+        }
+        check("equality packed: negatives") {
+            PackedInt64Array().use { packed ->
+                packed.addAll(listOf(5L, 6L))
+                expect(packed != listOf(5L)) { "shorter List" }
+                expect(packed != listOf(5L, 7L)) { "different element" }
+                expect(packed != listOf(6L, 5L)) { "different order" }
+                expect(packed != listOf("5", "6") && !packed.equals(null)) { "List of another type, null" }
+                PackedInt64Array().use { other ->
+                    other.addAll(listOf(5L, 7L))
+                    expect(packed != other) { "packed with another element" }
+                }
+                PackedStringArray().use { strings ->
+                    strings.addAll(listOf("5", "6"))
+                    expect(!packed.equals(strings)) { "packed of another type" }
+                }
+                Variant.from(5L).use { variant -> expect(!packed.equals(variant)) { "Variant of another type" } }
+                Variant(packed).use { variant -> expect(listOf(5L, 6L) != variant) { "List vs Variant" } }
             }
         }
     }
 
     /**
-     * `==` between a collection and a [Variant] that wraps the same content. The compiler gives no diagnostic (the
-     * types are open, a subtype of both could exist). A Godot collection compares a [Variant] and its own type with
-     * the engine, and anything else (a Kotlin `List` or `Map`) with the inherited Kotlin equality; a Kotlin `List` knows
-     * nothing about a [Variant], so it is never equal to it.
+     * `hashCode()` of the Godot collections is the one of a Kotlin `List` or `Map` (the inherited one), not the engine's,
+     * so a collection equal to a `List` or `Map` has the same hash. The engine's own hash stays available as `hash()`.
      */
-    private fun variantEqualityChecks() = with(checks) {
-        check("variant equality: == between a Kotlin collection and a Variant, printed") {
+    private fun hashChecks() = with(checks) {
+        check("hash: a Godot collection hashes like the List or Map it is equal to") {
             GodotArray<Long>().use { array ->
-                array.addAll(listOf(1L, 2L))
-                Variant(array).use { variant ->
-                    val kotlinList = listOf(1L, 2L)
-                    val kotlinVsVariant = kotlinList == variant
-                    val godotVsVariant = array == variant
-                    println(
-                        "[CollectionsCheck] List == Variant: $kotlinVsVariant, GodotArray == Variant: $godotVsVariant",
-                    )
-                    expect(!kotlinVsVariant) { "a Kotlin List is never equal to a Variant" }
-                    expect(godotVsVariant) { "the engine compares the Variant by content" }
+                array.addAll(listOf(1L, 2L, 3L))
+                expect(array.hashCode() == listOf(1L, 2L, 3L).hashCode()) { "GodotArray" }
+            }
+            Dictionary<String, Long>().use { map ->
+                map["a"] = 1L
+                map["b"] = 2L
+                expect(map.hashCode() == mapOf("a" to 1L, "b" to 2L).hashCode()) { "Dictionary" }
+            }
+            PackedInt64Array().use { packed ->
+                packed.addAll(listOf(5L, 6L))
+                expect(packed.hashCode() == listOf(5L, 6L).hashCode()) { "PackedInt64Array" }
+            }
+            PackedStringArray().use { strings ->
+                strings.addAll(listOf("x", "y"))
+                expect(strings.hashCode() == listOf("x", "y").hashCode()) { "PackedStringArray" }
+            }
+        }
+        check("hash: equal Godot collections hash the same, different ones usually differ") {
+            GodotArray<Long>().use { a ->
+                GodotArray<Long>().use { b ->
+                    a.addAll(listOf(1L, 2L))
+                    b.addAll(listOf(1L, 2L))
+                    expect(a.hashCode() == b.hashCode()) { "equal arrays" }
+                    b.add(3L)
+                    expect(a.hashCode() != b.hashCode()) { "different arrays" }
+                }
+            }
+            Dictionary<String, Long>().use { a ->
+                Dictionary<String, Long>().use { b ->
+                    a["k"] = 1L
+                    b["k"] = 1L
+                    expect(a.hashCode() == b.hashCode()) { "equal dictionaries" }
+                    b["k"] = 2L
+                    expect(a.hashCode() != b.hashCode()) { "different dictionaries" }
                 }
             }
         }
-        check("variant equality: Dictionary and a Variant") {
-            Dictionary<String, Long>().use { map ->
-                map["a"] = 1L
-                Variant(map).use { variant ->
-                    val godotVsVariant = map == variant
-                    println("[CollectionsCheck] Dictionary == Variant: $godotVsVariant")
-                    expect(godotVsVariant) { "the engine compares the Variant by content" }
+        check("hash: the engine hash() is separate from hashCode(), printed") {
+            GodotArray<Long>().use { array ->
+                array.addAll(listOf(1L, 2L, 3L))
+                val engine = array.hash()
+                println("[CollectionsCheck] GodotArray hashCode=${array.hashCode()} engine hash()=$engine")
+                GodotArray<Long>().use { other ->
+                    other.addAll(listOf(1L, 2L, 3L))
+                    expect(engine == other.hash()) { "the engine hash of equal arrays agrees" }
                 }
             }
         }
