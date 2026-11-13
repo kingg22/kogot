@@ -10,7 +10,6 @@ import io.github.kingg22.godot.api.builtin.RID
 import io.github.kingg22.godot.api.builtin.VariantDictionary
 import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.builtin.toStringName
-import io.github.kingg22.godot.api.builtin.toVariant
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.api.core.node.AnimationPlayer
@@ -59,6 +58,7 @@ class SignalsCheck(nativePtr: COpaquePointer) : Node(nativePtr) {
         declaration()
         engineOriginated()
         emitAndReceive()
+        emitSignalOverloads()
         connections()
         asynchronous()
     }
@@ -436,10 +436,41 @@ class SignalsCheck(nativePtr: COpaquePointer) : Node(nativePtr) {
             val button = Button()
             var received: Boolean? = null
             button.toggled.connect { toggledOn -> received = toggledOn }.use {
-                button.emitSignal("toggled".toStringName(), true.toVariant()).ok()
+                button.emitSignal("toggled".toStringName(), true).ok()
                 expect(received == true) { "received=$received" }
             }
             button.queueFree()
+        }
+    }
+
+    private fun emitSignalOverloads() = with(checks) {
+        check("emit_signal with Kotlin values: one argument per overload shape (@MustBeVariant Any?)") {
+            val player = AnimationPlayer()
+            var received: Pair<String, String>? = null
+            player.animationChanged.connect { oldName, newName -> received = oldName.toString() to newName.toString() }
+                .use {
+                    player.emitSignal("animation_changed".toStringName(), "idle".toStringName(), "walk".toStringName())
+                        .ok()
+                    expect(received == "idle" to "walk") { "received=$received" }
+                }
+            player.queueFree()
+        }
+        check("emit_signal with values of different Kotlin types: ItemList.item_clicked (Long, Vector2, Long)") {
+            val list = ItemList()
+            var received: Triple<Long, Vector2, Long>? = null
+            list.itemClicked.connect { index, position, button -> received = Triple(index, position, button) }.use {
+                list.emitSignal("item_clicked".toStringName(), 4, Vector2(1.5, 2.5), 1L).ok()
+                expect(received == Triple(4L, Vector2(1.5, 2.5), 1L)) { "received=$received" }
+            }
+            list.queueFree()
+        }
+        check("emit_signal with no variadic argument still resolves to the Variant overload") {
+            val resource = Resource()
+            var fired = 0
+            resource.changed.connect { fired++ }.use {
+                resource.emitSignal("changed".toStringName()).ok()
+                expect(fired == 1) { "fired $fired times" }
+            }
         }
     }
 
@@ -525,7 +556,7 @@ class SignalsCheck(nativePtr: COpaquePointer) : Node(nativePtr) {
             signal.close()
             expectThrows<IllegalStateException>("emit on a closed signal") { signal.emit(true) }
             expect(connection.isConnected) { "close() disconnected the handler" }
-            button.emitSignal("toggled".toStringName(), true.toVariant()).ok()
+            button.emitSignal("toggled".toStringName(), true).ok()
             expect(fired == 1) { "fired $fired times" }
             connection.close()
             button.queueFree()

@@ -8,7 +8,6 @@ import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.builtin.Vector2i
 import io.github.kingg22.godot.api.builtin.toGodotString
 import io.github.kingg22.godot.api.builtin.toStringName
-import io.github.kingg22.godot.api.builtin.toVariant
 import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.api.core.RefCounted
 import io.github.kingg22.godot.api.core.SceneTree
@@ -164,13 +163,13 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
                 "[SpriteBench] Callable returned: ${returnVariant.stringify().toKString()}, is nil: ${returnVariant.isNil()}",
             )
             println("[SpriteBench] calling callable2 with 15 as args")
-            returnVariant = callable2.call(15L.toVariant())
+            returnVariant = callable2.call(15L)
             println(
                 "[SpriteBench] Callable2 returned: ${returnVariant.stringify().toKString()}, is nil: ${returnVariant.isNil()}, value: ${returnVariant.toIntOrNull()}",
             )
 
             println("[SpriteBench] calling @ExportMethod addTwo(3, 4) via Object.call")
-            val addTwoResult = "addTwo".toStringName().use { call(it, 3.toVariant(), 4.toVariant()) }
+            val addTwoResult = "addTwo".toStringName().use { call(it, 3L, 4) }
             println(
                 "[SpriteBench] addTwo returned: ${addTwoResult.toIntOrNull()} (expected 7)",
             )
@@ -396,7 +395,11 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
                     "[Constructor] $verdict: object count after collection=$after, " +
                         "baseline=$constructorBaseline (still alive: $leaked of $CONSTRUCTOR_COUNT)",
                 )
-                if (verdict == "FAIL") GD.pushError("[Constructor] FAIL: $leaked of $CONSTRUCTOR_COUNT images still alive")
+                if (verdict ==
+                    "FAIL"
+                ) {
+                    GD.pushError("[Constructor] FAIL: $leaked of $CONSTRUCTOR_COUNT images still alive")
+                }
             }
         }
     }
