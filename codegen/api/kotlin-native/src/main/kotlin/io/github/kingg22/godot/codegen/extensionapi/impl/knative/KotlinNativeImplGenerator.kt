@@ -53,6 +53,7 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
         enumGen,
         engineClassImplGen,
         virtualCallImplGen,
+        NativeEngineSignalGenerator(typeResolver),
     )
     private val engineVirtualCalls = NativeEngineVirtualCallsGenerator(virtualCallImplGen)
     private val variantImplGen = VariantImplGen(typeResolver)

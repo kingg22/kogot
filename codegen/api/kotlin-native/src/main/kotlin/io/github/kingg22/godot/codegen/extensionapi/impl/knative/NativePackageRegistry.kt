@@ -70,6 +70,10 @@ class NativePackageRegistry private constructor(private val typeToPackage: Map<S
                 register(it, "$rootPackage.api.builtin")
             }
 
+            // Hand-written typed signal, the type of every generated engine signal.
+            register("TypedSignal", "$rootPackage.api.signal")
+            register("signal", "$rootPackage.api.signal")
+
             model.builtinTypes.forEach { cls ->
                 if (cls in NativeBuiltinClassGenerator.SKIPPED_TYPES) {
                     val kotlinName = when (cls.lowercase()) {

@@ -33,6 +33,7 @@ class NativeEngineClassGenerator(
     private val enumGenerator: NativeEnumGenerator,
     private val engineClassImplGen: EngineClassImplGen,
     private val virtualCallImplGen: VirtualCallImplGen,
+    private val signalGen: NativeEngineSignalGenerator,
 ) {
 
     context(context: Context)
@@ -103,6 +104,9 @@ class NativeEngineClassGenerator(
                     },
                 )
             }
+
+            // Signals already registered in Godot: typed properties on the class, inherited like the rest.
+            classBuilder.addProperties(signalGen.buildProperties(cls))
 
             raw.constants.forEach { constant ->
                 withExceptionContext({ "Error generating class constant '${constant.name}'" }) {

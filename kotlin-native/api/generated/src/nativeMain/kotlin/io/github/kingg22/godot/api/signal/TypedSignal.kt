@@ -26,9 +26,10 @@ import io.github.kingg22.godot.api.toEnumMask
  * The typed `emit` and `connect` overloads (zero to 23 parameters) are generated extensions; their parameter types
  * are `@MustBeVariant`, so the kogot compiler plugin checks every argument and handler at the call site.
  *
- * A [TypedSignal] owns native handles (the name and the builtin [Signal]): [close] it when [owner] is deleted, e.g.
- * on `NOTIFICATION_PREDELETE`. Closing it does not disconnect anything; connections live in Godot until they are
- * closed (see [SignalConnection]) or [owner] is freed.
+ * A [TypedSignal] holds no native handle: each operation creates the ones it needs and releases them, so a signal
+ * is cheap to create (the generated `node.signals.childEnteredTree` builds a new one per access) and never leaks.
+ * [close] only stops it from being used and forgets the handles of the untyped [connect]; it does not disconnect
+ * anything. Connections live in Godot until they are closed (see [SignalConnection]) or [owner] is freed.
  */
 @UsedFromCodegenGeneratedCode
 public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
@@ -37,8 +38,6 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
     /** The signal name, as registered in Godot. */
     public val name: String,
 ) : AutoCloseable {
-    private val nameHandle = StringName(name)
-    private val signal = Signal(owner, nameHandle)
     private var closed = false
 
     /**
@@ -57,7 +56,7 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
     internal fun emitArguments(values: Array<out Any?>, variants: Array<Variant>): GodotError {
         try {
             checkOpen()
-            return owner.emitSignal(nameHandle, *variants)
+            return StringName(name).use { owner.emitSignal(it, *variants) }
         } finally {
             variants.forEachIndexed { i, variant -> if (variant !== values[i]) variant.close() }
         }
@@ -65,10 +64,7 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
 
     /** `true` while anything is connected to this signal: Kotlin handlers, GDScript methods or editor connections. */
     public val hasConnections: Boolean
-        get() {
-            checkOpen()
-            return signal.hasConnections()
-        }
+        get() = withSignal { it.hasConnections() }
 
     /**
      * Connects any [callable], e.g. a GDScript method (`Callable(node, "on_hit".toStringName())`). Unlike the typed
@@ -101,10 +97,7 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
      * A copy of the builtin [Signal], for what [TypedSignal] does not wrap (e.g. [Signal.getConnections]) or to pass
      * it where a Variant is expected. The caller owns and closes it.
      */
-    public fun asSignal(): Signal {
-        checkOpen()
-        return Signal(signal)
-    }
+    public fun asSignal(): Signal = withSignal { Signal(it) }
 
     /**
      * Connects a typed handler's [callable], taking ownership of it.
@@ -129,25 +122,31 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
      */
     private fun connectOwned(callable: Callable, flags: Array<out GodotObject.ConnectFlags>): SignalConnection {
         try {
-            checkOpen()
-            val mask = flags.toEnumMask().value
-            val error = signal.connect(callable, mask)
-            checkGodotError("connect to signal '$name'", error)
+            return withSignal { signal ->
+                val mask = flags.toEnumMask().value
+                val error = signal.connect(callable, mask)
+                checkGodotError("connect to signal '$name'", error)
+                // The connection keeps its own copy of the signal: [signal] is released when this block ends.
+                SignalConnection(owner.getInstanceId().toLong(), Signal(signal), callable)
+            }
         } catch (e: Throwable) {
             callable.close()
             throw e
         }
-        return SignalConnection(owner.getInstanceId().toLong(), Signal(signal), callable)
     }
 
-    /** Releases the native handles. Idempotent; existing connections are left untouched. */
+    /** Runs [block] with a builtin [Signal] for [owner] and [name], releasing it and its name afterwards. */
+    private inline fun <T> withSignal(block: (Signal) -> T): T {
+        checkOpen()
+        return StringName(name).use { nameHandle -> Signal(owner, nameHandle).use(block) }
+    }
+
+    /** Stops this signal from being used. Idempotent; existing connections are left untouched. */
     override fun close() {
         if (closed) return
         closed = true
         // The handles stay valid on their own; this signal just stops tracking them.
         untypedConnections.clear()
-        signal.close()
-        nameHandle.close()
     }
 
     private fun checkOpen() = check(!closed) { "Signal '$name' is closed" }
