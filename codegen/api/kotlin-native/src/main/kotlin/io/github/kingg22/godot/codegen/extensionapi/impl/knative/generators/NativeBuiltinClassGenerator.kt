@@ -14,6 +14,8 @@ import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeVariableName
+import com.squareup.kotlinpoet.buildCodeBlock
+import com.squareup.kotlinpoet.joinToCode
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators.interceptors.PackedListConfig
@@ -154,9 +156,12 @@ class NativeBuiltinClassGenerator(
     ): List<FunSpec> {
         if (genericConfig == null || genericConfig.typeVariableNames.isEmpty()) return emptyList()
         val typeNames = genericConfig.typeVariableNames
-        val returnType = ClassName(context.packageForOrDefault(builtinClass.name), kotlinName)
-            .parameterizedBy(typeNames.map { TypeVariableName(it) })
-        val codecs = typeNames.map { "ElementCodec.of<$it>()" }
+        val className = ClassName(context.packageForOrDefault(builtinClass.name), kotlinName)
+        val returnType = className.parameterizedBy(typeNames.map { TypeVariableName(it) })
+        // `ElementCodec.of<T>()` for each type variable, with the class resolved through the package registry.
+        val elementCodec = context.classNameForOrDefault("ElementCodec")
+        val codecs = typeNames.map { CodeBlock.of("%T.of<%L>()", elementCodec, it) }
+        val applyGodotType = context.memberNameForOrDefault("applyGodotType", isExtension = true)
 
         return builtinClass.constructors
             .filter { it.raw != null && it.arguments.size <= 1 }
@@ -174,11 +179,16 @@ class NativeBuiltinClassGenerator(
                     )
                     .addParameters(parameters)
                     .returns(returnType)
-                    .addStatement(
-                        // A new empty collection is typed in the engine; one built from other data keeps its content.
-                        if (parameters.isEmpty()) "return %L(%L).applyGodotType()" else "return %L(%L)",
-                        kotlinName,
-                        (parameters.map { it.name } + codecs).joinToString(),
+                    .addCode(
+                        buildCodeBlock {
+                            val arguments = (parameters.map { CodeBlock.of("%N", it) } + codecs).joinToCode()
+                            // A new empty collection is typed in the engine; one built from other data keeps its content.
+                            if (parameters.isEmpty()) {
+                                addStatement("return %T(%L).%M()", className, arguments, applyGodotType)
+                            } else {
+                                addStatement("return %T(%L)", className, arguments)
+                            }
+                        },
                     )
                     .build()
             }

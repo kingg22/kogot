@@ -66,7 +66,7 @@ class NativePackageRegistry private constructor(private val typeToPackage: Map<S
 
             // Hand-written classes of the generated API: the collection views the generated builtins extend, and the
             // codec they share. They are not in the JSON, so they are registered here to be resolved through the Context.
-            listOf("GodotList", "GodotMap", "GodotPackedList", "ElementCodec").forEach {
+            listOf("GodotList", "GodotMap", "GodotPackedList", "ElementCodec", "applyGodotType").forEach {
                 register(it, "$rootPackage.api.builtin")
             }
 
