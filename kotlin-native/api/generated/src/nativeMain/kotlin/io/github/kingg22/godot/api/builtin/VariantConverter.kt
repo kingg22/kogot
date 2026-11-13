@@ -2,10 +2,12 @@ package io.github.kingg22.godot.api.builtin
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.builtin.internal.anyToVariant
+import io.github.kingg22.godot.api.builtin.internal.NoConversion
 import io.github.kingg22.godot.api.builtin.internal.anyToVariantOrNull
+import io.github.kingg22.godot.api.builtin.internal.convertValue
+import io.github.kingg22.godot.api.builtin.internal.valueMismatch
 import io.github.kingg22.godot.api.builtin.internal.value
 import kotlin.contracts.contract
-import kotlin.math.abs
 import kotlin.reflect.KProperty
 import kotlin.reflect.typeOf
 
@@ -70,22 +72,10 @@ public inline fun <@MustBeVariant reified T> Variant.getValueOrNull(): T? {
 
     // Fast path - Already the right type
     if (value is T) return value
-    if (value == null && null is T) return null
 
-    // String and Unit cases: NIL also reads back as Unit, the value sent for it.
-    if (T::class == String::class && value is GodotString) return value.use { it.toKString() } as T
-    if (T::class == Unit::class && value == null) return Unit as T
-
-    // Narrowing, only from the matching Godot type (see MustBeVariant): INT is a Long, FLOAT a Double. Only when it fits.
-    if (T::class == Int::class && value is Long && value in Int.MIN_VALUE..Int.MAX_VALUE) return value.toInt() as T
-    if (T::class == Short::class && value is Long && value in Short.MIN_VALUE..Short.MAX_VALUE) {
-        return value.toShort() as T
-    }
-    if (T::class == Float::class && value is Double &&
-        (value.isNaN() || value.isInfinite() || abs(value) <= Float.MAX_VALUE)
-    ) {
-        return value.toFloat() as T
-    }
+    // The rest of the conversions (String, Unit, narrowing) are shared with the runtime codecs.
+    val converted = convertValue(value, T::class, null is T)
+    if (converted !== NoConversion) return converted as T
 
     // Not convertible: a wrapper built by `value` that nobody receives is closed here.
     (value as? AutoCloseable)?.close()
@@ -113,18 +103,10 @@ public inline fun <@MustBeVariant reified T> Variant.getValue(): T {
     // Describe the value before closing it: it is a wrapper built just for this message.
     val value = this.value
     val description = value.toString()
-    val actualKClass = value?.let { it::class }
 
     (value as? AutoCloseable)?.close()
 
-    if ((value is Long && (T::class == Int::class || T::class == Short::class)) ||
-        (value is Double && T::class == Float::class)
-    ) {
-        val wider = if (value is Long) "Long" else "Double"
-        throw ArithmeticException("$description does not fit in ${T::class}: read it as $wider and narrow it yourself")
-    }
-
-    throw ClassCastException("Expected ${T::class} but got $actualKClass, for variant value: $description")
+    throw valueMismatch(T::class, value, description)
 }
 
 /**

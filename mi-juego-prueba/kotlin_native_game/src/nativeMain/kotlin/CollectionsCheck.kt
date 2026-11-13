@@ -8,16 +8,16 @@ import io.github.kingg22.godot.api.builtin.PackedFloat32Array
 import io.github.kingg22.godot.api.builtin.PackedInt64Array
 import io.github.kingg22.godot.api.builtin.PackedStringArray
 import io.github.kingg22.godot.api.builtin.PackedVector2Array
-import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.VariantArray
 import io.github.kingg22.godot.api.builtin.VariantDictionary
+import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.builtin.from
-import io.github.kingg22.godot.api.builtin.toStringName
-import io.github.kingg22.godot.api.builtin.toDictionary
-import io.github.kingg22.godot.api.builtin.toGodotArray
 import io.github.kingg22.godot.api.builtin.getValue
 import io.github.kingg22.godot.api.builtin.getValueOrNull
+import io.github.kingg22.godot.api.builtin.toDictionary
+import io.github.kingg22.godot.api.builtin.toGodotArray
+import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.Node
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -26,7 +26,8 @@ import kotlinx.cinterop.ExperimentalForeignApi
  * Live checks of the `List` / `Map` views over Godot arrays and dictionaries (issue #119), run inside the real engine
  * (`collections_check.tscn`). Each check prints `PASS` or `FAIL`; the scene quits with a non-zero exit code if any failed.
  */
-@Godot class CollectionsCheck(nativePtr: COpaquePointer) : Node(nativePtr) {
+@Godot
+class CollectionsCheck(nativePtr: COpaquePointer) : Node(nativePtr) {
     private val checks = Checks("CollectionsCheck")
 
     override fun _ready() {
@@ -129,14 +130,28 @@ import kotlinx.cinterop.ExperimentalForeignApi
             VariantArray().use { source ->
                 source.add(Variant.from(4L))
                 source.add(Variant.from(5L))
-                GodotArray<Long>(source).use { copy -> expect(copy.toList() == listOf(4L, 5L)) { "copy=${copy.toList()}" } }
+                GodotArray<Long>(source).use { copy ->
+                    expect(
+                        copy.toList() == listOf(
+                            4L,
+                            5L,
+                        ),
+                    ) { "copy=${copy.toList()}" }
+                }
             }
         }
         check("factory: array from a PackedInt64Array") {
             PackedInt64Array().use { packed ->
                 // Godot's `append` returns true when it FAILED.
                 expect(!(packed.append(7L) || packed.append(8L))) { "append to the packed array" }
-                GodotArray<Long>(packed).use { list -> expect(list.toList() == listOf(7L, 8L)) { "list=${list.toList()}" } }
+                GodotArray<Long>(packed).use { list ->
+                    expect(
+                        list.toList() == listOf(
+                            7L,
+                            8L,
+                        ),
+                    ) { "list=${list.toList()}" }
+                }
             }
         }
         check("factory: dictionary copy shares its entries") {
@@ -237,7 +252,9 @@ import kotlinx.cinterop.ExperimentalForeignApi
     private fun typingChecks() = with(checks) {
         check("typing: factory types the array in the engine") {
             GodotArray<Long>().use { list ->
-                expect(list.isTyped() && list.getTypedBuiltin() == Variant.Type.INT.value) { "builtin=${list.getTypedBuiltin()}" }
+                expect(list.isTyped() && list.getTypedBuiltin() == Variant.Type.INT.value) {
+                    "builtin=${list.getTypedBuiltin()}"
+                }
             }
             GodotArray<String>().use { list ->
                 expect(list.getTypedBuiltin() == Variant.Type.STRING.value) { "builtin=${list.getTypedBuiltin()}" }
@@ -326,7 +343,9 @@ import kotlinx.cinterop.ExperimentalForeignApi
         }
         check("convert: Map to a typed Dictionary") {
             mapOf("a" to 1L, "b" to 2L).toDictionary().use { map ->
-                expect(map["a"] == 1L && map["b"] == 2L && map.size == 2) { "map=${map.entries.map { it.key to it.value }}" }
+                expect(map["a"] == 1L && map["b"] == 2L && map.size == 2) {
+                    "map=${map.entries.map { it.key to it.value }}"
+                }
                 expect(map.getTypedKeyBuiltin() == Variant.Type.STRING.value) { "key type" }
             }
         }
@@ -340,7 +359,9 @@ import kotlinx.cinterop.ExperimentalForeignApi
         check("engine returns: typedarray::StringName is typed and readable") {
             addToGroup("probe".toStringName())
             getGroups().use { groups ->
-                expect(groups.getTypedBuiltin() == Variant.Type.STRING_NAME.value) { "builtin=${groups.getTypedBuiltin()}" }
+                expect(groups.getTypedBuiltin() == Variant.Type.STRING_NAME.value) {
+                    "builtin=${groups.getTypedBuiltin()}"
+                }
                 expect(groups.any { it.toString() == "probe" }) { "groups=${groups.map { it.toString() }}" }
             }
         }
@@ -382,7 +403,8 @@ import kotlinx.cinterop.ExperimentalForeignApi
                 expect(array != listOf(1L, 2L, 4L)) { "different element" }
                 expect(array != listOf(3L, 2L, 1L)) { "different order" }
                 expect(array != listOf("1", "2", "3")) { "List of another type" }
-                val notACollection: Any = "text" // `array != "text"` does not compile: String is final, so the types are incompatible
+                val notACollection: Any =
+                    "text" // `array != "text"` does not compile: String is final, so the types are incompatible
                 expect(array != notACollection && !array.equals(null)) { "not a collection, null" }
                 GodotArray<Long>().use { other ->
                     other.addAll(listOf(1L, 2L, 4L))
@@ -574,7 +596,9 @@ import kotlinx.cinterop.ExperimentalForeignApi
             }
             VariantArray().use { untyped ->
                 Variant(untyped).use { variant ->
-                    expect(variant.getValueOrNull<GodotArray<Long>>() == null) { "an untyped Array is not an Array[int]" }
+                    expect(variant.getValueOrNull<GodotArray<Long>>() == null) {
+                        "an untyped Array is not an Array[int]"
+                    }
                     expect(variant.getValue<VariantArray>().use { it.isEmpty() }) { "but it is a VariantArray" }
                 }
             }

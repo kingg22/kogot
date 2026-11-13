@@ -1,15 +1,14 @@
-@file:OptIn(ExperimentalGodotKotlin::class)
-
 package io.github.kingg22.godot.api.builtin
 
-import io.github.kingg22.godot.api.ExperimentalGodotKotlin
+import io.github.kingg22.godot.api.builtin.internal.NoConversion
 import io.github.kingg22.godot.api.builtin.internal.anyToVariant
+import io.github.kingg22.godot.api.builtin.internal.convertValue
+import io.github.kingg22.godot.api.builtin.internal.valueMismatch
 import io.github.kingg22.godot.api.builtin.internal.value
-import kotlin.math.abs
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 
-// SPIKE: element codecs built at runtime from a `KType` (`typeOf<T>()`), so a collection nested in another one, or read
+// Element codecs built at runtime from a `KType` (`typeOf<T>()`), so a collection nested in another one, or read
 // from a `Variant`, keeps its element type instead of falling back to `Variant`.
 
 /** The codec for [type], recursively for `GodotArray<X>` and `Dictionary<K, V>`; anything unknown stays a [Variant]. */
@@ -67,19 +66,12 @@ private fun elementCodecOf(type: KType, index: Int): ElementCodec<Any?> {
 /** [getValueOrNull] for a type known only at runtime: the same conversions, keyed on [kClass]. */
 internal fun Variant.getValueDynamic(kClass: KClass<*>, nullable: Boolean): Any? {
     val value = this.value
-    if (kClass.isInstance(value)) return value
-    if (value == null && nullable) return null
-    if (kClass == String::class && value is GodotString) return value.use { it.toKString() }
-    if (kClass == Int::class && value is Long && value in Int.MIN_VALUE..Int.MAX_VALUE) return value.toInt()
-    if (kClass == Short::class && value is Long && value in Short.MIN_VALUE..Short.MAX_VALUE) return value.toShort()
-    if (kClass == Float::class && value is Double &&
-        (value.isNaN() || value.isInfinite() || abs(value) <= Float.MAX_VALUE)
-    ) {
-        return value.toFloat()
-    }
-    val description = value.toString()
+    val converted = convertValue(value, kClass, nullable)
+    if (converted !== NoConversion) return converted
+
+    val description = value.toString() // before closing: the wrapper was built just for this message
     (value as? AutoCloseable)?.close()
-    throw ClassCastException("Expected $kClass but got ${value?.let { it::class }}, for variant value: $description")
+    throw valueMismatch(kClass, value, description)
 }
 
 /**

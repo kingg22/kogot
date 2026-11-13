@@ -36,12 +36,12 @@ class VariantTypesSyncTest {
 
     @Test
     fun `every narrowing getValueOrNull performs targets a compatible type`() {
-        val narrowedTypes = Regex("""T::class == (\w+)::class && value is \w+""")
+        val narrowedTypes = Regex("""kClass == (\w+)::class && value is \w+""")
             .findAll(sourceFile("kogot.test.variantConverter"))
             .map { it.groupValues[1] }
             .toList()
 
-        assertTrue(narrowedTypes.isNotEmpty(), "No narrowing conversion found: did getValueOrNull change shape?")
+        assertTrue(narrowedTypes.isNotEmpty(), "No narrowing conversion found: did convertValue change shape?")
         assertTrue(checkerTypes.containsAll(narrowedTypes), "Narrowed to types the checker rejects: $narrowedTypes")
     }
 

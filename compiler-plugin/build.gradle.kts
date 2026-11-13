@@ -91,7 +91,7 @@ tasks.test {
     val runtimeBuiltins = "kotlin-native/api/generated/src/nativeMain/kotlin/io/github/kingg22/godot/api/builtin"
     mapOf(
         "kogot.test.convertToVariant" to "$runtimeBuiltins/internal/ConvertToVariant.kt",
-        "kogot.test.variantConverter" to "$runtimeBuiltins/VariantConverter.kt",
+        "kogot.test.variantConverter" to "$runtimeBuiltins/internal/ValueConversion.kt",
     ).forEach { (property, path) ->
         val file = rootProject.layout.projectDirectory.file(path)
         inputs.file(file).withPropertyName(property).withPathSensitivity(PathSensitivity.RELATIVE)
