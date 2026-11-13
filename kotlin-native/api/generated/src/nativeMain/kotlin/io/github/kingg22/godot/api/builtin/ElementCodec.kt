@@ -1,6 +1,7 @@
 package io.github.kingg22.godot.api.builtin
 
 import kotlin.reflect.KClass
+import kotlin.reflect.typeOf
 
 /**
  * How the elements of a [GodotArray] or [Dictionary] cross between a [Variant] and the Kotlin type [T].
@@ -42,6 +43,9 @@ internal class ElementCodec<@MustBeVariant T> @PublishedApi internal constructor
         @Suppress("UNCHECKED_CAST")
         internal inline fun <@MustBeVariant reified T> of(): ElementCodec<T> {
             if (T::class == Variant::class) return VARIANT as ElementCodec<T>
+            if (T::class == GodotArray::class || T::class == Dictionary::class) {
+                return codecOf(typeOf<T>()) as ElementCodec<T>
+            }
 
             return ElementCodec(
                 reader = { variant -> variant.use { it.getValue<T>() } },

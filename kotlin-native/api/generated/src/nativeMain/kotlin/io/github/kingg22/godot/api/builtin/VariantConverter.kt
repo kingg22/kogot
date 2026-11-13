@@ -7,6 +7,7 @@ import io.github.kingg22.godot.api.builtin.internal.value
 import kotlin.contracts.contract
 import kotlin.math.abs
 import kotlin.reflect.KProperty
+import kotlin.reflect.typeOf
 
 /**
  * Converts an element to a [Variant] with type checking.
@@ -61,6 +62,9 @@ public inline fun <reified T> Variant.Companion.from(element: @MustBeVariant T):
 public inline fun <@MustBeVariant reified T> Variant.getValueOrNull(): T? {
     // Fast path - Redundant
     if (T::class == Variant::class) return this as T
+
+    // A typed collection keeps its element types: they come from the reified type, `value is T` cannot see them.
+    if (T::class == GodotArray::class || T::class == Dictionary::class) return toCollectionOrNull(typeOf<T>()) as T?
 
     val value = this.value
 

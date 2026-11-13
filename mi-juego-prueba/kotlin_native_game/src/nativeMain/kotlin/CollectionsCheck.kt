@@ -17,6 +17,7 @@ import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.builtin.toDictionary
 import io.github.kingg22.godot.api.builtin.toGodotArray
 import io.github.kingg22.godot.api.builtin.getValue
+import io.github.kingg22.godot.api.builtin.getValueOrNull
 import io.github.kingg22.godot.api.core.Node
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -39,6 +40,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
         engineReturnChecks()
         equalityChecks()
         hashChecks()
+        nestedChecks()
         getTree().quit(checks.finish())
     }
 
@@ -519,6 +521,61 @@ import kotlinx.cinterop.ExperimentalForeignApi
                 GodotArray<Long>().use { other ->
                     other.addAll(listOf(1L, 2L, 3L))
                     expect(engine == other.hash()) { "the engine hash of equal arrays agrees" }
+                }
+            }
+        }
+    }
+
+    /** Nested typed collections keep their element types, and reading a Variant as a collection checks them. */
+    private fun nestedChecks() = with(checks) {
+        check("nested: the inner array of GodotArray<GodotArray<Long>> reads its elements as Long") {
+            GodotArray<GodotArray<Long>>().use { outer ->
+                GodotArray<Long>().use { inner ->
+                    inner.add(7L)
+                    outer.add(inner)
+                }
+                val inner = outer[0]
+                expect(inner.getTypedBuiltin() == Variant.Type.INT.value) { "engine type of the inner array" }
+                val value: Long = inner[0]
+                expect(value == 7L) { "value=$value" }
+            }
+        }
+        check("nested: three levels and a Dictionary of arrays") {
+            GodotArray<GodotArray<GodotArray<Long>>>().use { deep ->
+                GodotArray<GodotArray<Long>>().use { mid ->
+                    GodotArray<Long>().use { leaf ->
+                        leaf.add(9L)
+                        mid.add(leaf)
+                    }
+                    deep.add(mid)
+                }
+                val value: Long = deep[0][0][0]
+                expect(value == 9L) { "deep=$value" }
+            }
+            Dictionary<String, GodotArray<Long>>().use { map ->
+                GodotArray<Long>().use { inner ->
+                    inner.add(3L)
+                    map["k"] = inner
+                }
+                val value: Long = checkNotNull(map["k"])[0]
+                expect(value == 3L) { "map=$value" }
+            }
+        }
+        check("nested: getValue checks the element type the engine stores") {
+            GodotArray<Long>().use { longs ->
+                longs.add(7L)
+                Variant(longs).use { variant ->
+                    expect(variant.getValue<GodotArray<Long>>().use { it.toList() } == listOf(7L)) { "same type" }
+                    expect(variant.getValueOrNull<GodotArray<String>>() == null) { "another element type" }
+                    expectThrows<ClassCastException>("Array[int] as GodotArray<String>") {
+                        variant.getValue<GodotArray<String>>()
+                    }
+                }
+            }
+            VariantArray().use { untyped ->
+                Variant(untyped).use { variant ->
+                    expect(variant.getValueOrNull<GodotArray<Long>>() == null) { "an untyped Array is not an Array[int]" }
+                    expect(variant.getValue<VariantArray>().use { it.isEmpty() }) { "but it is a VariantArray" }
                 }
             }
         }
