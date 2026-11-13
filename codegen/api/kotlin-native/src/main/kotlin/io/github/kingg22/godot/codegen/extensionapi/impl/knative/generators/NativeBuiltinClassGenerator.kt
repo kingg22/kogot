@@ -270,6 +270,7 @@ class NativeBuiltinClassGenerator(
                         TypeOverloadGenerator.GodotStringMapping,
                     )?.let(::add)
                 }
+                overloadGen.variantConstructorOverload(ctor.raw!!, ctorBuilder)?.let(::add)
             }
         }
         classBuilder.addFunctions(constructorsSpecs)

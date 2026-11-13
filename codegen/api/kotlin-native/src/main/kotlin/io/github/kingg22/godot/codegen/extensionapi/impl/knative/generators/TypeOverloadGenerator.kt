@@ -94,6 +94,9 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
             unwrapSuffix = { CodeBlock.of("") },
             mapReturn = false,
             varargLeadParameter = "first",
+            configureConstructor = { _, args ->
+                callThisConstructor(args)
+            },
         )
     }
 
@@ -166,8 +169,25 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         if (KModifier.OVERRIDE in spec.modifiers || retyped) {
             listOf(spec)
         } else {
-            buildOverloadsForMethod(method, spec, VariantMapping).ifEmpty { listOf(spec) }
+            buildOverloadsForMethod(method, spec, VariantMapping).map { if (it == spec) it else it.experimental() }
+                .ifEmpty { listOf(spec) }
         }
+    }
+
+    /**
+     * The constructor that accepts `Any?` where [original] takes a `Variant` (see [VariantMapping]), or `null` when
+     * it takes none. It keeps the order of the parameters and delegates with `this(...)`.
+     */
+    context(_: Context)
+    fun variantConstructorOverload(constructor: BuiltinClass.Constructor, original: FunSpec): FunSpec? =
+        buildOverloadsForConstructor(constructor, original, VariantMapping)?.experimental()
+
+    /** The overloads built over `toVariant` depend on an experimental API: they are experimental too. */
+    context(ctx: Context)
+    private fun FunSpec.experimental(): FunSpec {
+        val experimental = ctx.classNameOfExperimentalAnnotation()
+        if (annotations.any { it.typeName == experimental }) return this
+        return toBuilder().addAnnotation(AnnotationSpec.builder(experimental).build()).build()
     }
 
     /**

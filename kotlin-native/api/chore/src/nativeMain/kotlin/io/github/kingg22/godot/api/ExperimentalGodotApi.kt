@@ -9,6 +9,6 @@ import io.github.kingg22.godot.api.internal.UsedFromCodegenGeneratedCode
     level = ERROR,
 )
 @Retention(BINARY)
-@Target(CLASS, FUNCTION, PROPERTY)
+@Target(CLASS, FUNCTION, PROPERTY, CONSTRUCTOR)
 @MustBeDocumented
 public annotation class ExperimentalGodotApi @ExperimentalGodotKotlin constructor(val reason: String = "")
