@@ -68,6 +68,9 @@ class NativePackageRegistry private constructor(private val typeToPackage: Map<S
             register("toVariant", "$rootPackage.api.builtin")
             register("MustBeVariant", "$rootPackage.api.builtin")
 
+            // Experimental marker of the unsafe Kotlin API (not of Godot's), put on the `Any?` overloads.
+            register("ExperimentalGodotKotlin", "$rootPackage.api")
+
             // Hand-written classes of the generated API: the collection views the generated builtins extend, and the
             // codec they share. They are not in the JSON, so they are registered here to be resolved through the Context.
             listOf("GodotList", "GodotMap", "GodotPackedList", "ElementCodec", "applyGodotType").forEach {

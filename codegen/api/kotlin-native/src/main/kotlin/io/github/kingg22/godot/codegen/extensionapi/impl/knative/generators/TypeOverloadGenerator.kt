@@ -3,7 +3,6 @@ package io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators
 import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.ARRAY
 import com.squareup.kotlinpoet.AnnotationSpec
-import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
@@ -189,7 +188,7 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
      */
     context(ctx: Context)
     private fun FunSpec.experimental(): FunSpec {
-        val experimental = ClassName(ctx.classNameOfExperimentalAnnotation().packageName, "ExperimentalGodotKotlin")
+        val experimental = ctx.classNameForOrDefault("ExperimentalGodotKotlin")
         if (annotations.any { it.typeName == experimental }) return this
         return toBuilder().addAnnotation(AnnotationSpec.builder(experimental).build()).build()
     }
