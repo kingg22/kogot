@@ -26,6 +26,10 @@ kotlin {
 
     applyDefaultHierarchyTemplate()
 
+    sourceSets.nativeTest.dependencies {
+        implementation(libs.kotlin.test)
+    }
+
     linuxX64()
     macosArm64()
     mingwX64()
