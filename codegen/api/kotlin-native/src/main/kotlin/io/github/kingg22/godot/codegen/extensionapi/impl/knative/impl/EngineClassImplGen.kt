@@ -154,15 +154,14 @@ class EngineClassImplGen {
                                         "%T.instance.instantiate(cls).use { instance ->",
                                         ctx.classNameForOrDefault("ClassDB"),
                                     )
-                                    addStatement("%M(instance.toObject().rawPtr)", TAKE_CONSTRUCTED_REFERENCE)
+                                    addStatement("%M(instance.toObjectRawPtr())", TAKE_CONSTRUCTED_REFERENCE)
                                     endControlFlow()
                                 } else {
                                     addStatement("%T", ctx.classNameForOrDefault("ClassDB"))
                                     withIndent {
                                         addStatement(".instance")
                                         addStatement(".instantiate(cls)")
-                                        addStatement(".toObject()")
-                                        addStatement(".rawPtr")
+                                        addStatement(".toObjectRawPtr()")
                                     }
                                 }
                             }
@@ -171,6 +170,8 @@ class EngineClassImplGen {
                     },
                 )
             if (ownsReference) constructor.addStatement("%M(this)", ADOPT_CONSTRUCTED_REFERENCE)
+            // `this` is the one wrapper of the object it just created: later reads resolve to it (issue #206).
+            constructor.addStatement("%M(this)", implPackageRegistry.memberNameForOrDefault("bindConstructed"))
             classBuilder.addFunction(constructor.build())
         }
     }

@@ -103,6 +103,24 @@ public fun <T : GodotObject> materialize(
 ): T = materializeImpl(rawPtr, ownsReference = false, factory)
 
 /**
+ * For the generated public constructors (`Sprite2D()`): the wrapper that was just built around a freshly created
+ * object becomes its canonical one, so a later read of the same object from a `Variant`, a signal or an engine
+ * return gives this very instance instead of a second one. The reference it owns is already settled by the
+ * constructor ([adoptConstructedReference] for a `RefCounted`), so this only fills the slot.
+ */
+@InternalBinding
+public fun bindConstructed(instance: GodotObject): Unit = memScoped {
+    val slotPtr = requireNotNull(
+        ObjectBinding.getInstanceBindingRaw(
+            pO = instance.rawPtr,
+            pToken = BindingProcAddressHolder.library,
+            pCallbacks = identityCallbacks().ptr,
+        ),
+    ) { "object_get_instance_binding returned null for ${instance.rawPtr}" }
+    slotPtr.asStableRef<BindingSlot>().get().ref = WeakReference(instance)
+}
+
+/**
  * Like [materialize], for a pointer that arrived with **one owned engine reference** (a ptrcall return of a
  * `Ref<T>`, see [adoptReturnedReference]): a new `RefCounted` wrapper adopts that reference instead of taking
  * its own, and when the object already has a live wrapper (which owns one reference already) the surplus one

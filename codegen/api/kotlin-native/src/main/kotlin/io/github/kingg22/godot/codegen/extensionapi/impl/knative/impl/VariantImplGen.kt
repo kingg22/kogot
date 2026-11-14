@@ -915,6 +915,34 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
             classBuilder.addFunction(orNullFun)
             classBuilder.addFunction(forcedFun)
 
+            if (subclassName == "OBJECT") {
+                // The pointer alone, with no wrapper built around it: for the generated public constructors, whose
+                // `this` is the wrapper (building another one here would take the identity slot from it).
+                classBuilder.addFunction(
+                    FunSpec
+                        .builder("toObjectRawPtr")
+                        .addAnnotation(implPackageRegistry.classNameForOrDefault("InternalBinding"))
+                        .returns(COPAQUE_POINTER)
+                        .addKdoc("The raw pointer of the object this Variant holds, without creating a wrapper for it.")
+                        .addCode(
+                            CodeBlock
+                                .builder()
+                                .beginControlFlow("return %M", memScoped)
+                                .addStatement("val out = %M<%T>()", cinteropAlloc, C_OPAQUE_POINTER_VAR)
+                                .addStatement("toTypeFptr_OBJECT.%M(out.%M, rawPtr)", cinteropInvoke, cinteropPtr)
+                                .addStatement(
+                                    "%M(out.%M)·{·%S·}",
+                                    K_CHECK_NOT_NULL,
+                                    cinteropValue,
+                                    "Return pointer value of Object was null",
+                                )
+                                .endControlFlow()
+                                .build(),
+                        )
+                        .build(),
+                )
+            }
+
             if (subclassName.equals("STRING", ignoreCase = true)) {
                 classBuilder.addFunction(
                     orNullFun
