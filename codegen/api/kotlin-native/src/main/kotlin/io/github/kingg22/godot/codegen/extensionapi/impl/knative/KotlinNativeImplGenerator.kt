@@ -56,6 +56,9 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
         NativeEngineSignalGenerator(typeResolver),
     )
     private val engineVirtualCalls = NativeEngineVirtualCallsGenerator(virtualCallImplGen)
+    private val engineClassNodes = NativeEngineClassNodeGenerator {
+        implPackageRegistry.classNameForOrDefault("ClassNode")
+    }
     private val variantImplGen = VariantImplGen(typeResolver)
     private val variant = NativeVariantGenerator(enumGen, variantImplGen)
     private val nativeStructureBodyImpl = KNativeImplGen()
@@ -105,6 +108,12 @@ class KotlinNativeImplGenerator(override val typeResolver: TypeResolver) : CodeI
         }
 
         yieldAll(virtualCallsPaths)
+
+        val childrenByParent = ctx.model.engineClasses.groupBy { it.inherits }
+        val classNodesPaths = ctx.model.engineClasses.asSequence().map {
+            engineClassNodes.generateFile(it, childrenByParent[it.name].orEmpty())
+        }
+        yieldAll(classNodesPaths)
 
         val (nestedEnums, globalEnums) = ctx.model.globalEnums.partition { it.ownerName != null }
 

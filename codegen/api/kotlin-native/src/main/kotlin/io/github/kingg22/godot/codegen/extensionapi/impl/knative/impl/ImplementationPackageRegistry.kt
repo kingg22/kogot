@@ -54,6 +54,7 @@ class ImplementationPackageRegistry(packageStr: String, interfaceModel: GDExtens
         put("GDExtensionObjectPtrVar", ffiPackage)
         put("GDExtensionClassCallVirtual", ffiPackage)
         put("InternalBinding", bindingPackage)
+        put("ClassNode", bindingPackage)
         put("getInstance", bindingPackage)
         put("toBoolean", bindingPackage)
         put("toGdBool", bindingPackage)
