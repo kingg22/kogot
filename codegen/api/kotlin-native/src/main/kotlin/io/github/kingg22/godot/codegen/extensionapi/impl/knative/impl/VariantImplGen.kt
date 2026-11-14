@@ -891,9 +891,11 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                             .beginControlFlow("%M", memScoped)
                             .addStatement("val out = %M<%T>()", cinteropAlloc, C_OPAQUE_POINTER_VAR)
                             .addStatement("toTypeFptr_OBJECT.%M(out.%M, rawPtr)", cinteropInvoke, cinteropPtr)
+                            // The pointer is borrowed from the Variant. wrapperOf gives back the one canonical
+                            // wrapper of the object's most derived class (issue #206), never a bare base object.
                             .addStatement(
-                                "return %T(%M(out.%M)·{·%S·})",
-                                returnType,
+                                "return %M(%M(out.%M)·{·%S·})",
+                                implPackageRegistry.memberNameForOrDefault("wrapperOf"),
                                 K_CHECK_NOT_NULL,
                                 cinteropValue,
                                 "Return pointer value of Object was null",

@@ -4,6 +4,7 @@ import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.internal.binding.InternalBinding
 import io.github.kingg22.godot.internal.binding.materialize
+import io.github.kingg22.godot.internal.binding.wrapperOf
 import io.github.kingg22.godot.internal.ffi.GDExtensionObjectPtr
 
 /**
@@ -37,6 +38,33 @@ internal fun <Convert : GodotObject> castToInternal(
 
     return materialize(rawPtr, factory)
 }
+
+/** The canonical wrapper of the most derived class of [rawPtr]; the factory-less casts below are plain Kotlin `as?` on it. */
+@PublishedApi
+@OptIn(InternalBinding::class)
+internal fun wrapperOfPtr(rawPtr: GDExtensionObjectPtr): GodotObject = wrapperOf(rawPtr)
+
+// -----------------------------------------------------------------------------
+// Factory-less casts: same meaning as Kotlin's `as` / `as?`
+// -----------------------------------------------------------------------------
+
+/**
+ * Like `as? Convert` on the object behind this pointer: it is [Convert] when the object really is one (or a
+ * subclass), and `null` when not. No factory is needed, the wrapper already is of the object's most derived
+ * class and is the same instance every time (see issue #206).
+ */
+public inline fun <reified Convert : GodotObject> GDExtensionObjectPtr.castToOrNull(): Convert? =
+    wrapperOfPtr(this) as? Convert
+
+/** Like `as Convert`: [ClassCastException] when the object is not a [Convert]. */
+public inline fun <reified Convert : GodotObject> GDExtensionObjectPtr.castTo(): Convert =
+    castToOrNull<Convert>() ?: throw ClassCastException("Failed to cast pointer to ${Convert::class.simpleName}")
+
+/** Like `as? Convert` on this object; a different [Convert] than its real class gives `null`. */
+public inline fun <reified Convert : GodotObject> GodotObject.castToOrNull(): Convert? = rawPtr.castToOrNull<Convert>()
+
+/** Like `as Convert` on this object. */
+public inline fun <reified Convert : GodotObject> GodotObject.castTo(): Convert = rawPtr.castTo<Convert>()
 
 // -----------------------------------------------------------------------------
 // GDExtensionObjectPtr overloads
