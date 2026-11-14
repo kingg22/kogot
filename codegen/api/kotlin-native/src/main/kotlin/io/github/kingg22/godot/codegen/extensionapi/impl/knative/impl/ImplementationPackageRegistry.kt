@@ -56,6 +56,7 @@ class ImplementationPackageRegistry(packageStr: String, interfaceModel: GDExtens
         put("InternalBinding", bindingPackage)
         put("ClassNode", bindingPackage)
         put("wrapperOf", bindingPackage)
+        put("adoptedWrapperOf", bindingPackage)
         put("getInstance", bindingPackage)
         put("toBoolean", bindingPackage)
         put("toGdBool", bindingPackage)

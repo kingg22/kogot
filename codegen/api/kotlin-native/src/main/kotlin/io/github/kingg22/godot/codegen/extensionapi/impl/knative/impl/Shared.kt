@@ -355,29 +355,22 @@ fun buildReturnRead(
         returnType.startsWith("array") ||
             returnType.startsWith("dictionary") -> CodeBlock.ofStatement("${preAppendReturn}retPtr")
 
+        // The declared class is only a lower bound: the object may be a subclass, and the one canonical wrapper
+        // of its most derived known class is what the identity slot holds (issue #206). A `Ref<T>` return hands
+        // over one owned engine reference, which the wrapper keeps (or gives back if it already owns one).
         ctx.isEngineClass(returnType) -> {
             val adopt = adoptRefCounted && ctx.inheritsRefCounted(returnType)
+            val resolve = implPackageRegistry.memberNameForOrDefault(if (adopt) "adoptedWrapperOf" else "wrapperOf")
             CodeBlock
                 .builder()
-                .apply {
-                    if (adopt) {
-                        addStatement("$preAppendReturn%M(", ADOPT_RETURNED_REFERENCE)
-                        indent()
-                        addStatement("%T(", kotlinType)
-                    } else {
-                        addStatement("$preAppendReturn%T(", kotlinType)
-                    }
-                }
+                .addStatement("$preAppendReturn%M(", resolve)
                 .indent()
                 .addStatement("%M(retPtr.%M) {", K_REQUIRE_NOT_NULL, cinteropValue)
                 .withIndent { addStatement("%S", "$returnType pointer value was null") }
                 .withIndent { endControlFlow() }
-                .addStatement(")")
                 .apply {
-                    if (adopt) {
-                        unindent()
-                        addStatement(")")
-                    }
+                    // wrapperOf already returns a GodotObject: casting to the same type is a warning.
+                    if (returnType == "Object") addStatement(")") else addStatement(") as %T", kotlinType)
                 }
                 .build()
         }

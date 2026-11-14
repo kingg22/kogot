@@ -85,6 +85,15 @@ public fun adoptConstructedReference(instance: RefCounted) {
     instance.kogotReleaseCleaner = createCleaner(rawPtr, ::deferRefCountedRelease)
 }
 
+/**
+ * Gives back the engine reference that came with a ptrcall `Ref<T>` return when the object's wrapper already
+ * owns one of its own (see [materializeOwned]). Main thread, like every call into the engine.
+ */
+@InternalBinding
+public fun dropReturnedReference(rawPtr: GDExtensionObjectPtr) {
+    val _ = unreferenceAndDestroyIfLast(rawPtr)
+}
+
 /** Takes one more engine reference on [rawPtr] (`RefCounted::reference()`); safe from any thread, the count is atomic. */
 private fun takeReference(rawPtr: GDExtensionObjectPtr) {
     val _ = RefCounted(rawPtr).reference()

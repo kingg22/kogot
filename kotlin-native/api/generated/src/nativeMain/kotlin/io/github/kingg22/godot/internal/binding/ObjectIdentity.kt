@@ -97,9 +97,27 @@ public fun <T : GodotObject> resolveBinding(rawPtr: GDExtensionObjectPtr): T? {
  * wrapper the generated method built around it (`adoptReturnedReference`), not by the cast.
  */
 @InternalBinding
-@Suppress("UNCHECKED_CAST")
 public fun <T : GodotObject> materialize(
     rawPtr: GDExtensionObjectPtr,
+    factory: (nativePtr: GDExtensionObjectPtr) -> T,
+): T = materializeImpl(rawPtr, ownsReference = false, factory)
+
+/**
+ * Like [materialize], for a pointer that arrived with **one owned engine reference** (a ptrcall return of a
+ * `Ref<T>`, see [adoptReturnedReference]): a new `RefCounted` wrapper adopts that reference instead of taking
+ * its own, and when the object already has a live wrapper (which owns one reference already) the surplus one
+ * is given back right away, so a repeated read never grows the engine refcount.
+ */
+@InternalBinding
+public fun <T : GodotObject> materializeOwned(
+    rawPtr: GDExtensionObjectPtr,
+    factory: (nativePtr: GDExtensionObjectPtr) -> T,
+): T = materializeImpl(rawPtr, ownsReference = true, factory)
+
+@Suppress("UNCHECKED_CAST")
+private fun <T : GodotObject> materializeImpl(
+    rawPtr: GDExtensionObjectPtr,
+    ownsReference: Boolean,
     factory: (nativePtr: GDExtensionObjectPtr) -> T,
 ): T = memScoped {
     val slotPtr = requireNotNull(
@@ -111,12 +129,26 @@ public fun <T : GodotObject> materialize(
     ) { "object_get_instance_binding returned null for $rawPtr" }
 
     val slot = slotPtr.asStableRef<BindingSlot>().get()
-    (slot.ref?.get() as T?)?.let { return@memScoped it }
+    val existing = slot.ref?.get() as T?
+    if (existing != null) {
+        if (!ownsReference || existing !is RefCounted) return@memScoped existing
+        if (existing.kogotReleaseCleaner != null) {
+            // The wrapper owns its reference already: the one that came with the return is surplus.
+            dropReturnedReference(rawPtr)
+            return@memScoped existing
+        }
+        // A `@Godot` RefCounted instance owns no reference of its own (the engine and its StableRef keep it
+        // alive), so there is nothing to merge the returned one into. Keep the safe behaviour of before: a
+        // separate wrapper adopts it and gives it back when collected. The canonical instance stays in the slot.
+        return@memScoped factory(rawPtr).also {
+            if (it is RefCounted) attachRefCountedRelease(it, rawPtr, takeOwnReference = false)
+        }
+    }
 
     val instance = factory(rawPtr)
     slot.ref = WeakReference(instance)
     if (instance is RefCounted) {
-        attachRefCountedRelease(instance, rawPtr, takeOwnReference = true)
+        attachRefCountedRelease(instance, rawPtr, takeOwnReference = !ownsReference)
     }
     instance
 }

@@ -241,7 +241,14 @@ class VirtualCallImplGen(private val typeResolver: TypeResolver) {
                 // scene object), so always take the null-safe path rather than requireNotNull-ing and
                 // crashing the whole process with an uncatchable Kotlin/Native exception across the
                 // staticCFunction boundary.
-                addStatement("val %N = %N?.let·{·%T(it)·}", varName, ptrVar, kotlinType)
+                // The pointer is borrowed. The object is wrapped as its most derived known class, because the
+                // declared type is only a lower bound (`_input(event: InputEvent)` gets an `InputEventKey`).
+                val wrapperOf = implPackageRegistry.memberNameForOrDefault("wrapperOf")
+                if (arg.type == "Object") {
+                    addStatement("val %N = %N?.let·{·%M(it)·}", varName, ptrVar, wrapperOf)
+                } else {
+                    addStatement("val %N = %N?.let·{·%M(it)·as·%T·}", varName, ptrVar, wrapperOf, kotlinType)
+                }
             }
 
             ctx.isBuiltin(arg.type) -> addStatement("val %N = %T(%L)", varName, kotlinType, rawArg)

@@ -32,3 +32,11 @@ private val wrapperResolver = WrapperResolver(
  */
 @InternalBinding
 public fun wrapperOf(rawPtr: GDExtensionObjectPtr): GodotObject = materialize(rawPtr) { wrapperResolver.create(it) }
+
+/**
+ * [wrapperOf] for a pointer that came with **one owned engine reference** (the `Ref<T>` an engine method or
+ * property getter returns): the wrapper adopts it, or gives it back when it already owns one. See [materializeOwned].
+ */
+@InternalBinding
+public fun adoptedWrapperOf(rawPtr: GDExtensionObjectPtr): GodotObject =
+    materializeOwned(rawPtr) { wrapperResolver.create(it) }

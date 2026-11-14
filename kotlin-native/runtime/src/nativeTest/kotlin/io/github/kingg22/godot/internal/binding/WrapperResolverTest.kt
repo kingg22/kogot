@@ -1,7 +1,6 @@
 package io.github.kingg22.godot.internal.binding
 
 import io.github.kingg22.godot.internal.ffi.GDExtensionObjectPtr
-import kotlinx.cinterop.nativeNullPtr
 import kotlinx.cinterop.toCPointer
 import kotlin.test.Test
 import kotlin.test.assertEquals
