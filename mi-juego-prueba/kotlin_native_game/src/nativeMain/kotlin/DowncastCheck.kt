@@ -9,6 +9,8 @@ import io.github.kingg22.godot.api.core.node.Area2D
 import io.github.kingg22.godot.api.core.node.Button
 import io.github.kingg22.godot.api.core.node.Node2D
 import io.github.kingg22.godot.api.core.node.Sprite2D
+import io.github.kingg22.godot.api.GodotError
+import io.github.kingg22.godot.api.core.refcounted.PackedScene
 import io.github.kingg22.godot.api.core.refcounted.Resource
 import io.github.kingg22.godot.api.signal.connect
 import io.github.kingg22.godot.api.singleton.ResourceLoader
@@ -24,6 +26,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
 object DowncastCounters {
     var node = 0
     var resource = 0
+    var base = 0
 }
 
 @Godot
@@ -32,6 +35,17 @@ class DowncastNode(nativePtr: COpaquePointer) : Node(nativePtr) {
         DowncastCounters.node++
     }
 }
+
+/** A user class that extends another user class: `Derived : Base : Node`. */
+@Godot
+open class DowncastBase(nativePtr: COpaquePointer) : Node(nativePtr) {
+    init {
+        DowncastCounters.base++
+    }
+}
+
+@Godot
+class DowncastDerived(nativePtr: COpaquePointer) : DowncastBase(nativePtr)
 
 @Godot
 class DowncastResource(nativePtr: COpaquePointer) : Resource(nativePtr) {
@@ -58,7 +72,15 @@ class DowncastCheck(nativePtr: COpaquePointer) : Node(nativePtr) {
         userClasses()
         references()
         classNames()
-        getTree().quit(checks.finish())
+        val code = checks.finish()
+        // One frame later, so the queueFree() calls of the checks run before the engine reports leaks at exit.
+        var done = false
+        val _ = getTree().processFrame.connect {
+            if (!done) {
+                done = true
+                getTree().quit(code)
+            }
+        }
     }
 
     private fun variants() = with(checks) {
@@ -149,6 +171,40 @@ class DowncastCheck(nativePtr: COpaquePointer) : Node(nativePtr) {
     }
 
     private fun userClasses() = with(checks) {
+        // Red on purpose until #212 is fixed (createInstanceFunc builds two instances for a @Godot parent).
+        check("a @Godot class that extends another @Godot class reads back as either, and not as a sibling (#212)") {
+            DowncastCounters.base = 0
+            val derived = instantiate<DowncastDerived>()
+            val plain = instantiate<DowncastBase>()
+            expect(DowncastCounters.base == 2) { "built ${DowncastCounters.base} instead of 2" }
+            Variant.from(derived).use { variant ->
+                expect(variant.getValue<DowncastBase>() === derived) { "Derived read as Base is another instance" }
+                expect(variant.getValue<DowncastDerived>() === derived) { "Derived read as Derived" }
+                expect(variant.getValueOrNull<DowncastNode>() == null) { "Derived read as an unrelated user class" }
+            }
+            Variant.from(plain).use { variant ->
+                expect(variant.getValue<DowncastBase>() === plain) { "Base read as Base" }
+                expect(variant.getValueOrNull<DowncastDerived>() == null) { "Base read as Derived" }
+            }
+            expect(DowncastCounters.base == 2) { "reading built more: ${DowncastCounters.base}" }
+            derived.queueFree()
+            plain.queueFree()
+        }
+        check("a @Godot node instanced from a PackedScene is the user class, built once per instance") {
+            DowncastCounters.node = 0
+            val original = instantiate<DowncastNode>()
+            val scene = PackedScene()
+            expect(scene.pack(original) == GodotError.OK) { "pack failed" }
+            val before = DowncastCounters.node
+            val copy = scene.instantiate()
+            expect(copy is DowncastNode) { "instantiate gave ${copy::class.simpleName}" }
+            expect(DowncastCounters.node == before + 1) { "instantiate built ${DowncastCounters.node - before}" }
+            expect(copy !== original) { "the copy is the original" }
+            Variant.from(copy).use { expect(it.getValue<DowncastNode>() === copy) { "copy read back differs" } }
+            expect(DowncastCounters.node == before + 1) { "reading built more" }
+            original.queueFree()
+            copy.queueFree()
+        }
         check("a @Godot class through a Variant is built once and comes back as itself") {
             DowncastCounters.node = 0
             val mine = instantiate<DowncastNode>()
@@ -245,6 +301,10 @@ class DowncastCheck(nativePtr: COpaquePointer) : Node(nativePtr) {
                 )
                 expect(viaGetClassName.isNotEmpty()) { "empty class name" }
             }
+        }
+        // The samples that were built here (not the scene, the root or the loaded resource) are freed now.
+        for ((label, obj) in samples) {
+            if (label == "Node" || label == "Sprite2D" || label == "Button") ObjectBinding.destroyRaw(obj.rawPtr)
         }
     }
 }

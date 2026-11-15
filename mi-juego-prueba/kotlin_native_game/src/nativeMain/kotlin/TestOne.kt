@@ -123,7 +123,7 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
             println("[SpriteBench] Texture2D wrapper created")
 
             // get root from the engine singleton
-            val mainloop: SceneTree = Engine.instance.getMainLoop().castTo(::SceneTree)
+            val mainloop: SceneTree = Engine.instance.getMainLoop().castTo()
             // use mainloop to call the get_root from the scenetree class
             val root: Window = mainloop.root // return as object
             // use root as the object for the window class method to call get_size
@@ -424,7 +424,7 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
                 borrowedOwner = owner
                 val ptr = owner.toObject().rawPtr
                 borrowedBaseline = RefCounted(ptr).getReferenceCount()
-                val cast = ptr.castTo(::Image)
+                val cast = ptr.castTo<Image>()
                 val withWrapper = RefCounted(ptr).getReferenceCount()
                 println(
                     "[BorrowedCast] ${if (withWrapper == borrowedBaseline + 1) "PASS" else "FAIL"}: " +
