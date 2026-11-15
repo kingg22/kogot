@@ -22,7 +22,9 @@ import kotlin.contracts.contract
  */
 @InternalBinding
 public val notificationFunc: GDExtensionClassNotification2 = staticCFunction { instancePtr, what, _ ->
-    (instancePtr?.asStableRef<Any>()?.get() as? GodotNotification)?._notification(what)
+    guardCallback("kogot._notification") {
+        (instancePtr?.asStableRef<Any>()?.get() as? GodotNotification)?._notification(what)
+    }
 }
 
 /**
@@ -43,18 +45,19 @@ public fun <T : GodotObject> createInstanceFunc(
 ): GDExtensionObjectPtr? {
     contract { callsInPlace(factory, InvocationKind.AT_MOST_ONCE) }
 
+    // Throwable, not Exception: this runs inside the engine's create_instance callback, and anything that escapes
+    // a staticCFunction aborts the process (issue #113).
     try {
-        // println("[Kogot] CreateInstance: Creating $parentClassName instance")
         val base = parentClassName.toStringName().use { str ->
             ClassDBBinding.constructObject3Raw(str.rawPtr)
         } ?: error("Failed to construct base $parentClassName")
-        // println("[Kogot] CreateInstance: Base $parentClassName constructed. $base")
 
         val instance = try {
             factory(base)
-        } catch (e: Exception) {
-            // println("[Kogot] CreateInstance: Failed to create instance of $className with $parentClassName: $base")
-            e.printStackTrace()
+        } catch (t: Throwable) {
+            // Nothing references the half-built base yet: destroy it instead of leaking it.
+            ObjectBinding.destroyRaw(base)
+            reportCallbackFailure("$className.<init>", t)
             return null
         }
         val selfRef = StableRef.create(instance)
@@ -86,20 +89,12 @@ public fun <T : GodotObject> createInstanceFunc(
 
         // Send NOTIFICATION_POSTINITIALIZE if Godot requests it
         if (notifyPostInitialize) {
-            // println("[Kogot] CreateInstance: Sending NOTIFICATION_POSTINITIALIZE to $className ($instance)")
             instance.notification(GodotObject.NOTIFICATION_POSTINITIALIZE.toInt())
         }
 
-        /*
-    println(
-        "[Kogot] CreateInstance: Instance of $className created successfully, instance: ${instance.rawPtr}. $instance",
-    )
-         */
-
         return base
-    } catch (e: Exception) {
-        println("[Kogot] FATAL CreateInstance: Failed to create instance of $className with $parentClassName")
-        e.printStackTrace()
+    } catch (t: Throwable) {
+        reportCallbackFailure("$className.create_instance (base $parentClassName)", t)
         return null
     }
 }
@@ -115,8 +110,7 @@ public fun <T : GodotObject> createInstanceFunc(
  */
 @InternalBinding
 public val freeInstanceFunc: GDExtensionClassFreeInstance = staticCFunction { _, ptr ->
-    // println("[Kogot] FreeInstance: Freeing instance: $ptr")
-    ptr?.asStableRef<Any>()?.dispose()
+    guardCallback("kogot.free_instance") { ptr?.asStableRef<Any>()?.dispose() }
 }
 
 @InternalBinding
@@ -127,20 +121,13 @@ public val createToStringFunc: GDExtensionClassToString = staticCFunction { inst
         return@staticCFunction
     }
 
-    val toStringMsg = try {
-        val instance = instancePtr.asStableRef<Any>().get()
-        instance.toString().utf16
-    } catch (e: Exception) {
-        println("Failed to get toString() for $instancePtr")
-        e.printStackTrace()
-        isValidPtr.pointed.value = GDExtensionBool.FALSE
-        return@staticCFunction
-    }
-
-    isValidPtr.pointed.value = GDExtensionBool.TRUE
-
-    memScoped {
-        StringBinding.newWithUtf16CharsRaw(outStrPtr, toStringMsg.ptr)
+    isValidPtr.pointed.value = GDExtensionBool.FALSE
+    guardCallback("kogot.to_string") {
+        val toStringMsg = instancePtr.asStableRef<Any>().get().toString().utf16
+        memScoped {
+            StringBinding.newWithUtf16CharsRaw(outStrPtr, toStringMsg.ptr)
+        }
+        isValidPtr.pointed.value = GDExtensionBool.TRUE
     }
 }
 
@@ -193,8 +180,6 @@ public inline fun <reified T : GodotObject> registerClass(
     createInstance: GDExtensionClassCreateInstance2,
     getVirtual: GDExtensionClassGetVirtual2,
 ) {
-    // println("[Kogot] Registering $className extends $parentClassName")
-
     val info = classCreationInfo6(createInstance, getVirtual, StableRef.create(T::class).asCPointer())
 
     className.toStringName().use { classStringName ->
@@ -209,8 +194,6 @@ public inline fun <reified T : GodotObject> registerClass(
             }
         }
     }
-
-    // println("[Kogot] Registered class: '$className' extends '$parentClassName' successfully")
 }
 
 /**

@@ -9,6 +9,7 @@ import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.cValue
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.staticCFunction
+import kotlin.concurrent.AtomicReference
 import kotlin.native.ref.WeakReference
 
 /**
@@ -34,18 +35,51 @@ import kotlin.native.ref.WeakReference
  * 'call_deferred()'...`, SIGSEGV) as soon as a shared `Resource`'s wrapper was collected while the main
  * thread was still using the same object. [attachRefCountedRelease] fixes this by never calling the
  * engine from the finalizer thread — it only queues the release via `Callable.callDeferred()`.
+ *
+ * ## Threads (issue #113)
+ *
+ * The same object can be materialized from several threads at once (a `Resource` handed to a worker while the
+ * main thread reads it, `_process` of a `SUB_THREAD` node). Godot creates the slot itself only once, under the
+ * object's own instance-binding mutex; the wrapper inside it is published with a compare-and-set, so two racing
+ * first sightings still agree on one canonical wrapper, and a wrapper is only published once its engine
+ * reference is settled (no other thread ever sees a `RefCounted` wrapper that does not own its reference yet).
  */
-private class BindingSlot {
-    var ref: WeakReference<GodotObject>? = null
+private class BindingSlot(initial: WeakReference<GodotObject>? = null) {
+    private val ref = AtomicReference(initial)
+
+    /** The canonical wrapper, or `null` when there is none yet or the previous one was collected. */
+    fun current(): GodotObject? = ref.value?.get()
+
+    /**
+     * Publishes [candidate] unless a live wrapper is already there, and returns the canonical one: [candidate]
+     * when it won, the other thread's wrapper when that one got there first.
+     */
+    fun publish(candidate: GodotObject): GodotObject {
+        val mine = WeakReference(candidate)
+        while (true) {
+            val seen = ref.value
+            seen?.get()?.let { return it }
+            if (ref.compareAndSet(seen, mine)) return candidate
+        }
+    }
+
+    /** Unconditionally makes [instance] the canonical wrapper (it was just constructed, so nothing else knows it). */
+    fun replace(instance: GodotObject) {
+        ref.value = WeakReference(instance)
+    }
 }
 
 private val identityCreateCallback: GDExtensionInstanceBindingCreateCallback =
-    staticCFunction { _, _ -> StableRef.create(BindingSlot()).asCPointer() }
+    staticCFunction { _, _ ->
+        guardCallback("kogot.instanceBinding.create", null) { StableRef.create(BindingSlot()).asCPointer() }
+    }
 
 /** Disposes a [BindingSlot] created by [identityCreateCallback] or [wrapForEagerBinding]. */
 @InternalBinding
 public val identityFreeCallback: GDExtensionInstanceBindingFreeCallback =
-    staticCFunction { _, _, binding -> binding?.asStableRef<BindingSlot>()?.dispose() }
+    staticCFunction { _, _, binding ->
+        guardCallback("kogot.instanceBinding.free") { binding?.asStableRef<BindingSlot>()?.dispose() }
+    }
 
 @OptIn(InternalBinding::class)
 private fun identityCallbacks() = cValue<GDExtensionInstanceBindingCallbacks> {
@@ -65,7 +99,7 @@ private fun identityCallbacks() = cValue<GDExtensionInstanceBindingCallbacks> {
  */
 @InternalBinding
 public fun wrapForEagerBinding(instance: GodotObject): COpaquePointer =
-    StableRef.create(BindingSlot().apply { ref = WeakReference(instance) }).asCPointer()
+    StableRef.create(BindingSlot(WeakReference(instance))).asCPointer()
 
 /**
  * Resolves [rawPtr] to its canonical Kotlin wrapper if one has already been materialized, without
@@ -81,7 +115,7 @@ public fun <T : GodotObject> resolveBinding(rawPtr: GDExtensionObjectPtr): T? {
         pToken = BindingProcAddressHolder.library,
         pCallbacks = null,
     ) ?: return null
-    return slotPtr.asStableRef<BindingSlot>().get().ref?.get() as T?
+    return slotPtr.asStableRef<BindingSlot>().get().current() as T?
 }
 
 /**
@@ -117,7 +151,7 @@ public fun bindConstructed(instance: GodotObject): Unit = memScoped {
             pCallbacks = identityCallbacks().ptr,
         ),
     ) { "object_get_instance_binding returned null for ${instance.rawPtr}" }
-    slotPtr.asStableRef<BindingSlot>().get().ref = WeakReference(instance)
+    slotPtr.asStableRef<BindingSlot>().get().replace(instance)
 }
 
 /**
@@ -147,7 +181,7 @@ private fun <T : GodotObject> materializeImpl(
     ) { "object_get_instance_binding returned null for $rawPtr" }
 
     val slot = slotPtr.asStableRef<BindingSlot>().get()
-    val existing = slot.ref?.get() as T?
+    val existing = slot.current() as T?
     if (existing != null) {
         if (!ownsReference || existing !is RefCounted) return@memScoped existing
         if (existing.kogotReleaseCleaner != null) {
@@ -164,9 +198,12 @@ private fun <T : GodotObject> materializeImpl(
     }
 
     val instance = factory(rawPtr)
-    slot.ref = WeakReference(instance)
+    // Settle the reference before publishing: another thread that sees this wrapper in the slot must see one
+    // that already owns its reference (see BindingSlot). If a racing first sighting published its wrapper
+    // first, that one is canonical; this one keeps the reference it settled and gives it back when collected,
+    // so the engine refcount stays balanced either way.
     if (instance is RefCounted) {
         attachRefCountedRelease(instance, rawPtr, takeOwnReference = !ownsReference)
     }
-    instance
+    slot.publish(instance) as T
 }

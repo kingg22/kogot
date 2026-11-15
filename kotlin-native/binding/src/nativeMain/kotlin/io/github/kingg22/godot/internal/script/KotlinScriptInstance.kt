@@ -13,8 +13,10 @@ import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.internal.binding.InternalBinding
 import io.github.kingg22.godot.internal.binding.ScriptBinding
 import io.github.kingg22.godot.internal.binding.StringBinding
+import io.github.kingg22.godot.internal.binding.guardCallback
 import io.github.kingg22.godot.internal.ffi.*
 import kotlinx.cinterop.*
+import kotlin.concurrent.AtomicReference
 
 /**
  * The live state behind one attached `.kt` script (issue #42 Fase 3): the target `@Godot` class
@@ -48,9 +50,27 @@ private class ScriptInstanceState(
     lateinit var info: CPointer<GDExtensionScriptInstanceInfo3>
 }
 
-/** Interned so a repeated property/method/class name doesn't allocate a new native `StringName` per call. */
-private val internedNames = mutableMapOf<String, StringName>()
-private fun internedName(value: String): StringName = internedNames.getOrPut(value) { value.toStringName() }
+/**
+ * Interned so a repeated property/method/class name doesn't allocate a new native `StringName` per call.
+ *
+ * Script-instance callbacks run on whatever thread touches the scripted object (issue #113), so the map is
+ * copy-on-write behind a compare-and-set, like `WrapperResolver`'s cache: lookups never lock, and when two
+ * threads intern the same new name at once the loser closes its own `StringName` and uses the winner's.
+ */
+private val internedNames = AtomicReference<Map<String, StringName>>(emptyMap())
+
+private fun internedName(value: String): StringName {
+    internedNames.value[value]?.let { return it }
+    val created = value.toStringName()
+    while (true) {
+        val current = internedNames.value
+        current[value]?.let { winner ->
+            created.close()
+            return winner
+        }
+        if (internedNames.compareAndSet(current, current + (value to created))) return created
+    }
+}
 
 /**
  * `GDExtensionPropertyInfo.hint_string` is a `GDExtensionStringPtr` (a `String`), NOT a `StringName` —
@@ -97,6 +117,7 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
 
     val info = nativeHeap.alloc<GDExtensionScriptInstanceInfo3> {
         set_func = staticCFunction { pInstance, pName, pValue ->
+            guardCallback("KotlinScriptInstance.set", GDExtensionBool.FALSE) {
             val s = pInstance.state()
             val name = pName?.let { StringName(it).toString() }
             val descriptor = s?.properties?.firstOrNull { it.name == name }
@@ -116,9 +137,11 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
                     }
                 }
             }
+            }
         }
 
         get_func = staticCFunction { pInstance, pName, rRet ->
+            guardCallback("KotlinScriptInstance.get", GDExtensionBool.FALSE) {
             val s = pInstance.state()
             val name = pName?.let { StringName(it).toString() }
             val descriptor = s?.properties?.firstOrNull { it.name == name }
@@ -135,9 +158,12 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
                 }
                 GDExtensionBool.TRUE
             }
+            }
         }
 
         get_property_list_func = staticCFunction { pInstance, rCount ->
+            rCount?.pointed?.value = 0u
+            guardCallback("KotlinScriptInstance.get_property_list", null) {
             val s = pInstance.state()
             if (s == null) {
                 rCount?.pointed?.value = 0u
@@ -161,6 +187,7 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
                     result
                 }
             }
+            }
         }
 
         free_property_list_func = staticCFunction { _, pList, _ ->
@@ -180,7 +207,7 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
         }
 
         get_owner_func = staticCFunction { pInstance ->
-            pInstance.state()?.owner?.rawPtr
+            guardCallback("KotlinScriptInstance.get_owner", null) { pInstance.state()?.owner?.rawPtr }
         }
 
         get_property_state_func = staticCFunction { _, _, _ ->
@@ -188,6 +215,8 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
         }
 
         get_method_list_func = staticCFunction { pInstance, rCount ->
+            rCount?.pointed?.value = 0u
+            guardCallback("KotlinScriptInstance.get_method_list", null) {
             val s = pInstance.state()
             if (s == null) {
                 rCount?.pointed?.value = 0u
@@ -218,6 +247,7 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
                     result
                 }
             }
+            }
         }
 
         free_method_list_func = staticCFunction { _, pList, _ ->
@@ -225,11 +255,14 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
         }
 
         get_property_type_func = staticCFunction { pInstance, pName, rIsValid ->
-            val s = pInstance.state()
-            val name = pName?.let { StringName(it).toString() }
-            val descriptor = s?.properties?.firstOrNull { it.name == name }
-            rIsValid?.pointed?.value = if (descriptor != null) GDExtensionBool.TRUE else GDExtensionBool.FALSE
-            descriptor?.type?.toGDE() ?: GDEXTENSION_VARIANT_TYPE_NIL
+            rIsValid?.pointed?.value = GDExtensionBool.FALSE
+            guardCallback("KotlinScriptInstance.get_property_type", GDEXTENSION_VARIANT_TYPE_NIL) {
+                val s = pInstance.state()
+                val name = pName?.let { StringName(it).toString() }
+                val descriptor = s?.properties?.firstOrNull { it.name == name }
+                rIsValid?.pointed?.value = if (descriptor != null) GDExtensionBool.TRUE else GDExtensionBool.FALSE
+                descriptor?.type?.toGDE() ?: GDEXTENSION_VARIANT_TYPE_NIL
+            }
         }
 
         validate_property_func = staticCFunction { _, _ ->
@@ -237,32 +270,43 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
         }
 
         has_method_func = staticCFunction { pInstance, pName ->
-            val s = pInstance.state()
-            val name = pName?.let { StringName(it).toString() }
-            if (s != null && s.methods.any { it.name == name }) GDExtensionBool.TRUE else GDExtensionBool.FALSE
+            guardCallback("KotlinScriptInstance.has_method", GDExtensionBool.FALSE) {
+                val s = pInstance.state()
+                val name = pName?.let { StringName(it).toString() }
+                if (s != null && s.methods.any { it.name == name }) GDExtensionBool.TRUE else GDExtensionBool.FALSE
+            }
         }
 
         get_method_argument_count_func = staticCFunction { pInstance, pName, rIsValid ->
-            val s = pInstance.state()
-            val name = pName?.let { StringName(it).toString() }
-            val descriptor = s?.methods?.firstOrNull { it.name == name }
-            rIsValid?.pointed?.value = if (descriptor != null) GDExtensionBool.TRUE else GDExtensionBool.FALSE
-            descriptor?.argumentCount?.toLong() ?: 0L
+            rIsValid?.pointed?.value = GDExtensionBool.FALSE
+            guardCallback("KotlinScriptInstance.get_method_argument_count", 0L) {
+                val s = pInstance.state()
+                val name = pName?.let { StringName(it).toString() }
+                val descriptor = s?.methods?.firstOrNull { it.name == name }
+                rIsValid?.pointed?.value = if (descriptor != null) GDExtensionBool.TRUE else GDExtensionBool.FALSE
+                descriptor?.argumentCount?.toLong() ?: 0L
+            }
         }
 
         call_func = staticCFunction { pInstance, pMethod, pArgs, pArgumentCount, rReturn, rError ->
-            val s = pInstance.state()
-            val name = pMethod?.let { StringName(it).toString() }
-            val descriptor = s?.methods?.firstOrNull { it.name == name }
-            if (s == null || descriptor == null) {
-                // NOT calling VariantBinding.newNilRaw(rReturn) here: Godot's ScriptInstanceExtension::
-                // callp() (core/object/script_language_extension.h) always declares `Variant ret;` (already
-                // validly constructed) before calling into call_func, so this slot is never actually
-                // uninitialized — confirmed by reading the engine source directly.
-                rError?.pointed?.error = GDExtensionCallErrorType.GDEXTENSION_CALL_ERROR_INVALID_METHOD
-            } else {
-                descriptor.call.invoke(null, s.targetPtr, pArgs, pArgumentCount, rReturn, rError)
+            // A Kotlin failure is reported as INVALID_METHOD, as godot-rust does for a panicking call: GDExtension
+            // has no dedicated "the callee threw" error code.
+            val completed = guardCallback("KotlinScriptInstance.call", false) {
+                val s = pInstance.state()
+                val name = pMethod?.let { StringName(it).toString() }
+                val descriptor = s?.methods?.firstOrNull { it.name == name }
+                if (s == null || descriptor == null) {
+                    // NOT calling VariantBinding.newNilRaw(rReturn) here: Godot's ScriptInstanceExtension::
+                    // callp() (core/object/script_language_extension.h) always declares `Variant ret;` (already
+                    // validly constructed) before calling into call_func, so this slot is never actually
+                    // uninitialized — confirmed by reading the engine source directly.
+                    false
+                } else {
+                    descriptor.call.invoke(null, s.targetPtr, pArgs, pArgumentCount, rReturn, rError)
+                    true
+                }
             }
+            if (!completed) rError?.pointed?.error = GDExtensionCallErrorType.GDEXTENSION_CALL_ERROR_INVALID_METHOD
         }
 
         notification_func = staticCFunction { _, _, _ ->
@@ -270,15 +314,14 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
         }
 
         to_string_func = staticCFunction { pInstance, rIsValid, rOut ->
-            val s = pInstance.state()
-            if (s == null) {
-                rIsValid?.pointed?.value = GDExtensionBool.FALSE
-            } else {
-                rIsValid?.pointed?.value = GDExtensionBool.TRUE
+            rIsValid?.pointed?.value = GDExtensionBool.FALSE
+            guardCallback("KotlinScriptInstance.to_string") {
+                val s = pInstance.state() ?: return@guardCallback
                 val message = "<${s.entry.className}#kotlin_script>".utf16
                 memScoped {
                     StringBinding.newWithUtf16CharsRaw(rOut, message.ptr)
                 }
+                rIsValid?.pointed?.value = GDExtensionBool.TRUE
             }
         }
 
@@ -288,7 +331,9 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
 
         refcount_decremented_func = staticCFunction { _ -> GDExtensionBool.TRUE }
 
-        get_script_func = staticCFunction { pInstance -> pInstance.state()?.script?.rawPtr }
+        get_script_func = staticCFunction { pInstance ->
+            guardCallback("KotlinScriptInstance.get_script", null) { pInstance.state()?.script?.rawPtr }
+        }
 
         is_placeholder_func = staticCFunction { _ -> GDExtensionBool.FALSE }
 
@@ -296,10 +341,12 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
 
         get_fallback_func = staticCFunction { _, _, _ -> GDExtensionBool.FALSE }
 
-        get_language_func = staticCFunction { _ -> KotlinScriptRegistration.language.rawPtr }
+        get_language_func = staticCFunction { _ ->
+            guardCallback("KotlinScriptInstance.get_language", null) { KotlinScriptRegistration.language.rawPtr }
+        }
 
         free_func = staticCFunction { pInstance ->
-            if (pInstance != null) {
+            if (pInstance != null) guardCallback("KotlinScriptInstance.free") {
                 val ref = pInstance.asStableRef<ScriptInstanceState>()
                 val freedState = ref.get()
                 freedState.targetPtr?.asStableRef<Any>()?.dispose()
