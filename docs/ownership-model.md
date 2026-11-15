@@ -97,9 +97,11 @@ una referencia del motor y la devuelve al recogerse** (`attachRefCountedRelease`
   regla única.) `GD.load` y `GD.loadOrNull` son ahora un `castTo` simple.
 - **Los constructores públicos de clases `RefCounted` (`Image()`, `JSON()`, ...).** Crean el objeto con
   `ClassDB.instantiate`, que devuelve una `Variant` con la única referencia; esa `Variant` no se cerraba
-  nunca y el wrapper no poseía nada, así que cada `Image()` quedaba vivo hasta el final del proceso. El
-  constructor generado ahora toma una referencia propia (`takeConstructedReference`), cierra la `Variant` y
-  hace que el wrapper adopte esa referencia (`attachRefCountedRelease`).
+  nunca y el wrapper no poseía nada, así que cada `Image()` quedaba vivo hasta el final del proceso. Desde
+  #214 el constructor generado crea el objeto con `classdb_construct_object3` (`constructEngineObject`, sin
+  `Variant` de por medio, que en una clase no `RefCounted` como `Node()` también se filtraba), el wrapper
+  adopta la referencia con la que llega (`adoptConstructedReference`) y `finishConstruction` lo vuelve el
+  wrapper canónico y envía `NOTIFICATION_POSTINITIALIZE`, como hace `ClassDB.instantiate`.
 
 Consecuencia a tener presente: las referencias se devuelven **cuando el GC recoge los wrappers** y el
 `Cleaner` encola la liberación, no en el instante en que el wrapper deja de usarse. Ver el límite de

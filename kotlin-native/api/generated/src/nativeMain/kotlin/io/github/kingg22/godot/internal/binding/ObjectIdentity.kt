@@ -1,5 +1,6 @@
 package io.github.kingg22.godot.internal.binding
 
+import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.api.core.RefCounted
 import io.github.kingg22.godot.internal.ffi.*
@@ -137,13 +138,37 @@ public fun <T : GodotObject> materialize(
 ): T = materializeImpl(rawPtr, ownsReference = false, factory)
 
 /**
- * For the generated public constructors (`Sprite2D()`): the wrapper that was just built around a freshly created
- * object becomes its canonical one, so a later read of the same object from a `Variant`, a signal or an engine
- * return gives this very instance instead of a second one. The reference it owns is already settled by the
- * constructor ([adoptConstructedReference] for a `RefCounted`), so this only fills the slot.
+ * For the generated public constructors (`Sprite2D()`, `Resource()`): a new object of the engine class [className],
+ * built with `classdb_construct_object3`. Unlike `ClassDB.instantiate` there is no `Variant` in between to free
+ * (issue #214); a `RefCounted` comes back with a refcount of 1 that the caller owns ([adoptConstructedReference]).
+ * Complete it with [finishConstruction].
+ *
+ * @throws IllegalStateException when the engine builds nothing: an abstract or unknown class (the engine reports why).
  */
 @InternalBinding
-public fun bindConstructed(instance: GodotObject): Unit = memScoped {
+public fun constructEngineObject(className: String): GDExtensionObjectPtr {
+    val ptr = className.toStringName().use { ClassDBBinding.constructObject3Raw(it.rawPtr) }
+    return checkNotNull(ptr) { "Cannot construct $className: the engine refused to (abstract or unknown class)" }
+}
+
+/**
+ * Last step of a generated public constructor (see [constructEngineObject]): makes [instance] the canonical wrapper of
+ * its object ([bindConstructed]) and sends `NOTIFICATION_POSTINITIALIZE`, which `ClassDB.instantiate` sends itself
+ * and `classdb_construct_object3` leaves to its caller.
+ */
+@InternalBinding
+public fun finishConstruction(instance: GodotObject) {
+    bindConstructed(instance)
+    instance.notification(GodotObject.NOTIFICATION_POSTINITIALIZE.toInt())
+}
+
+/**
+ * The wrapper that was just built around a freshly created object becomes its canonical one, so a later read of the
+ * same object from a `Variant`, a signal or an engine return gives this very instance instead of a second one. The
+ * reference it owns is already settled by the constructor ([adoptConstructedReference] for a `RefCounted`), so this
+ * only fills the slot.
+ */
+private fun bindConstructed(instance: GodotObject): Unit = memScoped {
     val slotPtr = requireNotNull(
         ObjectBinding.getInstanceBindingRaw(
             pO = instance.rawPtr,

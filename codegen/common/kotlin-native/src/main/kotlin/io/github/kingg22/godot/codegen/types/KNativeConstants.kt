@@ -65,8 +65,11 @@ val KOTLIN_NATIVE_CLEANER = ClassName("kotlin.native.ref", "Cleaner")
 /** Wraps the wrapper built around a `Ref<T>` ptrcall return so it owns (and later gives back) that reference. */
 val ADOPT_RETURNED_REFERENCE = MemberName("io.github.kingg22.godot.internal.binding", "adoptReturnedReference")
 
-/** Takes a reference of its own on an object that only a closing `Variant` still holds; used by constructors. */
-val TAKE_CONSTRUCTED_REFERENCE = MemberName("io.github.kingg22.godot.internal.binding", "takeConstructedReference")
+/** Builds a new engine object with `classdb_construct_object3`, for the generated public constructors (#214). */
+val CONSTRUCT_ENGINE_OBJECT = MemberName("io.github.kingg22.godot.internal.binding", "constructEngineObject")
+
+/** Binds a constructed wrapper as the canonical one and sends `NOTIFICATION_POSTINITIALIZE` (#214). */
+val FINISH_CONSTRUCTION = MemberName("io.github.kingg22.godot.internal.binding", "finishConstruction")
 val ADOPT_CONSTRUCTED_REFERENCE = MemberName("io.github.kingg22.godot.internal.binding", "adoptConstructedReference")
 
 /** Wraps the body of every generated `staticCFunction` so no Kotlin exception crosses the C boundary (issue #113). */

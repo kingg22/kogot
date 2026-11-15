@@ -1,6 +1,7 @@
 package io.github.kingg22.godot.codegen.extensionapi.impl.knative.impl
 
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
@@ -12,9 +13,10 @@ import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.impl.buildLazyBlock
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngineClass
 import io.github.kingg22.godot.codegen.types.ADOPT_CONSTRUCTED_REFERENCE
+import io.github.kingg22.godot.codegen.types.CONSTRUCT_ENGINE_OBJECT
 import io.github.kingg22.godot.codegen.types.COPAQUE_POINTER
+import io.github.kingg22.godot.codegen.types.FINISH_CONSTRUCTION
 import io.github.kingg22.godot.codegen.types.KOTLIN_NATIVE_CLEANER
-import io.github.kingg22.godot.codegen.types.TAKE_CONSTRUCTED_REFERENCE
 
 /**
  * Generates the constructor binding and `nativePtr` property for Godot engine classes.
@@ -133,45 +135,18 @@ class EngineClassImplGen {
         }
 
         if (!cls.isSingleton || isRoot) {
-            // `ClassDB.instantiate` hands back a Variant that holds the only reference to a new RefCounted. The
-            // Variant has to be closed (it would otherwise keep that reference alive forever), so the wrapper
-            // takes a reference of its own first and owns it — see the "RefCounted" section above.
+            // `classdb_construct_object3` builds the object directly, with no `Variant` in between (issue #214:
+            // `ClassDB.instantiate` returned one that was never closed). A RefCounted comes back with a refcount of
+            // 1 that the caller owns: the wrapper adopts it — see the "RefCounted" section above.
             val ownsReference = ctx.isRefCounted(cls.name)
             val constructor = FunSpec
                 .constructorBuilder()
-                .callThisConstructor(
-                    buildCodeBlock {
-                        add("\n")
-                        withIndent {
-                            beginControlFlow(
-                                "%T(%S).use { cls ->",
-                                ctx.classNameForOrDefault("StringName"),
-                                cls.shortName,
-                            )
-                            withIndent {
-                                if (ownsReference) {
-                                    beginControlFlow(
-                                        "%T.instance.instantiate(cls).use { instance ->",
-                                        ctx.classNameForOrDefault("ClassDB"),
-                                    )
-                                    addStatement("%M(instance.toObjectRawPtr())", TAKE_CONSTRUCTED_REFERENCE)
-                                    endControlFlow()
-                                } else {
-                                    addStatement("%T", ctx.classNameForOrDefault("ClassDB"))
-                                    withIndent {
-                                        addStatement(".instance")
-                                        addStatement(".instantiate(cls)")
-                                        addStatement(".toObjectRawPtr()")
-                                    }
-                                }
-                            }
-                            endControlFlow()
-                        }
-                    },
-                )
+                .callThisConstructor(CodeBlock.of("%M(%S)", CONSTRUCT_ENGINE_OBJECT, cls.shortName))
             if (ownsReference) constructor.addStatement("%M(this)", ADOPT_CONSTRUCTED_REFERENCE)
-            // `this` is the one wrapper of the object it just created: later reads resolve to it (issue #206).
-            constructor.addStatement("%M(this)", implPackageRegistry.memberNameForOrDefault("bindConstructed"))
+            // `this` is the one wrapper of the object it just created (issue #206), then the construction is
+            // completed like `ClassDB.instantiate` does: NOTIFICATION_POSTINITIALIZE, which the interface leaves to
+            // the caller of `classdb_construct_object3`.
+            constructor.addStatement("%M(this)", FINISH_CONSTRUCTION)
             classBuilder.addFunction(constructor.build())
         }
     }

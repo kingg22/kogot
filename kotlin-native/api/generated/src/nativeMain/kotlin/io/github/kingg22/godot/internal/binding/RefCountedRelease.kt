@@ -57,21 +57,8 @@ public fun <T : RefCounted> adoptReturnedReference(instance: T): T {
 }
 
 /**
- * For the generated public constructors of `RefCounted` classes: `ClassDB.instantiate` hands back a `Variant`
- * holding the only reference to the new object, and that `Variant` has to be closed. This takes a reference
- * of its own on [rawPtr] first so the object survives the close, and returns [rawPtr] for the delegation to
- * the primary constructor; the constructor body then makes the new wrapper the owner of that reference with
- * [adoptConstructedReference].
- */
-@InternalBinding
-public fun takeConstructedReference(rawPtr: GDExtensionObjectPtr): GDExtensionObjectPtr {
-    takeReference(rawPtr)
-    return rawPtr
-}
-
-/**
- * Second half of a generated `RefCounted` constructor: makes [instance] the owner of the reference that
- * [takeConstructedReference] took. If shutdown already started, [PendingReleases] no longer accepts new
+ * For the generated public constructors of `RefCounted` classes: makes [instance] the owner of the reference that
+ * `classdb_construct_object3` hands to the creator ([constructEngineObject]). If shutdown already started, [PendingReleases] no longer accepts new
  * entries and nothing would ever give that reference back, so it is released right here instead of leaking.
  * Using a wrapper constructed while the extension is shutting down is not supported either way.
  */
