@@ -20,8 +20,6 @@ import io.github.kingg22.godot.codegen.services.PackageRegistry
 import io.github.kingg22.godot.codegen.utils.currentClassLogger
 import io.github.kingg22.godot.codegen.utils.info
 
-private const val REF_COUNTED_CLASS_NAME = "RefCounted"
-
 /**
  * Inmutable, built once from [ExtensionApi]
  *
@@ -68,18 +66,16 @@ class Context(
     fun isEngineClass(godotName: String): Boolean = godotName in model.engineClassesByName
 
     /**
-     * Whether [godotName] is `RefCounted` or one of its descendants. Godot returns such a class by `Ref<T>`
-     * from a ptrcall, which hands the caller one owned engine reference (see issue #114).
+     * Whether [godotName] is an engine class that is `RefCounted` or one of its descendants, as reported by
+     * `is_refcounted` in `extension_api.json` (the engine's own answer, no hierarchy walk needed). `false` for
+     * anything that is not an engine class (builtins, enums, typed arrays, ...).
+     *
+     * Every such class gets the Kotlin-side reference ownership of issue #114: Godot has no GC, so a wrapper of a
+     * `RefCounted` owns one engine reference and gives it back through a `kotlin.native.ref.Cleaner` once it is
+     * collected (see `EngineClassImplGen`). A ptrcall returns one of these as `Ref<T>`, handing the caller that
+     * owned reference.
      */
-    fun inheritsRefCounted(godotName: String): Boolean {
-        var current: String = godotName
-        // The hop bound only guards against a malformed (cyclic) hierarchy; real chains are a few levels.
-        for (_ in 0..model.engineClassesByName.size) {
-            if (current == REF_COUNTED_CLASS_NAME) return true
-            current = model.engineClassesByName[current]?.raw?.inherits ?: return false
-        }
-        return false
-    }
+    fun isRefCounted(godotName: String): Boolean = model.engineClassesByName[godotName]?.isRefcounted == true
 
     fun isNativeStructure(godotName: String): Boolean = godotName in nativeStructureTypes
 

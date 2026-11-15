@@ -68,7 +68,7 @@ import io.github.kingg22.godot.codegen.types.TAKE_CONSTRUCTED_REFERENCE
  * comes from depends on how it is built, and the generator covers the two engine-side sources:
  * - a method or property getter whose return type inherits `RefCounted` — a ptrcall returning a `Ref<T>`
  *   transfers one owned reference — wraps the result in `adoptReturnedReference(...)` (see
- *   [Context.inheritsRefCounted] and `buildReturnRead`);
+ *   [Context.isRefCounted] and `buildReturnRead`);
  * - the public no-arg constructor, which creates the object through `ClassDB.instantiate` — that returns
  *   a `Variant` holding the only reference — takes a reference of its own before closing the `Variant`
  *   and then attaches the release, so neither the object nor the `Variant` is left behind.
@@ -136,7 +136,7 @@ class EngineClassImplGen {
             // `ClassDB.instantiate` hands back a Variant that holds the only reference to a new RefCounted. The
             // Variant has to be closed (it would otherwise keep that reference alive forever), so the wrapper
             // takes a reference of its own first and owns it — see the "RefCounted" section above.
-            val ownsReference = ctx.inheritsRefCounted(cls.name)
+            val ownsReference = ctx.isRefCounted(cls.name)
             val constructor = FunSpec
                 .constructorBuilder()
                 .callThisConstructor(

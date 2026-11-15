@@ -359,7 +359,7 @@ fun buildReturnRead(
         // of its most derived known class is what the identity slot holds (issue #206). A `Ref<T>` return hands
         // over one owned engine reference, which the wrapper keeps (or gives back if it already owns one).
         ctx.isEngineClass(returnType) -> {
-            val adopt = adoptRefCounted && ctx.inheritsRefCounted(returnType)
+            val adopt = adoptRefCounted && ctx.isRefCounted(returnType)
             val resolve = implPackageRegistry.memberNameForOrDefault(if (adopt) "adoptedWrapperOf" else "wrapperOf")
             CodeBlock
                 .builder()
