@@ -138,6 +138,7 @@ public fun <T : GodotObject> createInstanceFromKotlin(
  * The refcount is read again after switching, so a transition racing on another thread leaves the handle matching
  * the latest count instead of the one this call started from.
  */
+@OptIn(InternalBinding::class)
 private fun syncInstanceStrength(instancePtr: GDExtensionClassInstancePtr?) {
     val handle = instancePtr?.asStableRef<Any>()?.get() as? InstanceHandle ?: return
     val refCounted = RefCounted(handle.rawPtr)
