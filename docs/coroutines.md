@@ -108,6 +108,38 @@ dio 16 de 16.
 - Usar `kotlinx-coroutines-test` en producción solo para `setMain` mete en el juego un dispatcher de test como
   envoltorio.
 
+### Cómo lo resuelve el resto del ecosistema en Kotlin/Native
+
+Busqué en GitHub proyectos de Kotlin/Native que necesitan un hilo principal propio (UI o bucle de juego) en Linux o
+Windows, y revisé kotlinx.coroutines 1.11.0, la versión más reciente. Hay cuatro enfoques, y **no existe una vía
+pública para que `Dispatchers.Main` sea propio en nativo**:
+
+| Enfoque | Quién lo usa | `Dispatchers.Main` funciona | Costo / riesgo |
+|---|---|---|---|
+| 1. `Dispatchers.injectMain(d)` con `@Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")` | `kotlinx-coroutines-test` mismo; `rachel-ylcs/ylcs-kmp` (port de Compose a Linux/Windows nativo), que lo inyecta con `@EagerInitialization` antes de que nadie capture `Dispatchers.Main` y deja intacto el de Darwin | sí (probado aquí: 16/16) | API interna; Kotlin 2.5 avisa *"compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED"* y el aviso no se puede silenciar, así que con `allWarningsAsErrors` no compila |
+| 2. `Dispatchers.setMain(d)` de `kotlinx-coroutines-test` **en producción** | `bitsycore/compose-desktop-native` (Compose sobre SDL3): `implementation(libs.kotlinx.coroutines.test)` en el código principal, `setMain` al arrancar y `resetMain` al cerrar | sí (probado aquí: 16/16, y `Dispatchers.Main.immediate` delega en `Godot.Main.immediate`) | API pública (`@ExperimentalCoroutinesApi`), pero mete la biblioteca de test en el juego. Su `TestMainDispatcher` crea un `Throwable` en **cada** lectura del delegado: 100 000 `isDispatchNeeded` costaron ~500–550 ms contra ~1,2–1,6 ms de `GodotMain` directo (unos 5 µs por llamada, ~350×, en build debug). Por debajo usa el mismo `injectMain`. |
+| 3. Reemplazar el runtime de coroutines (un `actual object Dispatchers` propio en el paquete `kotlinx.coroutines`) | `DrewCarlson/klio` (`KlioRuntime.kt`), `brokenhappy/kotlinhax.shadowroutines` | sí | Es un fork: choca con cualquier otra biblioteca que dependa del kotlinx.coroutines real |
+| 4. Dispatcher propio con nombre, sin tocar `Main` | KorGE (`GameWindowCoroutineDispatcher`: cola por frame con presupuesto de tiempo y `Delay` propio con tareas temporizadas), `sobotkami/kotlinx-gtk` (`Dispatchers.UI` sobre `g_idle_add`) | no | Seguro y estable, pero las bibliotecas de terceros que usan `Dispatchers.Main` (Compose, `androidx.lifecycle`, `viewModelScope`, ...) no funcionan |
+
+**Datos que aportan esos proyectos:**
+
+- `compose-desktop-native` explica por qué `immediate` tiene que ser real: `androidx.lifecycle` (KMP) comprueba el hilo
+  haciendo un viaje de ida y vuelta por `Dispatchers.Main.immediate`, y con un `Main` que solo encola, la app se queda
+  colgada en un *deadlock* (0 % de CPU). También confirma que en Darwin la cola principal de GCD no se vacía si el bucle
+  no procesa el run loop.
+- `ylcs-kmp` encola lo que llega antes de que exista el host de UI, y después del cierre cancela la tarea y la manda a
+  `Dispatchers.Default`, igual que el `cancelOnRejection` de Android.
+- El pedido de una API pública ya existe:
+  [Kotlin/kotlinx.coroutines#4286](https://github.com/Kotlin/kotlinx.coroutines/issues/4286) *"Provide a Public API to
+  Set a Custom Main Coroutine Dispatcher"* (abierto desde 2024-11, de alguien que hace bindings de GTK). Propone
+  `Dispatchers.setMain` con opt-in.
+- En 1.11.0, `nativeMain/Dispatchers.kt` es igual que en 1.10.2. `MainDispatcherFactory` existe en `commonMain`, pero
+  solo la JVM la carga.
+
+**Respuesta corta:** en nativo, la **única** forma de que el `Dispatchers.Main` estándar sea el de Godot, sin forkear
+coroutines, es `injectMain`: directo (frágil y sin compilar con `-Werror`) o a través de `setMain` de
+`kotlinx-coroutines-test` (público, pero con costo por llamada y una dependencia de test en el juego).
+
 ### Conclusión para kogot
 
 1. Publicar `val Dispatchers.Godot: GodotDispatcher`, como `Dispatchers.Swing`, sobre una
@@ -117,8 +149,11 @@ dio 16 de 16.
    prototipo no lo implementa: `delay()` funciona, pero cuenta el tiempo en un hilo de kotlinx y luego despacha.
 4. Copiar el `cancelOnRejection` de Android: después de `shutdown_func`, un `dispatch` debe cancelar el contexto en
    lugar de dejar la tarea en una cola que ya nadie vacía.
-5. Dejar `Dispatchers.Main` sin tocar en nativo: documentar `Dispatchers.setMain(Dispatchers.Godot)` para tests. En
-   JVM/FFM, sí registrar una `MainDispatcherFactory`.
+5. Por defecto, no tocar `Dispatchers.Main` en nativo. Ofrecer una instalación **opt-in** (algo como
+   `Dispatchers.installGodotAsMain()`) para quien use bibliotecas que dependen de `Dispatchers.Main` (Compose,
+   lifecycle), con su costo documentado. Mientras #4286 no se resuelva, la opción defendible es `setMain` de
+   `kotlinx-coroutines-test` en un módulo aparte de kogot, no `injectMain` con supresiones en el binding. En JVM/FFM, sí
+   registrar una `MainDispatcherFactory`.
 6. En macOS, `Dispatchers.Main` de kotlinx usa la cola principal de GCD. Funcionaría solo si Godot procesa el run loop
    de Cocoa, que en `--headless` no está garantizado. No lo probé.
 
