@@ -189,9 +189,10 @@ private fun <T : GodotObject> materializeImpl(
             dropReturnedReference(rawPtr)
             return@memScoped existing
         }
-        // A `@Godot` RefCounted instance owns no reference of its own (the engine and its StableRef keep it
-        // alive), so there is nothing to merge the returned one into. Keep the safe behaviour of before: a
-        // separate wrapper adopts it and gives it back when collected. The canonical instance stays in the slot.
+        // Only reached for a RefCounted wrapper that owns no reference of its own, which since #213 (every `@Godot`
+        // RefCounted instance owns one) only happens when it was built after shutdown started. There is nothing to
+        // merge the returned reference into: a separate wrapper adopts it and gives it back when collected. The
+        // canonical instance stays in the slot.
         return@memScoped factory(rawPtr).also {
             if (it is RefCounted) attachRefCountedRelease(it, rawPtr, takeOwnReference = false)
         }

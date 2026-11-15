@@ -21,7 +21,10 @@ import kotlin.concurrent.AtomicReference
 /**
  * The live state behind one attached `.kt` script (issue #42 Fase 3): the target `@Godot` class
  * instance (constructed via [KotlinScriptRegistry.Entry.factory], wrapping the *same* native pointer as
- * [owner]), plus enough metadata to answer Godot's `GDExtensionScriptInstanceInfo3` callbacks.
+ * [ownerPtr]), plus enough metadata to answer Godot's `GDExtensionScriptInstanceInfo3` callbacks.
+ *
+ * The owner is kept as a raw pointer, not a wrapper: a `RefCounted` wrapper owns an engine reference, and this state
+ * lives until the owner dies, so holding one would keep the owner alive forever (issue #114).
  *
  * [targetPtr] is a separate [StableRef] (not this state's own) so it can be handed to the target
  * class's existing `_godot_get_*`/`_godot_set_*`/`_godot_call_*` trampolines unchanged — those already
@@ -32,9 +35,9 @@ import kotlin.concurrent.AtomicReference
 private class ScriptInstanceState(
     val entry: KotlinScriptRegistry.Entry,
     val script: KotlinScript,
-    val owner: GodotObject,
+    val ownerPtr: GDExtensionObjectPtr,
     /**
-     * Null when [owner]'s actual native class doesn't match [KotlinScriptRegistry.Entry.baseClassName]
+     * Null when the owner's actual native class doesn't match [KotlinScriptRegistry.Entry.baseClassName]
      * (see [createKotlinScriptInstance]) — [entry.factory] is never called in that case, since it assumes
      * the pointer really is a [KotlinScriptRegistry.Entry.baseClassName]-shaped object; calling it on a
      * mismatched one reads/writes through a field layout the object doesn't have (confirmed via
@@ -112,7 +115,7 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
     } else {
         null
     }
-    val state = ScriptInstanceState(entry, script, forObject, targetPtr)
+    val state = ScriptInstanceState(entry, script, forObject.rawPtr, targetPtr)
     val selfPtr = StableRef.create(state).asCPointer()
 
     val info = nativeHeap.alloc<GDExtensionScriptInstanceInfo3> {
@@ -207,7 +210,7 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
         }
 
         get_owner_func = staticCFunction { pInstance ->
-            guardCallback("KotlinScriptInstance.get_owner", null) { pInstance.state()?.owner?.rawPtr }
+            guardCallback("KotlinScriptInstance.get_owner", null) { pInstance.state()?.ownerPtr }
         }
 
         get_property_state_func = staticCFunction { _, _, _ ->

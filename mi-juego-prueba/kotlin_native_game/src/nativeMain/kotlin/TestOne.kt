@@ -25,6 +25,7 @@ import io.github.kingg22.godot.api.utils.print
 import io.github.kingg22.godot.api.utils.pushError
 import io.github.kingg22.godot.binding.instantiate
 import io.github.kingg22.godot.castTo
+import io.github.kingg22.godot.internal.binding.InternalBinding
 import io.github.kingg22.godot.load
 import io.github.kingg22.godot.loadOrNull
 import kotlinx.cinterop.COpaquePointer
@@ -73,6 +74,15 @@ private const val CONSTRUCTOR_GC_RETRY_FRAME = 580
 private const val CONSTRUCTOR_CHECK_FRAME = 610
 private const val CONSTRUCTOR_COUNT = 50
 
+// issue #114 / #213, a `@Godot` RefCounted made from Kotlin (`instantiate<T>()`): it owns exactly one reference of its
+// own, stays alive while Kotlin holds it, and is freed once Kotlin drops it. USER_REFCOUNTED_COUNT are dropped at
+// once; one more is kept in a field across the collections.
+private const val USER_REFCOUNTED_FRAME = 640
+private const val USER_REFCOUNTED_GC_FRAME = 645
+private const val USER_REFCOUNTED_GC_RETRY_FRAME = 660
+private const val USER_REFCOUNTED_CHECK_FRAME = 690
+private const val USER_REFCOUNTED_COUNT = 20
+
 // issue #114, castTo on a *borrowed* pointer: the cast happens at BORROWED_CAST_FRAME and its wrapper is
 // dropped when that call returns; the GC is forced from a worker thread in a later frame (twice, since a
 // single cycle can miss it, see stepRefCountedReleaseTest) and the result is read once the deferred
@@ -97,6 +107,10 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
     // The Variant is the only real owner of the borrowed Image across the borrowed-cast phases.
     private var borrowedOwner: Variant? = null
     private var borrowedBaseline = -1
+
+    // issue #213: the instance ids of the dropped @Godot RefCounted instances, and the one kept alive on purpose.
+    private var userRefCountedDropped: List<Long> = emptyList()
+    private var userRefCountedKept: DowncastResource? = null
 
     private val callable = Callable {
         println("Hello from Kotlin inside a Callable!")
@@ -210,6 +224,7 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
                 stepBorrowedCastTest(currentFrame - START_FRAME)
                 stepGeneratedReturnTest(currentFrame - START_FRAME)
                 stepConstructorTest(currentFrame - START_FRAME)
+                stepUserRefCountedTest(currentFrame - START_FRAME)
 
                 frameIndex += 1
             }
@@ -422,7 +437,10 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
             BORROWED_CAST_FRAME -> {
                 val owner = "Image".toStringName().use { ClassDB.instance.instantiate(it) }
                 borrowedOwner = owner
-                val ptr = owner.toObject().rawPtr
+                // The raw pointer, without a wrapper: `toObject()` would build the canonical wrapper (which owns a
+                // reference of its own since #206) and the cast below would then reuse it instead of taking one.
+                @OptIn(InternalBinding::class)
+                val ptr = owner.toObjectRawPtr()
                 borrowedBaseline = RefCounted(ptr).getReferenceCount()
                 val cast = ptr.castTo<Image>()
                 val withWrapper = RefCounted(ptr).getReferenceCount()
@@ -439,7 +457,8 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
 
             BORROWED_CAST_CHECK_FRAME -> {
                 val owner = borrowedOwner ?: return
-                val after = RefCounted(owner.toObject().rawPtr).getReferenceCount()
+                @OptIn(InternalBinding::class)
+                val after = RefCounted(owner.toObjectRawPtr()).getReferenceCount()
                 println(
                     "[BorrowedCast] ${if (after == borrowedBaseline) "PASS" else "FAIL"}: " +
                         "refcount after the wrapper was collected=$after, baseline=$borrowedBaseline",
@@ -449,5 +468,49 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
                 borrowedOwner = null
             }
         }
+    }
+
+    /**
+     * issue #114 / #213: a `@Godot` RefCounted made from Kotlin owns exactly one engine reference (its own: the creation
+     * reference is given back), stays alive while Kotlin holds it, and is freed once Kotlin no longer does. Before the
+     * fix, `instantiate<T>()` left the creation reference in a `Variant` that was never closed, so every instance lived
+     * until exit (`ObjectDB instances were leaked at exit`).
+     */
+    private fun stepUserRefCountedTest(frameSinceStart: Int) {
+        when (frameSinceStart) {
+            USER_REFCOUNTED_FRAME -> {
+                val kept = instantiate<DowncastResource>()
+                userRefCountedKept = kept
+                println(
+                    "[UserRefCounted] ${if (kept.getReferenceCount() == 1) "PASS" else "FAIL"}: " +
+                        "a kept instance owns exactly its own reference, refcount=${kept.getReferenceCount()}",
+                )
+                userRefCountedDropped = createAndDropUserRefCounted()
+            }
+
+            USER_REFCOUNTED_GC_FRAME, USER_REFCOUNTED_GC_RETRY_FRAME -> {
+                CoroutineScope(Dispatchers.Default).launch { GC.collect() }
+            }
+
+            USER_REFCOUNTED_CHECK_FRAME -> {
+                val alive = userRefCountedDropped.count { GD.isInstanceIdValid(it) }
+                println(
+                    "[UserRefCounted] ${if (alive == 0) "PASS" else "FAIL"}: dropped instances freed after " +
+                        "collection (still alive: $alive of $USER_REFCOUNTED_COUNT)",
+                )
+                val kept = userRefCountedKept
+                val keptAlive = kept != null && GD.isInstanceIdValid(kept.getInstanceId().toLong())
+                println(
+                    "[UserRefCounted] ${if (keptAlive && kept.getReferenceCount() == 1) "PASS" else "FAIL"}: " +
+                        "the kept instance survived the collections with its own reference",
+                )
+                userRefCountedKept = null
+            }
+        }
+    }
+
+    /** In its own frame so none of the instances stays reachable from a local of the caller. */
+    private fun createAndDropUserRefCounted(): List<Long> = List(USER_REFCOUNTED_COUNT) {
+        instantiate<DowncastResource>().getInstanceId().toLong()
     }
 }

@@ -241,8 +241,7 @@ class DowncastCheck(nativePtr: COpaquePointer) : Node(nativePtr) {
 
     private fun references() = with(checks) {
         check("reading a Resource again does not grow its reference count") {
-            // An engine Resource (a texture). `probe_mesh.tres` is a `@Godot` RefCounted: it keeps the known
-            // limitation of a user RefCounted coming back from an engine return (see the note printed below).
+            // An engine Resource (a texture); a `@Godot` one is checked below.
             val path = "res://icon.svg".toGodotString()
             val first = checkNotNull(ResourceLoader.instance.load(path)) { "icon.svg not found" }
             val baseline = first.getReferenceCount()
@@ -253,11 +252,18 @@ class DowncastCheck(nativePtr: COpaquePointer) : Node(nativePtr) {
             val after = first.getReferenceCount()
             expect(after == baseline) { "refcount $baseline -> $after" }
         }
-        check("note: a @Godot RefCounted returned by the engine") {
-            // Not an assertion: the canonical instance of a `@Godot` RefCounted owns no engine reference, so an engine
-            // return of it still gets a separate adopting wrapper (of the nearest engine class). Printed to track it.
-            val probe = checkNotNull(ResourceLoader.instance.load("res://probe_mesh.tres".toGodotString()))
-            println("[DowncastCheck] note ProbeMesh via ResourceLoader.load is ${probe::class.simpleName}")
+        check("a @Godot RefCounted returned by the engine is its canonical instance (#213)") {
+            // Was a known limitation of #206: the canonical instance of a `@Godot` RefCounted owned no engine
+            // reference, so an engine return of it got a separate adopting wrapper of the nearest engine class (Mesh).
+            val path = "res://probe_mesh.tres".toGodotString()
+            val first = checkNotNull(ResourceLoader.instance.load(path)) { "probe_mesh.tres not found" }
+            expect(first is ProbeMesh) { "loaded as ${first::class.simpleName}" }
+            val baseline = first.getReferenceCount()
+            repeat(3) {
+                val again = ResourceLoader.instance.load(path)
+                expect(again === first) { "load #$it gave another wrapper" }
+            }
+            expect(first.getReferenceCount() == baseline) { "refcount $baseline -> ${first.getReferenceCount()}" }
         }
         check("a @Godot Resource through a Variant is built once and keeps its count") {
             DowncastCounters.resource = 0
