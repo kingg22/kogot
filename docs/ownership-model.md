@@ -149,6 +149,52 @@ copia de `this`) ni el `GodotString`. Está arreglado en una rama aparte, indepe
 toda la serie más ese arreglo, `test_diag.tscn` y `threading_edge_cases.tscn` (3 corridas cada una) cierran con 0
 `ERROR`, 0 `WARNING`, sin leaks de `ObjectDB`/recursos/RID y sin `StringName` huérfanos.
 
+### Instancias `@Godot` que heredan de `RefCounted` (#213)
+
+Todo lo anterior cubría wrappers de clases del **motor**. Una instancia de una clase `@Godot` que hereda de
+`RefCounted` (un `Resource` propio, el `KotlinScript` del binding) no poseía ninguna referencia: su objeto Kotlin
+lo fijaba un `StableRef` **fuerte** de `object_set_instance`, así que el objeto vivía solo mientras quien lo creó
+mantuviera su referencia. Con dos consecuencias medidas en Godot 4.7.2:
+
+- `instantiate<T>()` dejaba la referencia de creación en una `Variant` que nunca se cerraba: toda instancia creada
+  así vivía hasta el final (`ObjectDB instances were leaked at exit`). Cerrar esa `Variant` sin más habría liberado
+  el objeto con la instancia Kotlin todavía en uso.
+- `KotlinResourceFormatLoader._load` devolvía un segundo wrapper del mismo puntero y dejaba la referencia de
+  creación sin dueño: cada carga de un `.kt` subía el refcount en uno (`2 ObjectDB instances` / `2 resources still
+  in use` en `virtual_returns_check`).
+
+Un `StableRef` fuerte más una referencia propia sería un ciclo que no muere nunca (el objeto mantiene viva la
+instancia, la instancia mantiene su referencia sobre el objeto). Se resolvió con el esquema del módulo C# de Godot
+(ver abajo):
+
+- **La instancia posee una referencia propia**, tomada en `createInstanceFunc` (`attachRefCountedRelease`) y
+  devuelta por su `Cleaner` como la de cualquier wrapper (cola diferida, vaciado al cerrar).
+- **El dato de instancia es un `InstanceHandle`** (`kotlin-native/runtime/.../BindingUtils.kt`), que sostiene la
+  instancia **fuerte** mientras el refcount es mayor que 1 (el motor la usa y puede llamarla en cualquier momento) y
+  **débil** cuando es 1 (solo queda la referencia de la propia instancia: si Kotlin ya no la usa, el GC puede
+  recogerla, su `Cleaner` devuelve la referencia y el motor libera el objeto). Lo actualizan el `reference_func` /
+  `unreference_func` de la clase, que Godot llama en las transiciones 1↔2, desde cualquier thread.
+- **Creación desde Kotlin** (`createInstanceFromKotlin`, usada por `instantiate<T>()`, el lenguaje de script, el
+  loader, el saver y `_load`): devuelve la instancia canónica (nunca un segundo wrapper) y devuelve la referencia de
+  creación. El loader y el saver ya no liberan una referencia a mano al desregistrarse (sería una doble liberación).
+- La script instance guarda a su dueño como puntero, no como wrapper (el wrapper poseía una referencia y lo mantenía
+  vivo para siempre).
+
+Como en C#, si el motor vuelve a referenciar el objeto cuando la instancia ya se recogió (por ejemplo un `load()` que
+lo encuentra en la caché de recursos antes de que la liberación diferida corra), la instancia no puede volver: el
+objeto sigue sin su mitad Kotlin hasta morir, y los callbacks hacia ella reportan un error (nunca crashea).
+
+Verificado en Godot 4.7.2, headless, contra `main`:
+
+- `[UserRefCounted]` (`test_diag`): una instancia creada con `instantiate<T>()` y guardada tiene refcount **1** y
+  sobrevive a las colecciones; 20 soltadas se liberan (**0 de 20** vivas tras la colección).
+- `virtual_returns_check`: de 2 objetos + 2 recursos filtrados al salir a **ninguno**.
+- `DowncastCheck`: `ResourceLoader.load("probe_mesh.tres")` devuelve la instancia canónica `ProbeMesh` (antes un
+  wrapper `Mesh` aparte, el límite conocido de #206) y las cargas repetidas no cambian su refcount; el leak al salir
+  baja de 2 instancias a 1 (la que queda no es `RefCounted`: es la de #212).
+- `[BorrowedCast]` vuelve a medir lo que pretendía: desde #206 `toObject()` construye el wrapper canónico (que posee
+  su referencia), así que el cast lo reutilizaba; ahora el puntero prestado se lee con `toObjectRawPtr()`.
+
 ### Abierto, no resuelto aquí
 
 1. **Se asume que todo retorno de una clase `RefCounted` es un `Ref<T>`.** Es la convención de Godot y lo que
@@ -170,9 +216,10 @@ toda la serie más ese arreglo, `test_diag.tscn` y `threading_edge_cases.tscn` (
 
 `modules/mono/csharp_script.cpp` (`CSharpLanguage::_instance_binding_reference_callback`) implementa
 exactamente este problema para un lenguaje con GC de trazado: alterna el `GCHandle` del wrapper entre
-`weak` y `strong` según el refcount nativo, usando `reference_callback` (que este fix todavía no usa —
-solo hace falta para ese caso de ownership completo, no para la identidad). Es la referencia a seguir
-para la Fase 2.
+`weak` y `strong` según el refcount nativo, contando con que el lado gestionado posee una referencia propia (por
+eso compara con 1 y no con 0). kogot lo sigue para las instancias `@Godot` que heredan de `RefCounted` (ver la
+sección de #213 arriba), con el `reference_func` / `unreference_func` de la clase en lugar del `reference_callback`
+de los instance bindings (el slot de identidad no necesita ninguno de los dos: su referencia es débil).
 
 ## Comparación con otros bindings
 
