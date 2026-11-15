@@ -75,11 +75,18 @@ private val identityCreateCallback: GDExtensionInstanceBindingCreateCallback =
         guardCallback("kogot.instanceBinding.create", null) { StableRef.create(BindingSlot()).asCPointer() }
     }
 
-/** Disposes a [BindingSlot] created by [identityCreateCallback] or [wrapForEagerBinding]. */
+/**
+ * Disposes a [BindingSlot] created by [identityCreateCallback] or [wrapForEagerBinding], and forgets any engine
+ * reference Kotlin still owed for the destroyed object ([PendingReleases.forget], issue #218).
+ */
 @InternalBinding
 public val identityFreeCallback: GDExtensionInstanceBindingFreeCallback =
-    staticCFunction { _, _, binding ->
-        guardCallback("kogot.instanceBinding.free") { binding?.asStableRef<BindingSlot>()?.dispose() }
+    staticCFunction { _, instance, binding ->
+        guardCallback("kogot.instanceBinding.free") {
+            // The object is gone: a reference Kotlin still owed for it must never be released (issue #218).
+            if (instance != null) PendingReleases.forget(instance)
+            binding?.asStableRef<BindingSlot>()?.dispose()
+        }
     }
 
 @OptIn(InternalBinding::class)

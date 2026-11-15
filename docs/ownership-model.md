@@ -228,6 +228,22 @@ tipos (hoy exponen `rawPtr` y se pasan por puntero a todo el código generado). 
 cambiar la API; si el costo de arriba pesa en un caso real (miles de valores por frame), la opción 3 es el siguiente
 paso, con estas cifras como línea base.
 
+### Un `RefCounted` que el motor destruye a la fuerza (#218)
+
+Godot puede destruir un `RefCounted` con `memdelete` sin mirar su refcount. El editor lo hace en su primer arranque:
+instancia cada clase de las extensiones para leer los valores por defecto de sus propiedades (documentación) y la
+borra. Si Kotlin le debía una referencia (la de la instancia `@Godot`, ver #213), [`PendingReleases`] la seguía
+contando y el vaciado del cierre hacía `unreference()` sobre memoria liberada: el editor crasheaba al salir.
+
+Ahora el callback `free` del instance binding (`identityFreeCallback`), que Godot llama al destruir cualquier objeto
+que Kotlin rastrea, hace `PendingReleases.forget(ptr)`: lo adeudado a un objeto que ya no existe se olvida, y ni el
+vaciado ni una liberación diferida lo tocan. Lo verifica `forced_free_check.tscn`.
+
+Aparte, Godot 4.7.2 crashea al cerrar el editor cuando una extensión que se carga en caliente durante el primer escaneo
+(sin `.godot/extension_list.cfg`) registra cualquier clase; se reproduce con una extensión mínima en C, no es de kogot.
+El plugin de Gradle lo evita: `registerKogotExtension`, encadenado a cada copia del binario, lista la extensión en ese
+archivo para que Godot la cargue al arrancar.
+
 ### Abierto, no resuelto aquí
 
 Seguimiento en [#228](https://github.com/kingg22/kogot/issues/228): son continuaciones, no parte del modelo de

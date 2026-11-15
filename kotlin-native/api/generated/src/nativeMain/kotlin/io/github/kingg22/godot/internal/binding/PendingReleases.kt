@@ -75,6 +75,17 @@ internal object PendingReleases {
     }
 
     /**
+     * Forgets everything owed for [ptr] because the engine destroyed the object: Godot may `memdelete` a `RefCounted`
+     * whatever its reference count (the editor does it on its first run, instantiating every extension class to read
+     * its property defaults for the docs). Releasing a reference afterwards, from [drain] or from a deferred release,
+     * would touch freed memory (issue #218). Called from the instance-binding free callback, which runs for every
+     * object Kotlin tracks, on the thread that destroys it.
+     */
+    fun forget(ptr: GDExtensionObjectPtr) {
+        val _ = locked { owed.remove(ptr.toLong()) }
+    }
+
+    /**
      * Brackets a push onto Godot's message queue from a non-main thread. Returns `false` once shutdown
      * started, and the caller must not touch the engine at all. Every `true` must be paired with exactly
      * one [endEnqueue].
