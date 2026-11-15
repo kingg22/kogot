@@ -18,7 +18,7 @@ import org.junit.jupiter.params.provider.ValueSource
 class RefCountedClassificationTest {
 
     @ParameterizedTest
-    @ValueSource(strings = ["v4_6_0", "v4_6_3", "v4_7_0", "v4_7_2"])
+    @ValueSource(strings = ["v4_6_1", "v4_6_3", "v4_7_0", "v4_7_2"])
     fun `is_refcounted agrees with inheriting RefCounted for every engine class`(godotVersion: String) {
         val context = buildContext(godotVersion)
         val classes = context.model.engineClassesByName
@@ -31,7 +31,7 @@ class RefCountedClassificationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = ["v4_6_0", "v4_7_2"])
+    @ValueSource(strings = ["v4_6_1", "v4_7_2"])
     fun `classifies representative classes`(godotVersion: String) {
         val context = buildContext(godotVersion)
 
