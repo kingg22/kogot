@@ -705,7 +705,8 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                 .builder("toString")
                 .addModifiers(KModifier.OVERRIDE)
                 .returns(STRING)
-                .addCode("return this.stringify().toKString()")
+                // stringify() hands back a GodotString this call owns (#211).
+                .addCode("return this.stringify().use·{ it.toKString() }")
                 .build(),
         )
 
@@ -949,7 +950,8 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                         .toBuilder(name = "toKStringOrNull")
                         .clearBody()
                         .returns(STRING.copy(nullable = true))
-                        .addCode("return this.toGodotStringOrNull()?.toKString()")
+                        // The GodotString is a copy this call owns (#211).
+                        .addCode("return this.toGodotStringOrNull()?.use·{ it.toKString() }")
                         .build(),
                 )
                 classBuilder.addFunction(
@@ -957,7 +959,7 @@ class VariantImplGen(private val typeResolver: TypeResolver) {
                         .toBuilder("toKString")
                         .clearBody()
                         .returns(STRING)
-                        .addCode("return this.toGodotString().toKString()")
+                        .addCode("return this.toGodotString().use·{ it.toKString() }")
                         .build(),
                 )
             }

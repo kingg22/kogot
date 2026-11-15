@@ -42,7 +42,9 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
                 require(!isVararg) { "Doesn't support vararg for GodotString yet" }
                 CodeBlock.of("%T(%N)", contextOf<Context>().classNameForOrDefault("String"), name)
             },
-            unwrapSuffix = { CodeBlock.of(".toKString()") },
+            // The raw variant hands back a GodotString the caller owns: close it once converted (#211).
+            unwrapSuffix = { CodeBlock.of(".use·{ it.toKString() }") },
+            closesWrapped = true,
             transformDefaultValue = { arg, _ ->
                 // Godot string defaults arrive quoted: "{_}" → we want the Kotlin literal "{_}".
                 // Strip the surrounding Godot quotes and re-emit as a Kotlin string literal via %S.
@@ -120,6 +122,10 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
      * @property varargLeadParameter   When set, a mapped `vararg` becomes `(name: Target, vararg Target)` and [wrap]
      *                                 receives that name as the first value. A bare `vararg Target` next to the
      *                                 original `vararg Source` is ambiguous for a call with no variadic arguments.
+     * @property closesWrapped         When `true`, [wrap] builds a new `AutoCloseable` the overload owns, so the
+     *                                 delegating method call runs inside `wrap(param).use·{ … }` and the value is
+     *                                 freed once the call returns (#211). Methods only: a constructor delegation
+     *                                 cannot scope a value, see [configureConstructor]. Not applied to a vararg.
      */
     data class TypeMapping(
         val matches: context(Context) (type: TypeName) -> Boolean,
@@ -136,6 +142,7 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         ) -> Unit = { _, _ -> },
         val mapReturn: Boolean = true,
         val varargLeadParameter: String? = null,
+        val closesWrapped: Boolean = false,
     )
 
     // ── Public API ────────────────────────────────────────────────────────────────
@@ -451,14 +458,42 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         mapping: TypeMapping,
         unwrap: Boolean,
     ): CodeBlock {
-        val args = buildWrappedArgs(params, mappedIndices, mapping).joinToCode(", ")
-        return buildCodeBlock {
-            if (unwrap) {
-                addStatement("return %N(%L)%L", callee, args, mapping.unwrapSuffix())
-            } else {
-                addStatement("return %N(%L)", callee, args)
-            }
+        val unwrapSuffix = if (unwrap) mapping.unwrapSuffix() else CodeBlock.of("")
+        // Mapped values the overload owns: each one is opened with `use` around the call (see closesWrapped).
+        val scoped = if (mapping.closesWrapped) {
+            mappedIndices.filterNot { params[it].isVararg() }
+        } else {
+            emptyList()
         }
+        if (scoped.isEmpty()) {
+            val args = buildWrappedArgs(params, mappedIndices, mapping).joinToCode(", ")
+            return CodeBlock.of("return %N(%L)%L\n", callee, args, unwrapSuffix)
+        }
+
+        val taken = params.mapTo(mutableSetOf()) { it.name }
+        val locals = scoped.associateWith { i -> uniqueName("${params[i].name}Gd", taken) }
+        val args = params.mapIndexed { i, param ->
+            when (i) {
+                in locals -> CodeBlock.of("%N", locals.getValue(i))
+                in mappedIndices -> mapping.wrap(param.name, param.isVararg())
+                else -> CodeBlock.of("%L%N", if (param.isVararg()) "*" else "", param.name)
+            }
+        }.joinToCode(", ")
+        return buildCodeBlock {
+            add("return ")
+            scoped.forEach { i ->
+                add("%L.use·{ %N ->\n⇥", mapping.wrap(params[i].name, false), locals.getValue(i))
+            }
+            add("%N(%L)%L\n", callee, args, unwrapSuffix)
+            repeat(scoped.size) { add("⇤}\n") }
+        }
+    }
+
+    /** [base], or [base] with `_` appended until it clashes with no name in [taken] (which it then joins). */
+    private fun uniqueName(base: String, taken: MutableSet<String>): String {
+        var name = base
+        while (!taken.add(name)) name += "_"
+        return name
     }
 
     // ── FunSpec / ParameterSpec extensions ────────────────────────────────────────
