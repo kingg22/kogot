@@ -83,6 +83,9 @@ object KogotConventions {
     const val TEST_GODOT_TASK_NAME = "testGodot"
     const val COPY_ALL_TASK_NAME = "copyKogotBinaries"
 
+    /** Lists the extension in `.godot/extension_list.cfg`, run after every binary copy (#218). */
+    const val REGISTER_EXTENSION_TASK_NAME = "registerKogotExtension"
+
     // --- generated-path templates ----------------------------------------------------------------
     fun entryPointOutputDir(targetName: String) = "generated/kogot/entrypoint/$targetName"
 

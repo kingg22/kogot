@@ -2,6 +2,7 @@ package io.github.kingg22.kogot.gradle
 
 import io.github.kingg22.kogot.gradle.tasks.GenerateEntryPointTask
 import io.github.kingg22.kogot.gradle.tasks.GenerateGdextensionTask
+import io.github.kingg22.kogot.gradle.tasks.RegisterGodotExtensionTask
 import io.github.kingg22.kogot.gradle.tasks.RunGodotTask
 import io.github.kingg22.kogot.gradle.tasks.TestGodotTask
 import org.gradle.api.Project
@@ -82,7 +83,18 @@ private fun registerCopyTask(project: Project, extension: KogotExtension, target
  * task name instead of needing to know the resolved target/build-type combinations themselves.
  */
 internal fun registerCopyTasks(project: Project, extension: KogotExtension, targets: List<KotlinNativeTarget>) {
+    // Every copy also lists the extension in .godot/extension_list.cfg: see RegisterGodotExtensionTask (#218).
+    val registerTask = project.tasks.register(
+        KogotConventions.REGISTER_EXTENSION_TASK_NAME,
+        RegisterGodotExtensionTask::class.java,
+    ) { task ->
+        task.godotProjectDir.set(extension.godotProjectDir)
+        task.gdextensionResPath.set(
+            extension.libraryBaseName.map { "res://" + KogotConventions.gdextensionFileName(it) },
+        )
+    }
     val copyTasks = targets.flatMap { registerCopyTask(project, extension, it) }
+    copyTasks.forEach { copy -> copy.configure { it.finalizedBy(registerTask) } }
     project.tasks.register(KogotConventions.COPY_ALL_TASK_NAME) { task ->
         task.group = KogotConventions.TASK_GROUP
         task.description = "Copies every target/build-type GDExtension binary into the Godot project"
