@@ -1,0 +1,82 @@
+EditorCommandPalette	registered	
+EditorContextMenuPlugin	registered	
+EditorDebuggerPlugin	registered	
+EditorDebuggerSession	unregistered	Extension class 'KX_EditorDebuggerSession' cannot extend native abstract class 'EditorDebuggerSession'.
+EditorDock	registered	
+EditorExportPlatform	unregistered	Extension class 'KX_EditorExportPlatform' cannot extend native abstract class 'EditorExportPlatform'.
+EditorExportPlatformAndroid	registered	
+EditorExportPlatformAppleEmbedded	unregistered	Extension class 'KX_EditorExportPlatformAppleEmbedded' cannot extend native abstract class 'EditorExportPlatformAppleEmbedded'.
+EditorExportPlatformExtension	registered	
+EditorExportPlatformIOS	registered	
+EditorExportPlatformLinuxBSD	registered	
+EditorExportPlatformMacOS	registered	
+EditorExportPlatformPC	unregistered	Extension class 'KX_EditorExportPlatformPC' cannot extend native abstract class 'EditorExportPlatformPC'.
+EditorExportPlatformVisionOS	registered	
+EditorExportPlatformWeb	registered	
+EditorExportPlatformWindows	registered	
+EditorExportPlugin	registered	
+EditorExportPreset	unregistered	Extension class 'KX_EditorExportPreset' cannot extend native abstract class 'EditorExportPreset'.
+EditorFeatureProfile	registered	
+EditorFileDialog	registered	
+EditorFileSystem	unregistered	Extension class 'KX_EditorFileSystem' cannot extend native abstract class 'EditorFileSystem'.
+EditorFileSystemDirectory	registered	
+EditorFileSystemImportFormatSupportQuery	registered	
+EditorImportPlugin	registered	
+EditorInspector	registered	
+EditorInspectorPlugin	registered	
+EditorInterface	unregistered	Extension class 'KX_EditorInterface' cannot extend native abstract class 'EditorInterface'.
+EditorNode3DGizmo	registered	
+EditorNode3DGizmoPlugin	registered	
+EditorPaths	registered	
+EditorPlugin	registered	
+EditorProperty	registered	
+EditorResourceConversionPlugin	registered	
+EditorResourcePicker	registered	
+EditorResourcePreview	unregistered	Extension class 'KX_EditorResourcePreview' cannot extend native abstract class 'EditorResourcePreview'.
+EditorResourcePreviewGenerator	registered	
+EditorResourceTooltipPlugin	registered	
+EditorSceneFormatImporter	registered	
+EditorSceneFormatImporterBlend	registered	
+EditorSceneFormatImporterFBX2GLTF	registered	
+EditorSceneFormatImporterGLTF	registered	
+EditorSceneFormatImporterUFBX	registered	
+EditorScenePostImport	registered	
+EditorScenePostImportPlugin	registered	
+EditorScript	registered	
+EditorScriptPicker	registered	
+EditorSelection	registered	
+EditorSettings	registered	
+EditorSpinSlider	registered	
+EditorSyntaxHighlighter	registered	
+EditorToaster	unregistered	Extension class 'KX_EditorToaster' cannot extend native abstract class 'EditorToaster'.
+EditorTranslationParserPlugin	registered	
+EditorUndoRedoManager	unregistered	Extension class 'KX_EditorUndoRedoManager' cannot extend native abstract class 'EditorUndoRedoManager'.
+EditorVCSInterface	registered	
+FileSystemDock	unregistered	Extension class 'KX_FileSystemDock' cannot extend native abstract class 'FileSystemDock'.
+GDScriptLanguageProtocol	registered	
+GDScriptSyntaxHighlighter	registered	
+GDScriptTextDocument	registered	
+GDScriptWorkspace	registered	
+GridMapEditorPlugin	registered	
+OpenXRBindingModifierEditor	registered	
+OpenXRInteractionProfileEditor	registered	
+OpenXRInteractionProfileEditorBase	unregistered	Extension class 'KX_OpenXRInteractionProfileEditorBase' cannot extend native abstract class 'OpenXRInteractionProfileEditorBase'.
+ResourceImporterBMFont	registered	
+ResourceImporterBitMap	registered	
+ResourceImporterCSVTranslation	registered	
+ResourceImporterDynamicFont	registered	
+ResourceImporterImage	registered	
+ResourceImporterImageFont	registered	
+ResourceImporterLayeredTexture	registered	
+ResourceImporterMP3	registered	
+ResourceImporterOBJ	registered	
+ResourceImporterOggVorbis	registered	
+ResourceImporterSVG	registered	
+ResourceImporterScene	registered	
+ResourceImporterShaderFile	registered	
+ResourceImporterTexture	registered	
+ResourceImporterTextureAtlas	registered	
+ResourceImporterWAV	registered	
+ScriptCreateDialog	registered	
+ScriptEditor	unregistered	Extension class 'KX_ScriptEditor' cannot extend native abstract class 'ScriptEditor'.
+ScriptEditorBase	unregistered	Extension class 'KX_ScriptEditorBase' cannot extend native abstract class 'ScriptEditorBase'.
