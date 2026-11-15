@@ -61,15 +61,66 @@ override fun _ready() {
 | Una excepción se reporta y no cancela el scope | sí |
 | Una corrutina suspendida al salir se cancela en `shutdown_func` y suelta su conexión | sí, sin errores al salir |
 
-## Sobre "setMain"
+## Cómo declaran su `Dispatchers.Main` Swing y Android (kotlinx.coroutines 1.10.2, desde los sources)
 
-- En Linux, Windows y Android nativos, kotlinx.coroutines **no tiene** `Dispatchers.Main`. En Apple, `Dispatchers.Main`
-  es la cola principal de GCD; no lo probé, y depende de que Godot procese el run loop de Cocoa.
-- `Dispatchers.setMain(...)` existe solo en `kotlinx-coroutines-test` y está pensado para tests. No está en la caché de
-  dependencias del repo, así que no lo probé. Sirve para que el código que usa `Dispatchers.Main` funcione en tests
-  (`Dispatchers.setMain(GodotMain)`), pero no conviene en producción.
-- Por eso la propuesta es que kogot publique su propio `MainCoroutineDispatcher` (algo como `Dispatchers.Godot`), como
-  hace `kotlinx-coroutines-swing` con `Dispatchers.Swing`. El usuario escribe `withContext(Dispatchers.Godot)`.
+Revisé `kotlinx-coroutines-swing`, `kotlinx-coroutines-android`, `kotlinx-coroutines-core` (común, nativo y JVM) y
+`kotlinx-coroutines-test`.
+
+| Pieza | Swing (`SwingDispatcher.kt`) | Android (`HandlerDispatcher.kt`) |
+|---|---|---|
+| Clase | `sealed class SwingDispatcher : MainCoroutineDispatcher(), Delay` | `sealed class HandlerDispatcher : MainCoroutineDispatcher(), Delay` |
+| `dispatch` | `SwingUtilities.invokeLater(block)`, la cola de eventos de AWT | `handler.post(block)`, el `Looper` principal. Si se rechaza porque el looper terminó, cancela el contexto y ejecuta el bloque en `Dispatchers.IO` (`cancelOnRejection`), así no se pierde. |
+| `immediate` | otro objeto, con `isDispatchNeeded = !SwingUtilities.isEventDispatchThread()` | `HandlerContext(..., invokeImmediately = true)`, con `isDispatchNeeded = Looper.myLooper() != handler.looper` |
+| `Delay` nativo | `scheduleResumeAfterDelay` / `invokeOnTimeout` con un `javax.swing.Timer`; al cancelar se detiene el timer | `handler.postDelayed`; al cancelar, `removeCallbacks` |
+| Registro como `Dispatchers.Main` | `SwingDispatcherFactory : MainDispatcherFactory` (`loadPriority = 0`) en `META-INF/services/kotlinx.coroutines.internal.MainDispatcherFactory` | `AndroidDispatcherFactory` (`loadPriority = Int.MAX_VALUE / 2`), mismo archivo de servicios. Su `hintOnError()` sugiere `Dispatchers.setMain` para tests. |
+| Acceso con nombre propio | `val Dispatchers.Swing: SwingDispatcher` | `Handler.asCoroutineDispatcher()` |
+| Extra | inicializar en headless lanza una excepción a propósito, para no usarse como fuente de `delay` | `awaitFrame()`: suspende hasta el siguiente frame de `Choreographer`, el equivalente a nuestro `nextFrame()` |
+
+**Cómo se elige `Dispatchers.Main`:**
+
+- **JVM** (`core-jvm/jvmMain/internal/MainDispatchers.kt`): `ServiceLoader` busca todas las `MainDispatcherFactory` del
+  classpath y usa la de mayor `loadPriority`. Así es como Swing, JavaFX y Android "se instalan" con solo agregar la
+  dependencia. Para el binding JVM/FFM de kogot, la vía sería esta misma: una `GodotDispatcherFactory` en
+  `META-INF/services`.
+- **Nativo** (`nativeMain/Dispatchers.kt`): no hay `ServiceLoader`. `Dispatchers.Main` es
+  `injectedMainDispatcher ?: mainDispatcher`. Fuera de Apple, `mainDispatcher` es `MissingMainDispatcher`, y toda
+  llamada lanza `NotImplementedError: Dispatchers.Main is missing on the current platform`. En Apple
+  (`nativeDarwinMain`) es `DarwinMainDispatcher`, que usa `dispatch_async(dispatch_get_main_queue())` y `isMainThread()`
+  vía `CFRunLoopGetCurrent() == CFRunLoopGetMain()`.
+- **`Dispatchers.setMain`** (`kotlinx-coroutines-test`, `nativeMain/internal/TestMainDispatcher.kt`) envuelve el
+  dispatcher en un `TestMainDispatcher` y lo instala con `Dispatchers.injectMain(...)`. `injectMain` es
+  `@PublishedApi internal`, y el módulo de test lo llama con `@Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")`.
+
+### Experimento: `Dispatchers.Main = GodotMain` en Linux nativo
+
+Llamé a `Dispatchers.injectMain(GodotMain)` igual que lo hace el módulo de test (el archivo del experimento no se
+commiteó). Resultado en vivo: `Dispatchers.Main` pasa a ser `Godot.Main`, `withContext(Dispatchers.Main)` desde
+`Dispatchers.Default` corre en el hilo principal, y `Dispatchers.Main.immediate` no espera un frame. `coroutines_check`
+dio 16 de 16.
+
+**Pero no sirve para producción:**
+
+- Kotlin 2.5 avisa: *"Suppression of error 'INVISIBLE_REFERENCE' might compile and work, but the compiler behavior is
+  UNSPECIFIED and WILL NOT BE PRESERVED"*. El aviso no se puede silenciar, así que con `allWarningsAsErrors` del repo
+  no compila; para el experimento lo desactivé temporalmente en el módulo de ejemplo.
+- `injectMain` es API interna: puede cambiar en cualquier versión de kotlinx.coroutines, y `injectedMainDispatcher` es
+  un `var` sin sincronización.
+- Usar `kotlinx-coroutines-test` en producción solo para `setMain` mete en el juego un dispatcher de test como
+  envoltorio.
+
+### Conclusión para kogot
+
+1. Publicar `val Dispatchers.Godot: GodotDispatcher`, como `Dispatchers.Swing`, sobre una
+   `sealed class GodotDispatcher : MainCoroutineDispatcher(), Delay`.
+2. Que `immediate` sea otra instancia con `isDispatchNeeded = !MainThread.isCurrent`, como en Swing y Android.
+3. Implementar `Delay` con timers del motor o con una cola por frame en lugar del hilo de `DefaultDelay`. Hoy el
+   prototipo no lo implementa: `delay()` funciona, pero cuenta el tiempo en un hilo de kotlinx y luego despacha.
+4. Copiar el `cancelOnRejection` de Android: después de `shutdown_func`, un `dispatch` debe cancelar el contexto en
+   lugar de dejar la tarea en una cola que ya nadie vacía.
+5. Dejar `Dispatchers.Main` sin tocar en nativo: documentar `Dispatchers.setMain(Dispatchers.Godot)` para tests. En
+   JVM/FFM, sí registrar una `MainDispatcherFactory`.
+6. En macOS, `Dispatchers.Main` de kotlinx usa la cola principal de GCD. Funcionaría solo si Godot procesa el run loop
+   de Cocoa, que en `--headless` no está garantizado. No lo probé.
 
 ## Costos y límites medidos
 
