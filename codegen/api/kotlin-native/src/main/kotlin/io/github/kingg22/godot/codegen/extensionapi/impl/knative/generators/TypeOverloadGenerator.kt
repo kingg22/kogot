@@ -44,7 +44,10 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
             },
             // The raw variant hands back a GodotString the caller owns: close it once converted (#211).
             unwrapSuffix = { CodeBlock.of(".use·{ it.toKString() }") },
-            closesWrapped = true,
+            // The GodotString of a parameter is the overload's own: closed once the call returns (#211).
+            scope = { name, _, local ->
+                CodeBlock.of("%T(%N).use·{ %N ->", contextOf<Context>().classNameForOrDefault("String"), name, local)
+            },
             transformDefaultValue = { arg, _ ->
                 // Godot string defaults arrive quoted: "{_}" → we want the Kotlin literal "{_}".
                 // Strip the surrounding Godot quotes and re-emit as a Kotlin string literal via %S.
@@ -94,6 +97,22 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
                 }
             },
             unwrapSuffix = { CodeBlock.of("") },
+            // A converted Variant is the overload's own and closed after the call; one passed in as `Any?` is the
+            // caller's and left open (#219). `withVariant(s)` tells the two apart.
+            scope = { name, isVararg, local ->
+                val ctx = contextOf<Context>()
+                if (isVararg) {
+                    CodeBlock.of(
+                        "%M(%N, %N)·{ %N ->",
+                        with(ctx) { memberNameForOrDefault("withVariants") },
+                        "first",
+                        name,
+                        local,
+                    )
+                } else {
+                    CodeBlock.of("%M(%N)·{ %N ->", with(ctx) { memberNameForOrDefault("withVariant") }, name, local)
+                }
+            },
             mapReturn = false,
             varargLeadParameter = "first",
             configureConstructor = { _, args ->
@@ -122,10 +141,11 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
      * @property varargLeadParameter   When set, a mapped `vararg` becomes `(name: Target, vararg Target)` and [wrap]
      *                                 receives that name as the first value. A bare `vararg Target` next to the
      *                                 original `vararg Source` is ambiguous for a call with no variadic arguments.
-     * @property closesWrapped         When `true`, [wrap] builds a new `AutoCloseable` the overload owns, so the
-     *                                 delegating method call runs inside `wrap(param).use·{ … }` and the value is
-     *                                 freed once the call returns (#211). Methods only: a constructor delegation
-     *                                 cannot scope a value, see [configureConstructor]. Not applied to a vararg.
+     * @property scope                 When set, the converted value is a new `AutoCloseable` the overload owns: the
+     *                                 delegating method call runs inside the block this opens (`… { local ->`,
+     *                                 closed with `}`), which frees the value once the call returns (#211, #219).
+     *                                 A vararg's block gives one `Array` holding the lead value and the rest.
+     *                                 Methods only: a constructor delegation cannot scope a value, it uses [wrap].
      */
     data class TypeMapping(
         val matches: context(Context) (type: TypeName) -> Boolean,
@@ -142,7 +162,10 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         ) -> Unit = { _, _ -> },
         val mapReturn: Boolean = true,
         val varargLeadParameter: String? = null,
-        val closesWrapped: Boolean = false,
+        val scope: (
+            context(Context)
+            (paramName: String, isVararg: Boolean, local: String) -> CodeBlock
+        )? = null,
     )
 
     // ── Public API ────────────────────────────────────────────────────────────────
@@ -459,33 +482,27 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
         unwrap: Boolean,
     ): CodeBlock {
         val unwrapSuffix = if (unwrap) mapping.unwrapSuffix() else CodeBlock.of("")
-        // Mapped values the overload owns: each one is opened with `use` around the call (see closesWrapped).
-        val scoped = if (mapping.closesWrapped) {
-            mappedIndices.filterNot { params[it].isVararg() }
-        } else {
-            emptyList()
-        }
-        if (scoped.isEmpty()) {
+        // Mapped values the overload owns: the call runs inside one block per value, which frees it (see scope).
+        val scope = mapping.scope
+        if (scope == null || mappedIndices.isEmpty()) {
             val args = buildWrappedArgs(params, mappedIndices, mapping).joinToCode(", ")
             return CodeBlock.of("return %N(%L)%L\n", callee, args, unwrapSuffix)
         }
 
-        val taken = params.mapTo(mutableSetOf()) { it.name }
-        val locals = scoped.associateWith { i -> uniqueName("${params[i].name}Gd", taken) }
+        // "Gd": the Godot-typed value of a parameter. The vararg lead is a parameter of the overload too.
+        val taken = (params.map { it.name } + listOfNotNull(mapping.varargLeadParameter)).toMutableSet()
+        val locals = mappedIndices.associateWith { i -> uniqueName("${params[i].name}Gd", taken) }
         val args = params.mapIndexed { i, param ->
-            when (i) {
-                in locals -> CodeBlock.of("%N", locals.getValue(i))
-                in mappedIndices -> mapping.wrap(param.name, param.isVararg())
-                else -> CodeBlock.of("%L%N", if (param.isVararg()) "*" else "", param.name)
-            }
+            val name = locals[i] ?: param.name
+            CodeBlock.of("%L%N", if (param.isVararg()) "*" else "", name)
         }.joinToCode(", ")
         return buildCodeBlock {
             add("return ")
-            scoped.forEach { i ->
-                add("%L.use·{ %N ->\n⇥", mapping.wrap(params[i].name, false), locals.getValue(i))
+            mappedIndices.forEach { i ->
+                add("%L\n⇥", scope(params[i].name, params[i].isVararg(), locals.getValue(i)))
             }
             add("%N(%L)%L\n", callee, args, unwrapSuffix)
-            repeat(scoped.size) { add("⇤}\n") }
+            repeat(mappedIndices.size) { add("⇤}\n") }
         }
     }
 

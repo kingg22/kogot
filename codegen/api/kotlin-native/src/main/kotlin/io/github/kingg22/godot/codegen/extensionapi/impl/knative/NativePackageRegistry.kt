@@ -66,6 +66,9 @@ class NativePackageRegistry private constructor(private val typeToPackage: Map<S
 
             // Hand-written Variant conversion, used by the `Any?` overloads of the Variant parameters.
             register("toVariant", "$rootPackage.api.builtin")
+            // Same, scoped: the Variant they build is closed after the call (#219).
+            register("withVariant", "$rootPackage.api.builtin.internal")
+            register("withVariants", "$rootPackage.api.builtin.internal")
             register("MustBeVariant", "$rootPackage.api.builtin")
 
             // Experimental marker of the unsafe Kotlin API (not of Godot's), put on the `Any?` overloads.

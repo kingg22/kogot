@@ -106,4 +106,45 @@ class TypeOverloadGeneratorTest {
         assertTrue(code.contains("GodotString(textGd).use { textGdGd ->"), code)
         assertTrue(code.contains("f(textGd_, textGdGd)"), code)
     }
+
+    // ── Variant parameters (#219) ────────────────────────────────────────────────
+
+    private fun variant(): TypeName = context(testContext) { testContext.classNameForOrDefault("Variant") }
+
+    private fun variantOverloads(method: UtilityFunction, original: FunSpec): List<FunSpec> = context(testContext) {
+        generator.buildOverloadsForMethod(method, original, TypeOverloadGenerator.VariantMapping)
+    }
+
+    @Test
+    fun `an Any parameter frees the Variant it converts, never the caller's`() {
+        val specs = variantOverloads(method(null, "item" to "Variant"), original(null, "item" to variant()))
+
+        val code = specs.single { it.parameters.single().type != variant() }.toString()
+        assertTrue(code.contains("withVariant(item) { itemGd ->"), code)
+        assertTrue(code.contains("f(itemGd)"), code)
+        assertFalse(code.contains("toVariant()"), code)
+    }
+
+    @Test
+    fun `an Any vararg frees every Variant it converts`() {
+        val method = UtilityFunction(
+            name = "f",
+            returnType = null,
+            category = "general",
+            isVararg = true,
+            hash = 0,
+            arguments = listOf(MethodArg("name", "StringName")),
+        )
+        val stringName = context(testContext) { testContext.classNameForOrDefault("StringName") }
+        val original = FunSpec.builder("f")
+            .addParameter("name", stringName)
+            .addParameter("args", variant(), KModifier.VARARG)
+            .addStatement("TODO()")
+            .build()
+
+        val code = variantOverloads(method, original).single { it.parameters.size == 3 }.toString()
+        assertTrue(code.contains("withVariants(first, args) { argsGd ->"), code)
+        assertTrue(code.contains("f(name, *argsGd)"), code)
+        assertFalse(code.contains("toVariant()"), code)
+    }
 }

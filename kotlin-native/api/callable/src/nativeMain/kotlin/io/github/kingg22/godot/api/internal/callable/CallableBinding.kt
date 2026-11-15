@@ -127,16 +127,31 @@ public object CallableBinding {
         }
 
         fillCallError(GDEXTENSION_CALL_OK, 0, 0)
-        VariantBinding.newCopyRaw(rReturn, resultVariant.rawPtr)
+        try {
+            VariantBinding.newCopyRaw(rReturn, resultVariant.rawPtr)
+        } finally {
+            // The engine got its own copy. The Variant built from the result is ours to free, unless the lambda
+            // returned that Variant itself (#219: every call leaked one, the one of `Unit` included).
+            if (resultVariant !== result) (resultVariant as? AutoCloseable)?.close()
+        }
     }
 
-    // Call the low-level Godot function to create custom callable and fill the callable object
+    /**
+     * Calls the low-level Godot function to create the custom callable into [callablePtr]. If that fails, the
+     * [StableRef] of the userdata, which nothing would ever free otherwise (`free_func` only runs for a created
+     * callable), is disposed before rethrowing (#219).
+     */
     public fun createCustom2(callableCustomInfo2: CValue<GDExtensionCallableCustomInfo2>, callablePtr: COpaquePointer) {
-        memScoped {
-            CallableBinding.customCreate2Raw(
-                callablePtr,
-                callableCustomInfo2.ptr,
-            )
+        try {
+            memScoped {
+                CallableBinding.customCreate2Raw(
+                    callablePtr,
+                    callableCustomInfo2.ptr,
+                )
+            }
+        } catch (t: Throwable) {
+            callableCustomInfo2.useContents { callable_userdata }?.asStableRef<Any>()?.dispose()
+            throw t
         }
     }
 

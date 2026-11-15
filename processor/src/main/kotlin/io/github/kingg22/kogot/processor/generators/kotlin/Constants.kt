@@ -66,6 +66,7 @@ val REGISTER_SIGNAL_PARAM_CLASS_NAME = ClassName("$GODOT_PKG.api.annotations", "
 val VARIANT_CLASS_NAME = ClassName("$GODOT_PKG.api.builtin", "Variant")
 val VARIANT_TYPE_CLASS_NAME = VARIANT_CLASS_NAME.nestedClass("Type")
 val TO_VARIANT = MemberName("$GODOT_PKG.api.builtin", "toVariant", true)
+val COPY_RETURN_VARIANT = MemberName(GODOT_INTERNAL_BINDING_PKG, "copyReturnVariant")
 val VARIANT_GET_VALUE = MemberName("$GODOT_PKG.api.builtin", "getValue", true)
 val VARIANT_GET_VALUE_OR_NULL = MemberName("$GODOT_PKG.api.builtin", "getValueOrNull", true)
 val VECTOR2_CLASS_NAME = ClassName("$GODOT_PKG.api.builtin", "Vector2")
@@ -96,7 +97,6 @@ val ENUM_MASK_CLASS_NAME = ClassName(GODOT_PKG, "EnumMask")
 
 val TO_ENUM_MASK = MemberName(GODOT_PKG, "toEnumMask")
 val GET_INSTANCE_PTR = MemberName(GODOT_INTERNAL_BINDING_PKG, "getInstance", true)
-val VARIANT_BINDING = ClassName(GODOT_INTERNAL_BINDING_PKG, "VariantBinding")
 val CallErrorWritePtr = MemberName(GODOT_INTERNAL_BINDING_PKG, "write", true)
 
 private const val GODOT_INTERNAL_SCRIPT_PKG = "$GODOT_PKG.internal.script"

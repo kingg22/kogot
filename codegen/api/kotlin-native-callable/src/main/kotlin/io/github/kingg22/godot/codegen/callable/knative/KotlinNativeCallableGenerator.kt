@@ -115,6 +115,11 @@ class KotlinNativeCallableGenerator(private val packageRegistry: PackageRegistry
                 `FLOAT` values may be received as [Int]/[Short] and [Float], and `STRING` as [String].
                 Parameter and return types must be Variant compatible, with the same rules both ways (see [%T]);
                 the kogot compiler plugin checks it.
+
+                **Ownership:** an argument of a closeable type (`Variant`, `StringName`, `NodePath`, `Callable`,
+                `Signal`, `Dictionary`, `GodotArray`, the packed arrays) is a new wrapper on every call, owned by the
+                lambda: close it (`use { }`) or keep it, otherwise it leaks. Primitives, [String] and objects need
+                nothing. The value the lambda returns is converted and freed by the binding.
                 """.trimIndent(),
                 callable,
                 arity,

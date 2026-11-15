@@ -11,6 +11,10 @@ import io.github.kingg22.godot.api.utils.GD
  * Both are idempotent and safe after the connection is gone: a `ONE_SHOT` connection already fired, the emitter was
  * freed (Godot drops its connections with it), or the same callable was connected again through a newer handle,
  * which then owns that connection.
+ *
+ * **Always close it**, also once the connection is gone by itself: the handle holds the `Callable` and the `Signal`,
+ * and through them the handler and everything it captures. A handle that is dropped without [close] leaks them; a
+ * `Cleaner` safety net for that is #221.
  */
 public class SignalConnection internal constructor(
     private val ownerId: Long,

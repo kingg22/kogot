@@ -2,13 +2,17 @@
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.annotations.Godot
+import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.GodotArray
+import io.github.kingg22.godot.api.builtin.Signal
 import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.from
 import io.github.kingg22.godot.api.builtin.getValue
+import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.api.core.refcounted.Resource
 import io.github.kingg22.godot.api.singleton.Os
+import io.github.kingg22.godot.binding.instantiate
 import io.github.kingg22.godot.internal.binding.ObjectBinding
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -31,6 +35,7 @@ private fun cHeapInUse(): Long = mallinfo().useContents { uordblks.toLong() + hb
 
     override fun _ready() {
         constructors()
+        variantPaths()
         getTree().quit(checks.finish())
     }
 
@@ -46,6 +51,40 @@ private fun cHeapInUse(): Long = mallinfo().useContents { uordblks.toLong() + hb
             Variant.from(resource).use { expect(it.getValue<Resource>() === resource) { "read back another wrapper" } }
         }
         noGrowth("Node() constructor (#214)") { ObjectBinding.destroyRaw(Node().rawPtr) }
+    }
+
+    // The Any? below is deliberate: it is the caller-owned Variant the overloads must not close.
+    @Suppress("MUST_BE_VARIANT_UNKNOWN_TYPE")
+    private fun variantPaths() = with(checks) {
+        val emitter = Node()
+        val signalName = "native_leak_probe".toStringName()
+        emitter.addUserSignal("native_leak_probe")
+        val text = "an argument long enough to be its own engine allocation (#219)"
+        check("a Variant passed as Any? stays owned by the caller (#219)") {
+            Variant.from(42L).use { variant ->
+                val any: Any? = variant
+                val _ = emitter.emitSignal(signalName, any)
+                Signal(emitter, signalName).use { it.emit(any) }
+                expect(variant.toString() == "42") { "the caller's Variant was closed: $variant" }
+            }
+        }
+        noGrowth("GodotObject.emitSignal(name, Any?) (#219)") { val _ = emitter.emitSignal(signalName, text) }
+        Signal(emitter, signalName).use { signal ->
+            noGrowth("Signal.emit(Any?) (#219)") { signal.emit(text) }
+        }
+        Callable { -> text }.use { callable ->
+            noGrowth("a Callable lambda's return value (#219)") { callable.call().close() }
+        }
+        val user = instantiate<DowncastDerived>()
+        "baseValue".toStringName().use { name ->
+            noGrowth("an @Export getter (#219)") { user.get(name).close() }
+        }
+        "baseGreeting".toStringName().use { name ->
+            noGrowth("an @ExportMethod return value (#219)") { user.call(name).close() }
+        }
+        user.queueFree()
+        signalName.close()
+        ObjectBinding.destroyRaw(emitter.rawPtr)
     }
 
     /** [call] 20,000 times must grow neither the C heap nor the engine memory by more than a small margin. */

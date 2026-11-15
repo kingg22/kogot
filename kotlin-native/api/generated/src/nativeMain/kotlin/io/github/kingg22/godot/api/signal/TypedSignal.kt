@@ -5,6 +5,7 @@ import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.Signal
 import io.github.kingg22.godot.api.builtin.StringName
 import io.github.kingg22.godot.api.builtin.Variant
+import io.github.kingg22.godot.api.builtin.internal.withVariants
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.api.internal.UsedFromCodegenGeneratedCode
 import io.github.kingg22.godot.api.internal.checkGodotError
@@ -50,17 +51,16 @@ public class TypedSignal<F : Function<Unit>> @PublishedApi internal constructor(
 
     /**
      * Emits through [GodotObject.emitSignal], the only path that reports errors (the builtin [Signal.emit] drops
-     * them). [variants] are the converted [values]: the ones created for this call are closed, a value that already
-     * was a [Variant] stays owned by the caller.
+     * them). Each of [values] is converted to a [Variant] here: the ones created for this call are closed afterwards,
+     * also when a later conversion throws (#219), and a value that already was a [Variant] stays owned by the caller.
      */
     @PublishedApi
     @UsedFromCodegenGeneratedCode
-    internal fun emitArguments(values: Array<out Any?>, variants: Array<Variant>): GodotError {
-        try {
-            checkOpen()
-            return StringName(name).use { owner.emitSignal(it, *variants) }
-        } finally {
-            variants.forEachIndexed { i, variant -> if (variant !== values[i]) variant.close() }
+    internal fun emitArguments(values: Array<out Any?>): GodotError {
+        checkOpen()
+        if (values.isEmpty()) return StringName(name).use { owner.emitSignal(it) }
+        return withVariants(values[0], values.copyOfRange(1, values.size)) { variants ->
+            StringName(name).use { owner.emitSignal(it, *variants) }
         }
     }
 

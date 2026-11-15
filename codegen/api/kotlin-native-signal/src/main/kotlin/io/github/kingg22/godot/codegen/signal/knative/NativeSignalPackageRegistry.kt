@@ -9,7 +9,6 @@ class NativeSignalPackageRegistry(override val rootPackage: String) : PackageReg
         put("Callable", builtin)
         put("Variant", builtin)
         put("MustBeVariant", builtin)
-        put("toVariant", builtin)
         put("GodotError", "$rootPackage.api")
         put("GodotObject", "$rootPackage.api.core")
         put("TypedSignal", "$rootPackage.api.signal")

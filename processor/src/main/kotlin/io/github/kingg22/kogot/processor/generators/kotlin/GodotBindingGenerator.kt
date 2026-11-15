@@ -294,12 +294,9 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
             .beginGuardedCall("${classType.simpleName}.$propName (get)")
             .addStatement("val obj = instancePtr.%M<%T>()", GET_INSTANCE_PTR, classType)
             .beginControlFlow("if (returnValue != null)")
-            .addStatement(
-                "%T.newCopyRaw(returnValue, obj.%L.%M().rawPtr)",
-                VARIANT_BINDING,
-                propName,
-                TO_VARIANT,
-            )
+            // Frees the converted Variant once the engine has its copy (#219).
+            .addStatement("val value = obj.%L", propName)
+            .addStatement("%M(returnValue, value.%M(), value)", COPY_RETURN_VARIANT, TO_VARIANT)
             .endControlFlow()
             .addStatement("rError.%M()", CallErrorWritePtr)
             .endGuardedCall()
@@ -459,7 +456,7 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
             builder
                 .addStatement("val result = $callFormat", function.name)
                 .beginControlFlow("if (returnValue != null)")
-                .addStatement("%T.newCopyRaw(returnValue, result.%M().rawPtr)", VARIANT_BINDING, TO_VARIANT)
+                .addStatement("%M(returnValue, result.%M(), result)", COPY_RETURN_VARIANT, TO_VARIANT)
                 .endControlFlow()
         } else {
             builder.addStatement(callFormat, function.name)

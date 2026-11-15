@@ -12,8 +12,8 @@ private const val MAX_SIGNAL_ARITY = 23
  * Generates the typed `emit` and `connect` extensions of `TypedSignal`, one overload per arity (0..[MAX_SIGNAL_ARITY]).
  *
  * The receiver `TypedSignal<(P1, ..., Pn) -> Unit>` selects the overload, so the call site needs no type arguments.
- * Type parameters are `reified` (arguments are converted with `toVariant`, handlers through the typed `Callable`
- * factories) and carry `@MustBeVariant`, so the kogot compiler plugin validates them at the call site.
+ * Type parameters are `reified` (arguments are converted by `TypedSignal.emitArguments`, handlers through the typed
+ * `Callable` factories) and carry `@MustBeVariant`, so the kogot compiler plugin validates them at the call site.
  */
 class KotlinNativeSignalGenerator(private val packageRegistry: PackageRegistry) {
     private val typedSignal = packageRegistry.classNameForOrDefault("TypedSignal")
@@ -22,7 +22,6 @@ class KotlinNativeSignalGenerator(private val packageRegistry: PackageRegistry) 
     private val mustBeVariant = packageRegistry.classNameForOrDefault("MustBeVariant")
     private val godotError = packageRegistry.classNameForOrDefault("GodotError")
     private val connectFlags = packageRegistry.classNameForOrDefault("GodotObject").nestedClass("ConnectFlags")
-    private val toVariant = MemberName(packageRegistry.packageForOrDefault("toVariant"), "toVariant")
 
     fun generate(): Sequence<FileSpec> = sequence {
         yield(
@@ -81,15 +80,10 @@ class KotlinNativeSignalGenerator(private val packageRegistry: PackageRegistry) 
             .returns(godotError)
         names.zip(parameterTypes(arity)).forEach { (name, type) -> builder.addParameter(name, type) }
         return if (arity == 0) {
-            builder.addStatement("return emitArguments(emptyArray(), emptyArray())").build()
+            builder.addStatement("return emitArguments(emptyArray())").build()
         } else {
-            builder
-                .addStatement(
-                    "return emitArguments(arrayOf<Any?>(%L), arrayOf(%L))",
-                    names.joinToString(", "),
-                    names.map { CodeBlock.of("%N.%M()", it, toVariant) }.joinToCode(", "),
-                )
-                .build()
+            // emitArguments converts them, so a conversion that throws cannot leak the ones before it (#219).
+            builder.addStatement("return emitArguments(arrayOf<Any?>(%L))", names.joinToString(", ")).build()
         }
     }
 

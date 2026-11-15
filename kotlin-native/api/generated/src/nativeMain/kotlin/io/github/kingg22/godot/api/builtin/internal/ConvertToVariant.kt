@@ -80,3 +80,47 @@ internal fun anyToVariantOrNull(element: @MustBeVariant Any?): Variant? = when (
 @PublishedApi
 internal fun anyToVariant(element: @MustBeVariant Any?): Variant =
     anyToVariantOrNull(element) ?: error("Unsupported type for Variant: $element (${element?.let { it::class }})")
+
+/**
+ * Runs [block] with [element] as a [Variant] and frees that `Variant` afterwards, unless it is [element] itself: a
+ * `Variant` passed in is the caller's and stays open. Used by the generated `Any?` overloads of the `Variant`
+ * parameters, which used to leak the `Variant` of every argument they converted (#219).
+ */
+@UsedFromCodegenGeneratedCode
+@ExperimentalGodotKotlin
+@PublishedApi
+internal inline fun <R> withVariant(element: @MustBeVariant Any?, block: (Variant) -> R): R {
+    val variant = anyToVariant(element)
+    try {
+        return block(variant)
+    } finally {
+        if (variant !== element) variant.close()
+    }
+}
+
+/**
+ * [withVariant] for a variadic call: [block] receives [first] and every element of [rest] as one array of
+ * `Variant`s, and the ones converted here are freed afterwards. If a conversion throws, the ones already made are
+ * freed too.
+ */
+@UsedFromCodegenGeneratedCode
+@ExperimentalGodotKotlin
+@PublishedApi
+internal inline fun <R> withVariants(
+    first: @MustBeVariant Any?,
+    rest: Array<out @MustBeVariant Any?>,
+    block: (Array<Variant>) -> R,
+): R {
+    val inputs = arrayOf(first, *rest)
+    val variants = arrayOfNulls<Variant>(inputs.size)
+    try {
+        for (i in inputs.indices) variants[i] = anyToVariant(inputs[i])
+        @Suppress("UNCHECKED_CAST")
+        return block(variants as Array<Variant>)
+    } finally {
+        for (i in inputs.indices) {
+            val variant = variants[i] ?: break
+            if (variant !== inputs[i]) variant.close()
+        }
+    }
+}
