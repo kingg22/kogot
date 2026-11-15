@@ -7,6 +7,7 @@ import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.FileLocation
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
@@ -47,16 +48,31 @@ fun KSClassDeclaration.toClassInfo(): ClassInfo {
 
     val supertypes = this.superTypes.mapNotNull { it.toTypeInfo() }.toList()
 
-    val properties = this.getAllProperties().map { it.toPropertyInfo() }.toList()
-    val functions = this.getAllFunctions().map { it.toFunctionInfo() }.toList()
+    // Members declared by a `@Godot` superclass are registered on that class, and Godot gives them to every subclass
+    // through the class hierarchy: registering them again here duplicates them ("already has signal", issue #212).
+    val properties = this.getAllProperties()
+        .filterNot { it.isDeclaredInAnotherGodotClass(this) }
+        .map { it.toPropertyInfo() }
+        .toList()
+    val functions = this.getAllFunctions()
+        .filterNot { it.isDeclaredInAnotherGodotClass(this) }
+        .map { it.toFunctionInfo() }
+        .toList()
 
     val filePath = this.containingFile?.filePath ?: UNKNOWN
     val line = this.getLineNumber()
 
-    val overriddenVirtualMethods = this.getDeclaredFunctions()
-        .filter { Modifier.OVERRIDE in it.modifiers }
-        .mapNotNull { it.findVirtualMethodOverride() }
-        .toList()
+    // Godot only asks the most derived class for its virtuals, so the ones a `@Godot` superclass overrides must be
+    // dispatched from here too (the trampoline calls the Kotlin override, which resolves to the most derived one).
+    val godotChain = listOf(this) + superclasses().takeWhile { it.isGodotAnnotated() }
+    val overriddenVirtualMethods = godotChain
+        .flatMap { cls ->
+            cls.getDeclaredFunctions()
+                .filter { Modifier.OVERRIDE in it.modifiers }
+                .mapNotNull { it.findVirtualMethodOverride() }
+        }
+        .distinctBy { it.godotName }
+    val engineBase = superclasses().firstOrNull { !it.isGodotAnnotated() }
 
     return ClassInfo(
         qualifiedName = qualifiedName,
@@ -70,7 +86,28 @@ fun KSClassDeclaration.toClassInfo(): ClassInfo {
         filePath = filePath,
         lineNumber = line,
         overriddenVirtualMethods = overriddenVirtualMethods,
+        engineBaseClassName = engineBase?.simpleName?.asString(),
     )
+}
+
+/** The superclass chain, nearest first (interfaces excluded). */
+private fun KSClassDeclaration.superclasses(): Sequence<KSClassDeclaration> = generateSequence(superclass()) {
+    it.superclass()
+}
+
+private fun KSClassDeclaration.superclass(): KSClassDeclaration? = superTypes
+    .mapNotNull { it.resolve().declaration as? KSClassDeclaration }
+    .firstOrNull { it.classKind == ClassKind.CLASS }
+
+private fun KSClassDeclaration.isGodotAnnotated(): Boolean = annotations.any { annotation ->
+    val decl = annotation.annotationType.resolve().declaration as? KSClassDeclaration
+    decl?.qualifiedName?.asString() == GODOT_ANNOTATION_FQN
+}
+
+/** `true` for a member of [owner] that a `@Godot` superclass of it declares, and so registers itself. */
+private fun KSDeclaration.isDeclaredInAnotherGodotClass(owner: KSClassDeclaration): Boolean {
+    val declaring = parentDeclaration as? KSClassDeclaration ?: return false
+    return declaring != owner && declaring.isGodotAnnotated()
 }
 
 /**

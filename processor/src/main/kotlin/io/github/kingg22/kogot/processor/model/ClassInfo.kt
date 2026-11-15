@@ -15,7 +15,20 @@ data class ClassInfo(
     val filePath: String = "",
     val lineNumber: Int = 0,
     val overriddenVirtualMethods: List<VirtualMethodOverride> = emptyList(),
+    /**
+     * Short name of the nearest engine class among the superclasses: the parent itself, or, when the parent is
+     * another `@Godot` class, the engine class at the root of that chain. `null` means the parent (see
+     * [engineBaseClassShortName]).
+     */
+    val engineBaseClassName: String? = null,
 )
+
+/**
+ * The engine class the native object of an instance is built as (`classdb_construct_object3`). Building the
+ * `@Godot` parent instead would run the parent's own `create_instance` and give one object two Kotlin instances
+ * (issue #212); the parent's members are reached through the class hierarchy registered with Godot anyway.
+ */
+fun ClassInfo.engineBaseClassShortName(): String? = engineBaseClassName ?: getParentClassShortName()
 
 /**
  * Returns true if this class has @Tool annotation.
@@ -55,18 +68,6 @@ fun ClassInfo.inheritsFromNode(): Boolean =
  */
 fun ClassInfo.hasGodotAnnotation(): Boolean =
     annotations.any { it.shortName == "Godot" || it.matches("io.github.kingg22.godot.api.Godot") }
-
-/**
- * Checks if this class inherits from Sprite2D (directly or transitively).
- */
-fun ClassInfo.inheritsFromSprite2D(): Boolean =
-    supertypes.any { it.qualifiedName == "io.github.kingg22.godot.api.core.node.Sprite2D" }
-
-/**
- * Checks if this class inherits from Node2D (directly or transitively).
- */
-fun ClassInfo.inheritsFromNode2D(): Boolean =
-    supertypes.any { it.qualifiedName == "io.github.kingg22.godot.api.core.node.Node2D" }
 
 /**
  * Returns the parent class short name (first supertype).

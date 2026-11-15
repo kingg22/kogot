@@ -22,13 +22,12 @@ import io.github.kingg22.kogot.processor.model.FunctionInfo
 import io.github.kingg22.kogot.processor.model.GodotPrimitives
 import io.github.kingg22.kogot.processor.model.PropertyInfo
 import io.github.kingg22.kogot.processor.model.SignalDeclaration
+import io.github.kingg22.kogot.processor.model.engineBaseClassShortName
 import io.github.kingg22.kogot.processor.model.getExportedMethods
 import io.github.kingg22.kogot.processor.model.getParentClassShortName
 import io.github.kingg22.kogot.processor.model.getRegisterSignalAnnotation
 import io.github.kingg22.kogot.processor.model.hasExport
 import io.github.kingg22.kogot.processor.model.hasGodotAnnotation
-import io.github.kingg22.kogot.processor.model.inheritsFromNode2D
-import io.github.kingg22.kogot.processor.model.inheritsFromSprite2D
 import io.github.kingg22.kogot.processor.resolver.DefaultVariantTypeResolver
 import io.github.kingg22.kogot.processor.resolver.VariantTypeResolver
 
@@ -101,12 +100,7 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
 
         val parentClassName = classInfo.getParentClassShortName()
             ?: error("No parent class")
-
-        val godotBaseClass = when {
-            classInfo.inheritsFromSprite2D() -> "Sprite2D"
-            classInfo.inheritsFromNode2D() -> "Node2D"
-            else -> parentClassName
-        }
+        val engineBaseClassName = classInfo.engineBaseClassShortName() ?: parentClassName
 
         val classType = ClassName.bestGuess(classInfo.qualifiedName)
 
@@ -118,7 +112,7 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
         val typeSpec = TypeSpec
             .objectBuilder(bindingClassName)
             .addAnnotation(InternalBindingClassName)
-            .generateRegisterFun(classInfo, classType, godotBaseClass)
+            .generateRegisterFun(classInfo, classType, parentClassName, engineBaseClassName)
             .build()
 
         fileSpec.addType(typeSpec)
@@ -136,19 +130,22 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
     private fun TypeSpec.Builder.generateRegisterFun(
         classInfo: ClassInfo,
         classType: ClassName,
-        baseClass: String,
+        parentClass: String,
+        engineBaseClass: String,
     ): TypeSpec.Builder = apply {
         val typeSpecBuilder = this
         val funSpec = FunSpec
             .builder("register")
             .addStatement("%M<%T>(", REGISTER_CLASS, classType)
             .addStatement("⇥%S,", classInfo.shortName)
-            .addStatement("%S,", baseClass)
+            // The class hierarchy Godot sees: the direct parent, a `@Godot` class or an engine one.
+            .addStatement("%S,", parentClass)
             .addStatement("%M { _, notifyPostInitialize ->", STATIC_C_FUNCTION)
+            // The native object is always built as the nearest engine class (see engineBaseClassShortName, #212).
             .addStatement(
                 "⇥%M(%S, %S, notifyPostInitialize == %T.%M, ::%T)⇤",
                 CREATE_INSTANCE_FUN,
-                baseClass,
+                engineBaseClass,
                 classInfo.shortName,
                 GDExtensionBoolClassName,
                 GDExtensionBoolTrueMember,
@@ -376,13 +373,31 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
         function: FunctionInfo,
         classType: ClassName,
     ): PropertySpec {
+        // A method without parameters never reads `args`: naming it would be an unused parameter (-Werror).
+        val argsName = if (function.parameters.isEmpty()) "_" else "args"
         val builder = CodeBlock
             .builder()
-            .beginControlFlow("%M { _, instancePtr, args, argCount, returnValue, rError ->", STATIC_C_FUNCTION)
+            .beginControlFlow(
+                "%M { _, instancePtr, %L, argCount, returnValue, rError ->",
+                STATIC_C_FUNCTION,
+                argsName,
+            )
             .beginGuardedCall("${classType.simpleName}.${function.name}")
             .addStatement("val obj = instancePtr.%M<%T>()", GET_INSTANCE_PTR, classType)
 
-        if (function.parameters.isNotEmpty()) {
+        if (function.parameters.isEmpty()) {
+            // Like an engine method bind: a call with arguments to a method that takes none is an error.
+            builder
+                .beginControlFlow("if (argCount != 0L)")
+                .addStatement(
+                    "rError.%M(%T.%N, argCount.toInt(), 0)",
+                    CallErrorWritePtr,
+                    GDExtensionCallErrorType,
+                    "GDEXTENSION_CALL_ERROR_TOO_MANY_ARGUMENTS",
+                )
+                .addStatement("return@%M", STATIC_C_FUNCTION)
+                .endControlFlow()
+        } else {
             val expected = function.parameters.size
             builder
                 .beginControlFlow("if (args == null || argCount != ${expected}L)")
