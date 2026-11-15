@@ -331,11 +331,11 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
             )
             .addStatement("return@%M", STATIC_C_FUNCTION)
             .endControlFlow()
-            .addStatement("val variantValue = %T(value)", VARIANT_CLASS_NAME)
+            // The Variant copy made to convert the argument is freed (#219).
             .addStatement(
-                "obj.%L = variantValue.%M<%T>()",
+                "obj.%L = %M<%T>(value)",
                 propName,
-                VARIANT_GET_VALUE_OR_NULL,
+                READ_ARGUMENT_OR_NULL,
                 typeResolver.toKotlinPoetType(variantType),
             )
             .withIndent {
@@ -430,10 +430,9 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
                 .addStatement("return@%M", STATIC_C_FUNCTION)
                 .endControlFlow()
                 .addStatement(
-                    "val %L = %T(rawArg$index).%M<%T>()",
+                    "val %L = %M<%T>(rawArg$index)",
                     argName,
-                    VARIANT_CLASS_NAME,
-                    VARIANT_GET_VALUE_OR_NULL,
+                    READ_ARGUMENT_OR_NULL,
                     kotlinType,
                 )
                 .withIndent {

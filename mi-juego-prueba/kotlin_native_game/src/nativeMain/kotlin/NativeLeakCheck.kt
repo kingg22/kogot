@@ -1,6 +1,8 @@
 @file:OptIn(ExperimentalForeignApi::class, ExperimentalGodotKotlin::class)
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
+import io.github.kingg22.godot.api.annotations.Export
+import io.github.kingg22.godot.api.annotations.ExportMethod
 import io.github.kingg22.godot.api.annotations.Godot
 import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.Color
@@ -28,6 +30,14 @@ import kotlinx.cinterop.ExperimentalForeignApi
  * then measures the engine memory only.
  */
 internal expect fun cHeapInUse(): Long?
+
+/** An `@Export` property and an `@ExportMethod` with an argument, to measure their trampolines (#219). */
+@Godot class LeakProbe(nativePtr: COpaquePointer) : Node(nativePtr) {
+    @Export var level: Int = 0
+
+    @ExportMethod
+    fun echo(value: Int): Int = value
+}
 
 /**
  * Live checks of the native leaks of #214 (generated constructors) and #219 (Variant paths)
@@ -87,6 +97,19 @@ internal expect fun cHeapInUse(): Long?
             noGrowth("an @ExportMethod return value (#219)") { user.call(name).close() }
         }
         user.queueFree()
+        val probe = instantiate<LeakProbe>()
+        "level".toStringName().use { name ->
+            Variant.from(5L).use { value ->
+                noGrowth("an @Export setter (#219)") { probe.set(name, value) }
+                expect(probe.level == 5) { "level=${probe.level}" }
+            }
+        }
+        "echo".toStringName().use { name ->
+            Variant.from(7L).use { value ->
+                noGrowth("an @ExportMethod argument (#219)") { probe.call(name, value).close() }
+            }
+        }
+        ObjectBinding.destroyRaw(probe.rawPtr)
         signalName.close()
         ObjectBinding.destroyRaw(emitter.rawPtr)
         // A Color is a value type whose own storage is never freed yet (#216), so only the engine memory is
