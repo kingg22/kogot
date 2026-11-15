@@ -99,6 +99,17 @@ public fun dropReturnedReference(rawPtr: GDExtensionObjectPtr) {
     val _ = unreferenceAndDestroyIfLast(rawPtr)
 }
 
+/**
+ * Gives back the reference that `classdb_construct_object3` hands to whoever creates an object, when that creator is
+ * Kotlin itself (`instantiate<T>()`, the binding's own script classes) rather than the engine. The `@Godot` instance
+ * already owns its own reference (taken by `createInstanceFunc`), so the object stays alive as long as Kotlin uses
+ * it; without this release the creation reference would keep it alive forever (issue #213).
+ */
+@InternalBinding
+public fun releaseCreationReference(rawPtr: GDExtensionObjectPtr) {
+    val _ = unreferenceAndDestroyIfLast(rawPtr)
+}
+
 /** Takes one more engine reference on [rawPtr] (`RefCounted::reference()`); safe from any thread, the count is atomic. */
 private fun takeReference(rawPtr: GDExtensionObjectPtr) {
     val _ = RefCounted(rawPtr).reference()

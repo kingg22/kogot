@@ -3,6 +3,7 @@ package io.github.kingg22.godot.internal.binding
 import io.github.kingg22.godot.api.GodotNotification
 import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.GodotObject
+import io.github.kingg22.godot.api.core.RefCounted
 import io.github.kingg22.godot.internal.ffi.*
 import kotlinx.cinterop.*
 import kotlin.contracts.InvocationKind
@@ -23,7 +24,7 @@ import kotlin.contracts.contract
 @InternalBinding
 public val notificationFunc: GDExtensionClassNotification2 = staticCFunction { instancePtr, what, _ ->
     guardCallback("kogot._notification") {
-        (instancePtr?.asStableRef<Any>()?.get() as? GodotNotification)?._notification(what)
+        (instancePtr.instanceOrNull() as? GodotNotification)?._notification(what)
     }
 }
 
@@ -31,6 +32,12 @@ public val notificationFunc: GDExtensionClassNotification2 = staticCFunction { i
  * Creates a create_instance function for the given class.
  *
  * Must be called with [staticCFunction]
+ *
+ * The instance is registered through an [InstanceHandle] (see there). A `RefCounted` instance additionally owns one
+ * engine reference of its own, given back by its cleaner once Kotlin no longer uses it (issue #114, #213): the object
+ * then lives exactly as long as either the engine or Kotlin uses it. The reference `classdb_construct_object3` hands
+ * to the creator is untouched here: the engine keeps it when the engine instantiates the class, and Kotlin-side
+ * creators give it back (see [createInstanceFromKotlin]).
  *
  * @param T The class type to instantiate
  * @param parentClassName The Godot parent class name (e.g., "Node2D", "Sprite2D")
@@ -60,8 +67,7 @@ public fun <T : GodotObject> createInstanceFunc(
             reportCallbackFailure("$className.<init>", t)
             return null
         }
-        val selfRef = StableRef.create(instance)
-        val selfPtr = selfRef.asCPointer()
+        val selfPtr = createInstanceData(instance, base)
 
         className.toStringName().use { str ->
             ObjectBinding.setInstanceRaw(
@@ -75,9 +81,8 @@ public fun <T : GodotObject> createInstanceFunc(
             ObjectBinding.setInstanceBindingRaw(
                 pO = base,
                 pToken = BindingProcAddressHolder.library,
-                // Mirrors `instance` for castTo/GD.load/instantiate<T>() lookups (issue #114) — the
-                // instance itself is kept alive for its whole native lifetime by `setInstanceRaw`
-                // above, so this mirror is safe to be a weak reference; see wrapForEagerBinding.
+                // Mirrors `instance` for castTo/GD.load/instantiate<T>() lookups (issue #114). The instance's
+                // lifetime is governed by the InstanceHandle registered above, so this mirror is weak.
                 pBinding = wrapForEagerBinding(instance),
                 pCallbacks = cValue<GDExtensionInstanceBindingCallbacks> {
                     create_callback = null
@@ -86,6 +91,9 @@ public fun <T : GodotObject> createInstanceFunc(
                 }.ptr,
             )
         }
+
+        // After object_set_instance: the reference() fires reference_func, which needs the instance data.
+        if (instance is RefCounted) attachRefCountedRelease(instance, base, takeOwnReference = true)
 
         // Send NOTIFICATION_POSTINITIALIZE if Godot requests it
         if (notifyPostInitialize) {
@@ -97,6 +105,64 @@ public fun <T : GodotObject> createInstanceFunc(
         reportCallbackFailure("$className.create_instance (base $parentClassName)", t)
         return null
     }
+}
+
+/**
+ * For the binding's own Kotlin-side creation of a `@Godot` class (the script classes, `instantiate<T>()`): creates
+ * the object through [createInstanceFunc] and returns the canonical Kotlin instance, not a second wrapper around the
+ * same pointer. For a `RefCounted`, the reference `classdb_construct_object3` handed to the creator is given back
+ * right away, so the instance's own reference is the only one Kotlin holds (issue #213). Returns `null` if the
+ * creation failed (already reported).
+ */
+@InternalBinding
+public fun <T : GodotObject> createInstanceFromKotlin(
+    parentClassName: String,
+    className: String,
+    factory: (parentPtr: GDExtensionObjectPtr) -> T,
+): T? {
+    var created: T? = null
+    // No NOTIFICATION_POSTINITIALIZE, as before for these Kotlin-side creations (see #214 for sending it).
+    val ptr = createInstanceFunc(parentClassName, className, notifyPostInitialize = false) { base ->
+        factory(base).also { created = it }
+    } ?: return null
+    val instance = created ?: return null
+    if (instance is RefCounted) releaseCreationReference(ptr)
+    return instance
+}
+
+/**
+ * `reference_func` / `unreference_func` of every registered class: Godot calls them on the 1↔2 refcount transitions
+ * of a `RefCounted`, from any thread, and never for other objects. Keeps the [InstanceHandle] strong while the engine
+ * holds references besides the instance's own one (refcount above 1), weak otherwise (issue #114).
+ *
+ * The refcount is read again after switching, so a transition racing on another thread leaves the handle matching
+ * the latest count instead of the one this call started from.
+ */
+private fun syncInstanceStrength(instancePtr: GDExtensionClassInstancePtr?) {
+    val handle = instancePtr?.asStableRef<Any>()?.get() as? InstanceHandle ?: return
+    val refCounted = RefCounted(handle.rawPtr)
+    var count = refCounted.getReferenceCount()
+    while (true) {
+        if (count > 1) {
+            // false: already collected, the object goes on without its Kotlin half (see InstanceHandle).
+            val _ = handle.makeStrong()
+        } else {
+            handle.makeWeak()
+        }
+        val latest = refCounted.getReferenceCount()
+        if ((latest > 1) == (count > 1)) return
+        count = latest
+    }
+}
+
+@InternalBinding
+public val referenceFunc: GDExtensionClassReference = staticCFunction { instancePtr ->
+    guardCallback("kogot.reference") { syncInstanceStrength(instancePtr) }
+}
+
+@InternalBinding
+public val unreferenceFunc: GDExtensionClassUnreference = staticCFunction { instancePtr ->
+    guardCallback("kogot.unreference") { syncInstanceStrength(instancePtr) }
 }
 
 /**
@@ -123,7 +189,7 @@ public val createToStringFunc: GDExtensionClassToString = staticCFunction { inst
 
     isValidPtr.pointed.value = GDExtensionBool.FALSE
     guardCallback("kogot.to_string") {
-        val toStringMsg = instancePtr.asStableRef<Any>().get().toString().utf16
+        val toStringMsg = instancePtr.instanceOrNull().toString().utf16
         memScoped {
             StringBinding.newWithUtf16CharsRaw(outStrPtr, toStringMsg.ptr)
         }
@@ -153,8 +219,8 @@ public fun classCreationInfo6(
     validate_property_func = null
     notification_func = notificationFunc
     to_string_func = createToStringFunc
-    reference_func = null
-    unreference_func = null
+    reference_func = referenceFunc
+    unreference_func = unreferenceFunc
     recreate_instance_func = null
     get_virtual_func = getVirtual
     get_virtual_call_data_func = null

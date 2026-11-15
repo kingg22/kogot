@@ -10,7 +10,7 @@ import io.github.kingg22.godot.api.builtin.toVariant
 import io.github.kingg22.godot.api.core.refcounted.ResourceFormatLoader
 import io.github.kingg22.godot.api.singleton.ProjectSettings
 import io.github.kingg22.godot.internal.binding.InternalBinding
-import io.github.kingg22.godot.internal.binding.createInstanceFunc
+import io.github.kingg22.godot.internal.binding.createInstanceFromKotlin
 import io.github.kingg22.godot.internal.script.KotlinScriptRegistry.KOTLIN_SCRIPT_EXTENSION
 import kotlinx.cinterop.COpaquePointer
 
@@ -50,18 +50,16 @@ public class KotlinResourceFormatLoader(nativePtr: COpaquePointer) : ResourceFor
         val normalizedPath = globalizedPath(path.toKString())
         val entry = KotlinScriptRegistry[normalizedPath] ?: return GodotError.FILE_NOT_FOUND.value.toVariant()
 
-        // The factory below is what `createInstanceFunc` StableRef-binds to the native pointer — every
-        // virtual call (`_can_instantiate`, `_is_valid`, ...) dispatches to THIS Kotlin object via that
-        // binding, not to whatever gets constructed afterward. Building a second `KotlinScript(scriptPtr,
-        // ...)` here to carry `entry`'s values (as an earlier version of this did) silently leaves the
-        // bound instance on its all-empty defaults — `_canInstantiate()` then reports false forever. A
-        // fresh `KotlinScript(scriptPtr)` below is still needed to return a `Variant`, but its own field
-        // values don't matter for that: `toVariant()` only wraps the shared native pointer.
-        val scriptPtr = createInstanceFunc("ScriptExtension", "KotlinScript", false) { ptr ->
+        // The canonical instance (the one every virtual call `_can_instantiate`, `_is_valid`, ... dispatches to)
+        // carries `entry`'s values; returning a second `KotlinScript(ptr)` wrapper, as an earlier version did, split
+        // the identity and left the creation reference behind, so every load grew the refcount by one and the
+        // script leaked at exit (issue #213). The script owns its own reference; the returned Variant adds the
+        // engine's. Can run on a loader worker thread: everything here is thread-safe (see docs/threading-model.md).
+        val script = createInstanceFromKotlin("ScriptExtension", "KotlinScript") { ptr ->
             KotlinScript(ptr, normalizedPath, entry.className, entry.baseClassName)
         } ?: return GodotError.CANT_CREATE.value.toVariant()
 
-        return KotlinScript(scriptPtr).toVariant()
+        return script.toVariant()
     }
 
     private fun globalizedPath(path: String): String = ProjectSettings.instance.globalizePath(path)

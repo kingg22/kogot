@@ -13,6 +13,7 @@ import io.github.kingg22.godot.api.utils.GD
 import io.github.kingg22.godot.api.utils.pushError
 import io.github.kingg22.godot.internal.binding.InternalBinding
 import io.github.kingg22.godot.internal.binding.ObjectBinding
+import io.github.kingg22.godot.internal.binding.createInstanceFromKotlin
 import io.github.kingg22.godot.internal.binding.createInstanceFunc
 import io.github.kingg22.godot.internal.binding.registerClass
 import io.github.kingg22.godot.internal.binding.resolveVirtualCall
@@ -300,34 +301,22 @@ public object KotlinScriptRegistration {
             },
         )
 
-        val languagePtr = createInstanceFunc(
-            "ScriptLanguageExtension",
-            "KotlinScriptLanguage",
-            false,
-            ::KotlinScriptLanguage,
-        ) ?: error("Failed to create the KotlinScriptLanguage singleton")
-        language = KotlinScriptLanguage(languagePtr)
+        // The canonical instances (the ones the engine dispatches virtual calls to), not second wrappers of the
+        // same pointers. The loader and saver are RefCounted and own their reference; the engine adds its own when
+        // they are registered with it below (issue #213).
+        language = createInstanceFromKotlin("ScriptLanguageExtension", "KotlinScriptLanguage", ::KotlinScriptLanguage)
+            ?: error("Failed to create the KotlinScriptLanguage singleton")
         checkGodotError(
             "Kotlin Script Language registration to engine",
             Engine.instance.registerScriptLanguage(language),
         )
 
-        val loaderPtr = createInstanceFunc(
-            "ResourceFormatLoader",
-            "KotlinResourceFormatLoader",
-            false,
-            ::KotlinResourceFormatLoader,
-        ) ?: error("Failed to create the KotlinResourceFormatLoader singleton")
-        loader = KotlinResourceFormatLoader(loaderPtr)
+        loader = createInstanceFromKotlin("ResourceFormatLoader", "KotlinResourceFormatLoader", ::KotlinResourceFormatLoader)
+            ?: error("Failed to create the KotlinResourceFormatLoader singleton")
         ResourceLoader.instance.addResourceFormatLoader(loader)
 
-        val saverPtr = createInstanceFunc(
-            "ResourceFormatSaver",
-            "KotlinResourceFormatSaver",
-            false,
-            ::KotlinResourceFormatSaver,
-        ) ?: error("Failed to create the KotlinResourceFormatSaver singleton")
-        saver = KotlinResourceFormatSaver(saverPtr)
+        saver = createInstanceFromKotlin("ResourceFormatSaver", "KotlinResourceFormatSaver", ::KotlinResourceFormatSaver)
+            ?: error("Failed to create the KotlinResourceFormatSaver singleton")
         ResourceSaver.instance.addResourceFormatSaver(saver)
     }
 
@@ -357,19 +346,12 @@ public object KotlinScriptRegistration {
             ObjectBinding.destroyRaw(language.rawPtr)
         }
 
-        // KotlinResourceFormatLoader / -Saver are RefCounted. kogot never runs reference counting on
-        // its wrappers, so the reference taken at construction is still outstanding after the engine
-        // drops its own: remove from the engine's Ref<> array first, then release that construction
-        // reference and free if it was the last one (the Ref<T> destructor pattern). Both paths call
-        // back into freeInstanceFunc, which disposes the StableRef.
-        if (::loader.isInitialized) {
-            ResourceLoader.instance.removeResourceFormatLoader(loader)
-            if (loader.unreference()) ObjectBinding.destroyRaw(loader.rawPtr)
-        }
-        if (::saver.isInitialized) {
-            ResourceSaver.instance.removeResourceFormatSaver(saver)
-            if (saver.unreference()) ObjectBinding.destroyRaw(saver.rawPtr)
-        }
+        // KotlinResourceFormatLoader / -Saver are RefCounted: their own reference was already given back by
+        // releaseAllPendingRefCountedReferences(), which the generated onDeInitScene() runs first (issue #114).
+        // Removing them from the engine drops the last reference, and the engine frees them (calling back into
+        // freeInstanceFunc). Releasing a reference here by hand as well would be a double release.
+        if (::loader.isInitialized) ResourceLoader.instance.removeResourceFormatLoader(loader)
+        if (::saver.isInitialized) ResourceSaver.instance.removeResourceFormatSaver(saver)
 
         KotlinScriptRegistry.clear()
     }
