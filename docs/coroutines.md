@@ -140,7 +140,11 @@ pública para que `Dispatchers.Main` sea propio en nativo**:
 coroutines, es `injectMain`: directo (frágil y sin compilar con `-Werror`) o a través de `setMain` de
 `kotlinx-coroutines-test` (público, pero con costo por llamada y una dependencia de test en el juego).
 
-### Conclusión para kogot
+### Decisión para kogot
+
+kogot **no** toca `Dispatchers.Main`. kotlinx.coroutines no ofrece una forma oficial de hacerlo en nativo, y las dos
+vías que existen se descartan: `injectMain` con supresiones es API interna, y `setMain` es un artefacto de test que no
+tiene lugar en código de producción. La API es solo nuestra:
 
 1. Publicar `val Dispatchers.Godot: GodotDispatcher`, como `Dispatchers.Swing`, sobre una
    `sealed class GodotDispatcher : MainCoroutineDispatcher(), Delay`.
@@ -149,13 +153,13 @@ coroutines, es `injectMain`: directo (frágil y sin compilar con `-Werror`) o a 
    prototipo no lo implementa: `delay()` funciona, pero cuenta el tiempo en un hilo de kotlinx y luego despacha.
 4. Copiar el `cancelOnRejection` de Android: después de `shutdown_func`, un `dispatch` debe cancelar el contexto en
    lugar de dejar la tarea en una cola que ya nadie vacía.
-5. Por defecto, no tocar `Dispatchers.Main` en nativo. Ofrecer una instalación **opt-in** (algo como
-   `Dispatchers.installGodotAsMain()`) para quien use bibliotecas que dependen de `Dispatchers.Main` (Compose,
-   lifecycle), con su costo documentado. Mientras #4286 no se resuelva, la opción defendible es `setMain` de
-   `kotlinx-coroutines-test` en un módulo aparte de kogot, no `injectMain` con supresiones en el binding. En JVM/FFM, sí
-   registrar una `MainDispatcherFactory`.
-6. En macOS, `Dispatchers.Main` de kotlinx usa la cola principal de GCD. Funcionaría solo si Godot procesa el run loop
-   de Cocoa, que en `--headless` no está garantizado. No lo probé.
+5. Sin `Dispatchers.Main`: ni inyección, ni `setMain`, ni dependencia de `kotlinx-coroutines-test`. El usuario escribe
+   `withContext(Dispatchers.Godot)`. Las bibliotecas de terceros que usan `Dispatchers.Main` por su cuenta (Compose,
+   `androidx.lifecycle`) quedan fuera, y se documenta. Si kotlinx.coroutines publica una API oficial
+   ([Kotlin/kotlinx.coroutines#4286](https://github.com/Kotlin/kotlinx.coroutines/issues/4286)), se reevalúa.
+6. En macOS, `Dispatchers.Main` de kotlinx (la cola principal de GCD) no es el dispatcher de kogot. Funcionaría solo si
+   Godot procesa el run loop de Cocoa, lo que en `--headless` no está garantizado. No lo probé, y el usuario no debe
+   depender de eso.
 
 ## Costos y límites medidos
 
