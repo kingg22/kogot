@@ -25,6 +25,7 @@ import io.github.kingg22.godot.codegen.impl.createFile
 import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
+import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinClass
 import io.github.kingg22.godot.codegen.types.K_AUTOCLOSEABLE
 import io.github.kingg22.godot.codegen.utils.debug
@@ -345,6 +346,7 @@ class NativeBuiltinClassGenerator(
                 method,
                 builtinClass.name,
                 codeBody = body.buildMethodBody(method, builtinClass.name),
+                bodyFor = { args -> body.buildMethodBody(method, builtinClass.name, args) },
             )
             overloadGen.withVariantOverloads(
                 method,
@@ -384,7 +386,13 @@ class NativeBuiltinClassGenerator(
         // Si no hay config genérica, usar generador normal
         val original: FunSpec
         if (genericConfig == null) {
-            original = methodGen.buildMethod(method, className, codeBody = body.buildMethodBody(method, className)) {
+            original = methodGen.buildMethod(
+                method,
+                className,
+                codeBody = body.buildMethodBody(method, className),
+                // Closeable defaults (`GodotString("")`, ...) are built and freed per call (#232).
+                bodyFor = { args -> body.buildMethodBody(method, className, args) },
+            ) {
                 if (method.name == "get" || method.name == "set") addModifiers(KModifier.OPERATOR)
             }
         } else {
@@ -394,8 +402,20 @@ class NativeBuiltinClassGenerator(
             // Transformar con config genérica
             val transformedReturnType = genericConfig.transformReturnType(method, originalReturnType)
 
+            // An argument keeps a typed default marker (#232) only when its type is not made generic here.
+            val keepsType = { index: Int, arg: MethodArg ->
+                val originalType = typeResolver.resolve(arg)
+                genericConfig.transformParameterType(method, index, originalType) == originalType
+            }
+
             // Construir método con tipo transformado
-            original = methodGen.buildMethod(method, className, codeBody = body.buildMethodBody(method, className)) {
+            original = methodGen.buildMethod(
+                method,
+                className,
+                codeBody = body.buildMethodBody(method, className),
+                bodyFor = { args -> body.buildMethodBody(method, className, args) },
+                ownsDefaultIf = keepsType,
+            ) {
                 if (method.name == "get" || method.name == "set") addModifiers(KModifier.OPERATOR)
 
                 if (transformedReturnType != null && transformedReturnType != originalReturnType) {
@@ -407,9 +427,10 @@ class NativeBuiltinClassGenerator(
                 method.arguments.forEachIndexed { index, arg ->
                     val originalType = typeResolver.resolve(arg)
                     val transformedType = genericConfig.transformParameterType(method, index, originalType)
+                    val useMarker = methodGen.ownsDefault(arg) && keepsType(index, arg)
                     addParameter(
                         methodGen
-                            .buildParameter(arg)
+                            .buildParameter(arg, useMarker = useMarker)
                             .toBuilder(type = transformedType)
                             .build(),
                     )

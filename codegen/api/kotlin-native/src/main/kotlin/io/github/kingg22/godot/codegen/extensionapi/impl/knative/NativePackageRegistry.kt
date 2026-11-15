@@ -69,6 +69,9 @@ class NativePackageRegistry private constructor(private val typeToPackage: Map<S
             // Same, scoped: the Variant they build is closed after the call (#219).
             register("withVariant", "$rootPackage.api.builtin.internal")
             register("withVariants", "$rootPackage.api.builtin.internal")
+            // Default arguments that build a closeable builtin: a marker, and the real value per call (#232).
+            register("DefaultArguments", "$rootPackage.api.builtin.internal")
+            register("withDefaultArgument", "$rootPackage.api.builtin.internal")
             register("MustBeVariant", "$rootPackage.api.builtin")
 
             // Experimental marker of the unsafe Kotlin API (not of Godot's), put on the `Any?` overloads.

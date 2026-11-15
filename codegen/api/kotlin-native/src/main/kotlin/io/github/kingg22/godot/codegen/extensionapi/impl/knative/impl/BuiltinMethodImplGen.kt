@@ -10,6 +10,7 @@ import io.github.kingg22.godot.codegen.impl.renameGodotClass
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.impl.toScreamingSnakeCase
 import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
+import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedBuiltinClass
 import io.github.kingg22.godot.codegen.types.*
 
@@ -69,9 +70,13 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
 
     // ── Method body ───────────────────────────────────────────────────────────
 
+    /** [arguments]: the names the body reads the arguments under, see `EngineMethodImplGen.buildMethodBody` (#232). */
     context(context: Context)
-    fun buildMethodBody(method: BuiltinClass.BuiltinMethod, className: String): CodeBlock =
-        buildFixedArgsBody(method, methodFptrName(className, method))
+    fun buildMethodBody(
+        method: BuiltinClass.BuiltinMethod,
+        className: String,
+        arguments: List<MethodArg> = method.arguments,
+    ): CodeBlock = buildFixedArgsBody(method, methodFptrName(className, method), arguments)
 
     // ── Operator bodies & fptr naming ────────────────────────────────────────
 
@@ -582,7 +587,11 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
     }
 
     context(ctx: Context)
-    private fun buildFixedArgsBody(method: BuiltinClass.BuiltinMethod, propName: String): CodeBlock = buildCodeBlock {
+    private fun buildFixedArgsBody(
+        method: BuiltinClass.BuiltinMethod,
+        propName: String,
+        arguments: List<MethodArg>,
+    ): CodeBlock = buildCodeBlock {
         val returnType = method.returnType
         val hasReturn = returnType != null && returnType != "void"
         val resolvedReturn = if (hasReturn) typeResolver.resolve(returnType, null) else null
@@ -596,7 +605,7 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
         }
 
         // 2. Alloc primitive args
-        method.arguments.forEach { arg -> add(buildArgAlloc(arg, implPackageRegistry, typeResolver)) }
+        arguments.forEach { arg -> add(buildArgAlloc(arg, implPackageRegistry, typeResolver)) }
 
         // 3. Build p_base expression
         val pBase = if (method.isStatic) "null" else "rawPtr"
@@ -611,7 +620,7 @@ class BuiltinMethodImplGen(private val typeResolver: TypeResolver) {
         }
 
         // 4. Invoke
-        val argExpressions = method.arguments.joinToCode("") { arg ->
+        val argExpressions = arguments.joinToCode("") { arg ->
             argPointerExpression(arg, implPackageRegistry, typeResolver)
         }.let {
             if (method.isVararg) {

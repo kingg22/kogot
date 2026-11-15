@@ -15,6 +15,7 @@ import io.github.kingg22.godot.codegen.impl.buildLazyBlock
 import io.github.kingg22.godot.codegen.impl.ofStatement
 import io.github.kingg22.godot.codegen.impl.safeIdentifier
 import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
+import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.domain.ResolvedEngineClass
 import io.github.kingg22.godot.codegen.types.K_TODO
 import io.github.kingg22.godot.codegen.types.cinteropValue
@@ -118,8 +119,16 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
 
     // ── Method bodies ─────────────────────────────────────────────────────────
 
+    /**
+     * The body of [method]. [arguments] are the names the body reads the arguments under: [method]'s own, or with a
+     * defaulted argument renamed to the local that holds its real value (see `NativeMethodGenerator`, #232).
+     */
     context(_: Context)
-    fun buildMethodBody(method: EngineClass.ClassMethod, className: String): CodeBlock {
+    fun buildMethodBody(
+        method: EngineClass.ClassMethod,
+        className: String,
+        arguments: List<MethodArg> = method.arguments,
+    ): CodeBlock {
         if (method.isVirtual) {
             val rv = method.returnValue
             val returnType = rv?.type ?: rv?.meta
@@ -135,9 +144,9 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
             }
         }
         if (method.isVararg) {
-            return buildVarargBody(method, className)
+            return buildVarargBody(method, className, arguments)
         }
-        return buildPtrcallBody(method, className)
+        return buildPtrcallBody(method, className, arguments = arguments)
     }
 
     // ── Property bodies ───────────────────────────────────────────────────────
@@ -161,6 +170,7 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
         method: EngineClass.ClassMethod,
         className: String,
         setterMode: Boolean = false,
+        arguments: List<MethodArg> = method.arguments,
     ): CodeBlock {
         val objectBinding = implPackageRegistry.classNameForOrDefault("ObjectBinding")
         val propName = methodBindName(className, method)
@@ -183,7 +193,7 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
             }
 
             // 2. Arg allocs — last arg uses name "value" in setter mode
-            method.arguments.forEach { arg ->
+            arguments.forEach { arg ->
                 add(buildArgAlloc(arg, implPackageRegistry, typeResolver))
             }
 
@@ -191,7 +201,7 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
             val pObject = if (method.isStatic) "null" else "rawPtr"
 
             // 4. Invocation
-            val argPtrs = method.arguments.map { arg ->
+            val argPtrs = arguments.map { arg ->
                 argPointerExpression(arg, implPackageRegistry, typeResolver)
             } + buildList {
                 if (method.isVararg) {
@@ -294,7 +304,11 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
      * closes before returning.
      */
     context(ctx: Context)
-    private fun buildVarargBody(method: EngineClass.ClassMethod, className: String): CodeBlock {
+    private fun buildVarargBody(
+        method: EngineClass.ClassMethod,
+        className: String,
+        arguments: List<MethodArg> = method.arguments,
+    ): CodeBlock {
         val objectBinding = implPackageRegistry.classNameForOrDefault("ObjectBinding")
         val checkCallError = implPackageRegistry.memberNameForOrDefault("checkCallError")
         val propName = methodBindName(className, method)
@@ -313,7 +327,7 @@ class EngineMethodImplGen(private val typeResolver: TypeResolver) {
             addStatement("val retPtr = %T()", ctx.classNameForOrDefault("Variant"))
 
             // Materialize a named, closeable local for every fixed argument's Variant wrapper
-            val fixedArgLocals = method.arguments.mapIndexed { index, arg ->
+            val fixedArgLocals = arguments.mapIndexed { index, arg ->
                 val localName = "fixedArg${index}Variant"
                 addStatement("val %N = %L", localName, argVariantConstructorExpression(arg))
                 localName

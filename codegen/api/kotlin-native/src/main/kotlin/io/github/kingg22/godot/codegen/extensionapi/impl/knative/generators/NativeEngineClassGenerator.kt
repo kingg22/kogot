@@ -81,6 +81,8 @@ class NativeEngineClassGenerator(
                     // return write (VirtualCallImplGen.buildReturnWrite) already null-checks `result`
                     // before writing .rawPtr, so declaring the return type nullable is safe and required.
                     forceNullableEngineReturn = method.isVirtual,
+                    // A virtual has no engine call to scope its defaults around (#232).
+                    bodyFor = if (method.isVirtual) null else { args -> body.buildMethodBody(method, cls.name, args) },
                 ) {
                     if (method.isVirtual) {
                         addModifiers(KModifier.OPEN)
@@ -129,6 +131,7 @@ class NativeEngineClassGenerator(
                     method,
                     cls.name,
                     codeBody = body.buildMethodBody(method, cls.name),
+                    bodyFor = { args -> body.buildMethodBody(method, cls.name, args) },
                 )
 
                 companionBuilder.addFunctions(

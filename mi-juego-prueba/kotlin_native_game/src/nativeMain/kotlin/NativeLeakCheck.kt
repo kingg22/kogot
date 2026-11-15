@@ -9,6 +9,7 @@ import io.github.kingg22.godot.api.builtin.Signal
 import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.from
 import io.github.kingg22.godot.api.builtin.getValue
+import io.github.kingg22.godot.api.builtin.toGodotString
 import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.api.core.refcounted.Resource
@@ -38,6 +39,7 @@ internal expect fun cHeapInUse(): Long?
     override fun _ready() {
         constructors()
         variantPaths()
+        defaultArguments()
         getTree().quit(checks.finish())
     }
 
@@ -91,6 +93,26 @@ internal expect fun cHeapInUse(): Long?
         // measured here: that is where the leaked GodotString of the String constructor shows.
         noGrowth("Color(code: String) constructor (#219)", cHeap = false) { val _ = Color("#ff8800") }
         noGrowth("Color(code: String, alpha) constructor (#219)", cHeap = false) { val _ = Color("#ff8800", 0.5) }
+    }
+
+    /** Defaulted arguments of a closeable builtin type: each call used to build one and never close it (#232). */
+    private fun defaultArguments() = with(checks) {
+        val signal = "default_probe".toGodotString()
+        // `arguments: VariantArray = GodotArray()`: an engine Array per call.
+        noGrowth("addUserSignal(name) with its default arguments array (#232)") {
+            val node = Node()
+            node.addUserSignal(signal)
+            ObjectBinding.destroyRaw(node.rawPtr)
+        }
+        signal.close()
+        "default_probe_message".toStringName().use { message ->
+            // `context: StringName = StringName("")`.
+            noGrowth("tr(message) with its default context (#232)") { trAsGdStr(message).close() }
+        }
+        // `arguments: PackedStringArray = PackedStringArray()`.
+        noGrowth("OS.setRestartOnExit(restart) with its default arguments (#232)") {
+            Os.instance.setRestartOnExit(false)
+        }
     }
 
     /**

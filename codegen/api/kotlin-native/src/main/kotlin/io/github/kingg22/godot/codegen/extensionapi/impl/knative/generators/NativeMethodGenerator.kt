@@ -1,11 +1,13 @@
 package io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators
 
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.UNIT
+import com.squareup.kotlinpoet.buildCodeBlock
 import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.TypeResolver
 import io.github.kingg22.godot.codegen.extensionapi.resolver.addKdocIfPresent
@@ -65,6 +67,12 @@ class NativeMethodGenerator(
      *                       type stays exactly as resolved, unchanged.
      * @param block          Extra customisation applied to the [FunSpec.Builder] after the
      *                       body is set (KDoc additions, annotations, etc.).
+     * @param bodyFor        Builds the body for a given list of arguments. When given, an argument whose default
+     *                       value builds a closeable builtin ([defaultMarker]) defaults to its marker instead, and
+     *                       the body reads the real value from a local, built per call and freed after it (#232).
+     *                       [codeBody] is then unused.
+     * @param ownsDefaultIf  Narrows which arguments get that treatment, e.g. not one whose type a caller changes
+     *                       afterwards (a generic collection), where the typed marker would not fit.
      */
     context(context: Context)
     fun buildMethod(
@@ -74,6 +82,8 @@ class NativeMethodGenerator(
         vararg modifiers: KModifier,
         forceNullableEngineArgs: Boolean = false,
         forceNullableEngineReturn: Boolean = false,
+        bodyFor: ((arguments: List<MethodArg>) -> CodeBlock)? = null,
+        ownsDefaultIf: (index: Int, arg: MethodArg) -> Boolean = { _, _ -> true },
         block: FunSpec.Builder.() -> Unit = {},
     ): FunSpec {
         withExceptionContext({ "Generating method $className.'${method.name}'" }) {
@@ -112,12 +122,27 @@ class NativeMethodGenerator(
 
             val kotlinName = safeIdentifier(name).fixAccidentalOverride(name, returnTypeSpec)
 
+            // Arguments whose default builds a closeable builtin: their real value lives in a local (#232).
+            val ownedDefaults = if (bodyFor == null) {
+                emptyMap()
+            } else {
+                val taken = arguments.mapTo(mutableSetOf()) { safeIdentifier(it.name) }
+                arguments.withIndex()
+                    .filter { (i, arg) -> ownsDefault(arg) && ownsDefaultIf(i, arg) }
+                    .associate { (i, arg) -> i to uniqueLocal("${safeIdentifier(arg.name)}Gd", taken) }
+            }
+            val body = if (ownedDefaults.isEmpty()) {
+                codeBody
+            } else {
+                ownedDefaultBody(arguments, ownedDefaults, checkNotNull(bodyFor))
+            }
+
             val builder = FunSpec
                 .builder(kotlinName)
                 .addModifiers(*modifiers)
                 .returns(returnTypeSpec)
                 // Use the provided body override, otherwise fall back to the TODO() stub.
-                .addCode(codeBody)
+                .addCode(body)
                 .addKdocIfPresent(method)
                 .apply {
                     if (name != kotlinName) {
@@ -130,15 +155,25 @@ class NativeMethodGenerator(
                     }
                 }
                 .experimentalApiAnnotation(className, name)
+                .apply {
+                    // The body returns from inside the withDefaultArgument lambda (a non-local return, the lambda is
+                    // inline), so the compiler sees the end of that block as unreachable. The `use` that frees the
+                    // default still runs: it is a `finally`.
+                    if (ownedDefaults.isNotEmpty() && returnTypeSpec != UNIT) {
+                        addAnnotation(
+                            AnnotationSpec.builder(Suppress::class).addMember("%S", "UNREACHABLE_CODE").build(),
+                        )
+                    }
+                }
 
             // Fixed args always come first
-            arguments.forEach { arg ->
+            arguments.forEachIndexed { i, arg ->
                 require(!isVararg || safeIdentifier(arg.name) != "args") {
                     "Vararg method '$name' has a fixed arg named 'args' — rename it to avoid clash"
                 }
                 val forceNullable = forceNullableEngineArgs &&
                     (context.isEngineClass(arg.type) || context.isSingleton(arg.type))
-                builder.addParameter(buildParameter(arg, forceNullable))
+                builder.addParameter(buildParameter(arg, forceNullable, useMarker = i in ownedDefaults))
             }
 
             // Trailing vararg only after all fixed args
@@ -176,7 +211,7 @@ class NativeMethodGenerator(
      *                       virtual method stubs.
      */
     context(context: Context)
-    fun buildParameter(arg: MethodArg, forceNullable: Boolean = false): ParameterSpec {
+    fun buildParameter(arg: MethodArg, forceNullable: Boolean = false, useMarker: Boolean = false): ParameterSpec {
         withExceptionContext({
             "Generating parameter '${arg.name}': ${arg.type} (${arg.meta})} = ${arg.defaultValue ?: "--"}"
         }) {
@@ -193,7 +228,11 @@ class NativeMethodGenerator(
             // Default value
             arg.defaultValue?.let { value ->
                 paramBuilder.addKdoc("\nDefault value (unparsed): `%L`", value)
-                val defaultCode = defaultValueGenerator.generate(arg, type)
+                val defaultCode = if (useMarker) {
+                    defaultMarker(arg)
+                } else {
+                    defaultValueGenerator.generate(arg, type)
+                }
                 check(defaultCode?.isNotEmpty() == true) {
                     "Failed to generate default value for ${arg.name}: ${arg.type} = $value"
                 }
@@ -202,5 +241,81 @@ class NativeMethodGenerator(
 
             return paramBuilder.build()
         }
+    }
+
+    /** Whether [arg] has a default value that builds a closeable builtin, see [defaultMarker]. */
+    context(context: Context)
+    fun ownsDefault(arg: MethodArg): Boolean = arg.defaultValue != null && defaultMarker(arg) != null
+
+    /**
+     * The `DefaultArguments` marker of [arg]'s type when that type is a closeable builtin, else `null`. A default
+     * value of such a type would be built at each call site and never closed (#232); value types (`Vector2`, `Color`)
+     * are not closeable and are #216.
+     */
+    context(context: Context)
+    fun defaultMarker(arg: MethodArg): CodeBlock? {
+        val markers = context.classNameForOrDefault("DefaultArguments")
+        val member = when {
+            arg.type == "String" -> "string"
+
+            arg.type == "StringName" -> "stringName"
+
+            arg.type == "NodePath" -> "nodePath"
+
+            arg.type == "Callable" -> "callable"
+
+            arg.type == "Signal" -> "signal"
+
+            arg.type == "Variant" -> "variant"
+
+            arg.type == "Array" || arg.type.startsWith("typedarray::") -> return CodeBlock.of("%T.array()", markers)
+
+            arg.type == "Dictionary" || arg.type.startsWith("typeddictionary::") ->
+                return CodeBlock.of("%T.dictionary()", markers)
+
+            arg.type.startsWith("Packed") && arg.type.endsWith("Array") -> arg.type.replaceFirstChar { it.lowercase() }
+
+            else -> return null
+        }
+        return CodeBlock.of("%T.%N", markers, member)
+    }
+
+    /**
+     * The body of a method with [owned] default arguments: one `withDefaultArgument` block per argument, which hands
+     * the body either the caller's value or a fresh default it frees afterwards, under the local name of [owned].
+     */
+    context(context: Context)
+    private fun ownedDefaultBody(
+        arguments: List<MethodArg>,
+        owned: Map<Int, String>,
+        bodyFor: (arguments: List<MethodArg>) -> CodeBlock,
+    ): CodeBlock {
+        val withDefault = context.memberNameForOrDefault("withDefaultArgument")
+        val renamed = arguments.mapIndexed { i, arg -> owned[i]?.let { arg.copy(name = it) } ?: arg }
+        return buildCodeBlock {
+            owned.forEach { (i, local) ->
+                val arg = arguments[i]
+                val realDefault = checkNotNull(defaultValueGenerator.generate(arg, typeResolver.resolve(arg))) {
+                    "Failed to generate default value for ${arg.name}: ${arg.type}"
+                }
+                add(
+                    "%M(%N, %L, { %L }) { %N ->\n⇥",
+                    withDefault,
+                    safeIdentifier(arg.name),
+                    checkNotNull(defaultMarker(arg)),
+                    realDefault,
+                    local,
+                )
+            }
+            add(bodyFor(renamed))
+            repeat(owned.size) { add("⇤}\n") }
+        }
+    }
+
+    /** [base], or [base] with `_` appended until it clashes with no name in [taken] (which it then joins). */
+    private fun uniqueLocal(base: String, taken: MutableSet<String>): String {
+        var name = base
+        while (!taken.add(name)) name += "_"
+        return name
     }
 }

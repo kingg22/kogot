@@ -576,8 +576,11 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
     }
 
     context(context: Context)
-    fun buildMethodBody(method: BuiltinClass.BuiltinMethod, className: String): CodeBlock =
-        methodImplGen.buildMethodBody(method, className)
+    fun buildMethodBody(
+        method: BuiltinClass.BuiltinMethod,
+        className: String,
+        arguments: List<MethodArg> = method.arguments,
+    ): CodeBlock = methodImplGen.buildMethodBody(method, className, arguments)
 
     context(_: Context)
     fun buildHashCodeBody(resolvedClass: ResolvedBuiltinClass): CodeBlock =
