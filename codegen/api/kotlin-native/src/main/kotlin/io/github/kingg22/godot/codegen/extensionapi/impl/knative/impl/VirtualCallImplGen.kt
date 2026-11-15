@@ -16,6 +16,7 @@ import io.github.kingg22.godot.codegen.models.extensionapi.EngineClass
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodReturn
 import io.github.kingg22.godot.codegen.types.C_OPAQUE_POINTER_VAR
+import io.github.kingg22.godot.codegen.types.GUARD_CALLBACK
 import io.github.kingg22.godot.codegen.types.K_REQUIRE_NOT_NULL
 import io.github.kingg22.godot.codegen.types.LONG_VAR
 import io.github.kingg22.godot.codegen.types.cinteropGet
@@ -146,6 +147,9 @@ class VirtualCallImplGen(private val typeResolver: TypeResolver) {
                 argsParamName,
                 retParamName,
             )
+            // The user override runs here, on whatever thread the engine dispatches it from: a throw must not
+            // abort the process (issue #113). On failure the return slot keeps the engine's default value.
+            beginControlFlow("%M(%S)", GUARD_CALLBACK, "${engineClassName.simpleName}.${method.name}")
             addStatement("val instance = instancePtr.%M<%T>()", getInstanceMember, engineClassName)
 
             val argNames = method.arguments.mapIndexed { index, arg -> appendArgRead(arg, index) }
@@ -158,6 +162,7 @@ class VirtualCallImplGen(private val typeResolver: TypeResolver) {
                 addStatement(callExpr, kotlinMethodName)
             }
 
+            endControlFlow()
             endControlFlow()
         }
 

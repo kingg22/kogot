@@ -69,6 +69,9 @@ val ADOPT_RETURNED_REFERENCE = MemberName("io.github.kingg22.godot.internal.bind
 val TAKE_CONSTRUCTED_REFERENCE = MemberName("io.github.kingg22.godot.internal.binding", "takeConstructedReference")
 val ADOPT_CONSTRUCTED_REFERENCE = MemberName("io.github.kingg22.godot.internal.binding", "adoptConstructedReference")
 
+/** Wraps the body of every generated `staticCFunction` so no Kotlin exception crosses the C boundary (issue #113). */
+val GUARD_CALLBACK = MemberName("io.github.kingg22.godot.internal.binding", "guardCallback")
+
 val PRIMITIVE_NUMERIC_TYPES = setOf(
     "int8_t", "int8",
     "short", "int16_t", "int16",

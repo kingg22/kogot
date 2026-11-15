@@ -294,6 +294,7 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
         val initializer = CodeBlock
             .builder()
             .beginControlFlow("%M { _, instancePtr, _, _, returnValue, rError ->", STATIC_C_FUNCTION)
+            .beginGuardedCall("${classType.simpleName}.$propName (get)")
             .addStatement("val obj = instancePtr.%M<%T>()", GET_INSTANCE_PTR, classType)
             .beginControlFlow("if (returnValue != null)")
             .addStatement(
@@ -304,6 +305,7 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
             )
             .endControlFlow()
             .addStatement("rError.%M()", CallErrorWritePtr)
+            .endGuardedCall()
             .endControlFlow()
             .build()
 
@@ -322,6 +324,7 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
         val initializer = CodeBlock
             .builder()
             .beginControlFlow("%M { _, instancePtr, args, _, _, rError ->", STATIC_C_FUNCTION)
+            .beginGuardedCall("${classType.simpleName}.$propName (set)")
             .addStatement("val obj = instancePtr.%M<%T>()", GET_INSTANCE_PTR, classType)
             .addStatement("val value = args?.%M?.%M", POINTED, POINTED_VALUE)
             .beginControlFlow("if (value == null)")
@@ -352,6 +355,7 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
                 endControlFlow()
             }
             .addStatement("rError.%M()", CallErrorWritePtr)
+            .endGuardedCall()
             .endControlFlow()
             .build()
 
@@ -375,6 +379,7 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
         val builder = CodeBlock
             .builder()
             .beginControlFlow("%M { _, instancePtr, args, argCount, returnValue, rError ->", STATIC_C_FUNCTION)
+            .beginGuardedCall("${classType.simpleName}.${function.name}")
             .addStatement("val obj = instancePtr.%M<%T>()", GET_INSTANCE_PTR, classType)
 
         if (function.parameters.isNotEmpty()) {
@@ -447,6 +452,7 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
 
         val initializer = builder
             .addStatement("rError.%M()", CallErrorWritePtr)
+            .endGuardedCall()
             .endControlFlow()
             .build()
 
@@ -781,3 +787,27 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
 }
 
 private val PROPERTY_USAGE_FLAGS_CLASS_NAME = PropertyHintClassName.peerClass("PropertyUsageFlags")
+
+/**
+ * Opens the guarded body of a generated method-call trampoline (issue #113): the user getter/setter/method runs
+ * inside [GUARD_CALLBACK], so a throw is reported to Godot instead of aborting the process across the
+ * `staticCFunction` boundary. The body's `return@staticCFunction` early exits keep working (the guard is inline).
+ * Close with [endGuardedCall].
+ */
+private fun CodeBlock.Builder.beginGuardedCall(callback: String): CodeBlock.Builder =
+    beginControlFlow("val completed = %M(%S, false)", GUARD_CALLBACK, callback)
+
+/**
+ * Closes [beginGuardedCall]: the body completed normally when it reaches the end. A failure is reported to the
+ * caller as `INVALID_METHOD`, as godot-rust does for a panicking call: GDExtension has no "the callee threw" code.
+ */
+private fun CodeBlock.Builder.endGuardedCall(): CodeBlock.Builder = addStatement("true")
+    .endControlFlow()
+    .beginControlFlow("if (!completed)")
+    .addStatement(
+        "rError.%M(%T.%N)",
+        CallErrorWritePtr,
+        GDExtensionCallErrorType,
+        "GDEXTENSION_CALL_ERROR_INVALID_METHOD",
+    )
+    .endControlFlow()

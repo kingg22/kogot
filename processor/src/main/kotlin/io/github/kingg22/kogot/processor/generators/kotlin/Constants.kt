@@ -27,6 +27,7 @@ val BindingProcAddressHolderClassName = ClassName(GODOT_INTERNAL_BINDING_PKG, "B
 val ClassDBBindingClassName = ClassName(GODOT_INTERNAL_BINDING_PKG, "ClassDBBinding")
 val InstanceStorageClassName = ClassName(GODOT_INTERNAL_BINDING_PKG, "InstanceStorage")
 val RESOLVE_VIRTUAL_CALL = MemberName(GODOT_INTERNAL_BINDING_PKG, "resolveVirtualCall")
+val GUARD_CALLBACK = MemberName(GODOT_INTERNAL_BINDING_PKG, "guardCallback")
 
 private const val GODOT_INTERNAL_FFI_PKG = "$GODOT_PKG.internal.ffi"
 val GDExtensionObjectPtrClassName = ClassName(GODOT_INTERNAL_FFI_PKG, "GDExtensionObjectPtr")
