@@ -145,7 +145,7 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
      *                                 delegating method call runs inside the block this opens (`… { local ->`,
      *                                 closed with `}`), which frees the value once the call returns (#211, #219).
      *                                 A vararg's block gives one `Array` holding the lead value and the rest.
-     *                                 Methods only: a constructor delegation cannot scope a value, it uses [wrap].
+     *                                 A constructor needs its body for that (see [buildOverloadsForConstructor]).
      */
     data class TypeMapping(
         val matches: context(Context) (type: TypeName) -> Boolean,
@@ -224,25 +224,50 @@ class TypeOverloadGenerator(private val typeResolver: TypeResolver) {
     }
 
     /**
-     * Builds a constructor overload for [constructor]/[original] using [mapping], or an empty list if no
-     * parameters match.
+     * Builds a constructor overload for [constructor]/[original] using [mapping], or `null` if no parameters match.
+     *
+     * A converted value cannot be freed in a delegation (`this(GodotString(code))`): Kotlin evaluates the argument
+     * before the delegated constructor runs, so closing it there would free it before that constructor reads it, and
+     * the overload's own body has no name for it afterwards. So when [mapping] has a [TypeMapping.scope] and
+     * [scopedBody] is given, the overload does not delegate to [original]: it keeps [original]'s own delegation (the
+     * storage constructor) and runs [original]'s body inside the scope blocks, which free each value once the engine
+     * constructor has copied it (#219). [scopedBody] builds that body with each mapped parameter renamed to its local
+     * (the map goes from the index of the parameter to the name of its local). Without it, the overload delegates through
+     * [TypeMapping.configureConstructor].
      */
     context(_: Context)
     fun buildOverloadsForConstructor(
         constructor: BuiltinClass.Constructor,
         original: FunSpec,
         mapping: TypeMapping,
+        scopedBody: ((locals: Map<Int, String>) -> CodeBlock)? = null,
     ): FunSpec? {
         val mappedIndices = detectMapping(constructor.arguments, mapping)
         if (mappedIndices.isEmpty()) return null
 
-        val wrappedArgs = buildWrappedArgs(original.parameters, mappedIndices, mapping)
+        // Keeps the original's delegation (`this(null)`), only the parameters and the body change.
         val builder = constructorWithMappedParams(original, mappedIndices, mapping, constructor.arguments)
+        val scope = mapping.scope
+        if (scope != null && scopedBody != null) {
+            val params = original.parameters
+            val taken = params.mapTo(mutableSetOf()) { it.name }
+            val locals = mappedIndices.associateWith { i -> uniqueName("${params[i].name}Gd", taken) }
+            builder.addCode(
+                buildCodeBlock {
+                    mappedIndices.forEach { i ->
+                        add("%L\n⇥", scope(params[i].name, params[i].isVararg(), locals.getValue(i)))
+                    }
+                    add(scopedBody(locals))
+                    repeat(mappedIndices.size) { add("⇤}\n") }
+                },
+            )
+            return builder.build()
+        }
 
+        val wrappedArgs = buildWrappedArgs(original.parameters, mappedIndices, mapping)
         with(mapping) {
             builder.configureConstructor(mappedIndices, wrappedArgs)
         }
-
         return builder.build()
     }
 

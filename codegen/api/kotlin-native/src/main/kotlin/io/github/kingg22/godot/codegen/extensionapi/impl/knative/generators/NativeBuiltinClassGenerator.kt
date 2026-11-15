@@ -268,7 +268,11 @@ class NativeBuiltinClassGenerator(
                         ctor.raw!!,
                         ctorBuilder,
                         TypeOverloadGenerator.GodotStringMapping,
-                    )?.let(::add)
+                    ) { locals ->
+                        // The same engine constructor call, on the GodotString the overload owns and frees (#219).
+                        val renamed = ctor.arguments.mapIndexed { i, arg -> arg.copy(name = locals[i] ?: arg.name) }
+                        body.constructorBodyFor(builtinClass, ctor.copy(arguments = renamed))
+                    }?.let(::add)
                 }
                 overloadGen.variantConstructorOverload(ctor.raw!!, ctorBuilder)?.let(::add)
             }

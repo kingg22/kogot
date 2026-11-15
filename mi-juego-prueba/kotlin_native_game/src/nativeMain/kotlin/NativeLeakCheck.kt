@@ -3,6 +3,7 @@
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.annotations.Godot
 import io.github.kingg22.godot.api.builtin.Callable
+import io.github.kingg22.godot.api.builtin.Color
 import io.github.kingg22.godot.api.builtin.GodotArray
 import io.github.kingg22.godot.api.builtin.Signal
 import io.github.kingg22.godot.api.builtin.Variant
@@ -85,10 +86,17 @@ private fun cHeapInUse(): Long = mallinfo().useContents { uordblks.toLong() + hb
         user.queueFree()
         signalName.close()
         ObjectBinding.destroyRaw(emitter.rawPtr)
+        // A Color is a value type whose own storage is never freed yet (#216), so only the engine memory is
+        // measured here: that is where the leaked GodotString of the String constructor shows.
+        noGrowth("Color(code: String) constructor (#219)", cHeap = false) { val _ = Color("#ff8800") }
+        noGrowth("Color(code: String, alpha) constructor (#219)", cHeap = false) { val _ = Color("#ff8800", 0.5) }
     }
 
-    /** [call] 20,000 times must grow neither the C heap nor the engine memory by more than a small margin. */
-    private fun Checks.noGrowth(name: String, call: () -> Unit) = check("$name does not leak") {
+    /**
+     * [call] 20,000 times must grow neither the C heap ([cHeap] `false` skips it) nor the engine memory by more than
+     * a small margin.
+     */
+    private fun Checks.noGrowth(name: String, cHeap: Boolean = true, call: () -> Unit) = check("$name does not leak") {
         val os = Os.instance
         repeat(100) { call() } // warm up: arenas, lazy method binds
         val heapBefore = cHeapInUse()
@@ -97,6 +105,8 @@ private fun cHeapInUse(): Long = mallinfo().useContents { uordblks.toLong() + hb
         val heap = cHeapInUse() - heapBefore
         val engine = os.getStaticMemoryUsage().toLong() - engineBefore
         println("[NativeLeakCheck] $name: C heap +$heap bytes, engine +$engine bytes over 20000 calls")
-        expect(heap < 100_000 && engine < 100_000) { "C heap grew by $heap bytes, engine by $engine bytes" }
+        expect((!cHeap || heap < 100_000) && engine < 100_000) {
+            "C heap grew by $heap bytes, engine by $engine bytes"
+        }
     }
 }

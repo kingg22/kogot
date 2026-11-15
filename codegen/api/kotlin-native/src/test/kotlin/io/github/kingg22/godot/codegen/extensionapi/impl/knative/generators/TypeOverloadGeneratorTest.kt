@@ -1,5 +1,7 @@
 package io.github.kingg22.godot.codegen.extensionapi.impl.knative.generators
 
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.DOUBLE
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.LONG
@@ -9,8 +11,10 @@ import io.github.kingg22.godot.codegen.extensionapi.Context
 import io.github.kingg22.godot.codegen.extensionapi.impl.knative.KotlinNativeTypeResolver
 import io.github.kingg22.godot.codegen.extensionapi.impl.noop.EmptyContext
 import io.github.kingg22.godot.codegen.extensionapi.impl.noop.NoOpPackageRegistry
+import io.github.kingg22.godot.codegen.models.extensionapi.BuiltinClass
 import io.github.kingg22.godot.codegen.models.extensionapi.MethodArg
 import io.github.kingg22.godot.codegen.models.extensionapi.UtilityFunction
+import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -146,5 +150,37 @@ class TypeOverloadGeneratorTest {
         assertTrue(code.contains("withVariants(first, args) { argsGd ->"), code)
         assertTrue(code.contains("f(name, *argsGd)"), code)
         assertFalse(code.contains("toVariant()"), code)
+    }
+
+    // ── Constructors (#219) ──────────────────────────────────────────────────────
+
+    @Test
+    fun `a String constructor frees its GodotString after the engine constructor, not in the delegation`() {
+        val constructor = Json.decodeFromString<BuiltinClass.Constructor>(
+            """{"index": 5, "arguments": [{"name": "code", "type": "String"}, {"name": "alpha", "type": "float"}]}""",
+        )
+        val original = FunSpec.constructorBuilder()
+            .callThisConstructor("null")
+            .addParameter("code", godotString())
+            .addParameter("alpha", DOUBLE)
+            .addStatement("init(code.rawPtr, alpha)")
+            .build()
+
+        val overload = context(testContext) {
+            generator.buildOverloadsForConstructor(
+                constructor,
+                original,
+                TypeOverloadGenerator.GodotStringMapping,
+            ) { locals ->
+                CodeBlock.of("init(%N.rawPtr, alpha)\n", locals.getValue(0))
+            }
+        }
+
+        val code = checkNotNull(overload).toString()
+        assertEquals(STRING, overload.parameters.first().type)
+        assertTrue(code.contains(": this(null)"), code)
+        assertFalse(code.contains("this(test.api.GodotString(code)"), code)
+        assertTrue(code.contains("GodotString(code).use { codeGd ->"), code)
+        assertTrue(code.contains("init(codeGd.rawPtr, alpha)"), code)
     }
 }
