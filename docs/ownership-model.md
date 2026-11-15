@@ -197,6 +197,9 @@ Verificado en Godot 4.7.2, headless, contra `main`:
 
 ### Abierto, no resuelto aquí
 
+Seguimiento en [#228](https://github.com/kingg22/kogot/issues/228): son continuaciones, no parte del modelo de
+ownership de #114.
+
 1. **Se asume que todo retorno de una clase `RefCounted` es un `Ref<T>`.** Es la convención de Godot y lo que
    observan los tests, pero no se verificó método por método (hay 543 en la API): un método que devolviera un
    `T*` crudo de una clase `RefCounted` haría que el wrapper devolviera una referencia que nunca recibió.
