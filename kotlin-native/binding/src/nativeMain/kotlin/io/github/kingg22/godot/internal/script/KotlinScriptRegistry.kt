@@ -5,7 +5,7 @@ import io.github.kingg22.godot.internal.binding.InternalBinding
 import kotlinx.cinterop.COpaquePointer
 
 /**
- * Runtime-populated map from a `.kt` source file path to the already-compiled `@Godot` class it
+ * Runtime-populated map from the `res://` path of a `.kt` source file to the already-compiled `@Godot` class it
  * declares (issue #42 — Kotlin as a Godot script language).
  *
  * Kotlin/Native is AOT-compiled, so there is nothing to parse at runtime: each KSP-processed project

@@ -18,11 +18,10 @@ import kotlinx.cinterop.COpaquePointer
  * Resolves a `.kt` script resource path to a [KotlinScript] wrapping the already-compiled `@Godot`
  * class recorded for that path in [KotlinScriptRegistry] (issue #42).
  *
- * [KotlinScriptRegistry] is keyed by KSP's `filePath`: an absolute filesystem path, since that's all
- * the compile-time processor knows. Godot instead calls `_load`/`_getResourceTypeAsGdStr` with a
- * `res://`-relative virtual path. [ProjectSettings.globalizePath] converts the latter to the former
- * (it is a no-op for paths that are already absolute), so every registry lookup below normalizes
- * through it first — otherwise every `.kt` resource would report as not found.
+ * [KotlinScriptRegistry] is keyed by the `res://` path of each source file, which the processor computes at build
+ * time from the nearest `project.godot`. Godot calls `_load`/`_getResourceTypeAsGdStr` with that same `res://` path;
+ * [ProjectSettings.localizePath] also maps an absolute path inside the project to it. An earlier version keyed the
+ * registry by absolute paths, so a binary only found its scripts in the directory it was built in (issue #217).
  */
 @InternalBinding
 public class KotlinResourceFormatLoader(nativePtr: COpaquePointer) : ResourceFormatLoader(nativePtr) {
@@ -44,10 +43,10 @@ public class KotlinResourceFormatLoader(nativePtr: COpaquePointer) : ResourceFor
     // via a self-built Godot dev binary + lldb: returning "Script" here crashed with EXC_BAD_ACCESS
     // inside Godot's own get_class_icon_path() call, entirely outside this extension's code.
     override fun _getResourceTypeAsGdStr(path: GodotString): GodotString =
-        if (KotlinScriptRegistry.contains(globalizedPath(path.toKString()))) KOTLIN_SCRIPT_CLASS_NAME.toGodotString() else GodotString()
+        if (KotlinScriptRegistry.contains(resPath(path.toKString()))) KOTLIN_SCRIPT_CLASS_NAME.toGodotString() else GodotString()
 
     override fun _load(path: GodotString, originalPath: GodotString, useSubThreads: Boolean, cacheMode: Int): Variant {
-        val normalizedPath = globalizedPath(path.toKString())
+        val normalizedPath = resPath(path.toKString())
         val entry = KotlinScriptRegistry[normalizedPath] ?: return GodotError.FILE_NOT_FOUND.value.toVariant()
 
         // The canonical instance (the one every virtual call `_can_instantiate`, `_is_valid`, ... dispatches to)
@@ -62,7 +61,12 @@ public class KotlinResourceFormatLoader(nativePtr: COpaquePointer) : ResourceFor
         return script.toVariant()
     }
 
-    private fun globalizedPath(path: String): String = ProjectSettings.instance.globalizePath(path)
+    /**
+     * The registry key of [path]: its `res://` form. The registry is keyed by `res://` paths so that a binary loads the
+     * scripts of the project it runs in, wherever it was built (issue #217); an absolute path inside the project is
+     * localized to the same key.
+     */
+    private fun resPath(path: String): String = ProjectSettings.instance.localizePath(path)
 }
 
 private const val KOTLIN_SCRIPT_CLASS_NAME = "KotlinScript"

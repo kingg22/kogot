@@ -71,7 +71,7 @@ public class KotlinScriptLanguage(nativePtr: COpaquePointer) : ScriptLanguageExt
         // in the compile-time registry (populated from the KSP-generated `ScriptFileRegistry`) is the
         // only validation available.
         val result = VariantDictionary()
-        result["valid".toVariant()] = KotlinScriptRegistry.contains(ProjectSettings.instance.globalizePath(path.toKString())).toVariant()
+        result["valid".toVariant()] = KotlinScriptRegistry.contains(ProjectSettings.instance.localizePath(path.toKString())).toVariant()
         return result
     }
 

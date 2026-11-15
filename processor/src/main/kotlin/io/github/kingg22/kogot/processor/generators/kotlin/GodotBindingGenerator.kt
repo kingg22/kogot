@@ -30,6 +30,7 @@ import io.github.kingg22.kogot.processor.model.hasExport
 import io.github.kingg22.kogot.processor.model.hasGodotAnnotation
 import io.github.kingg22.kogot.processor.resolver.DefaultVariantTypeResolver
 import io.github.kingg22.kogot.processor.resolver.VariantTypeResolver
+import java.io.File
 
 private const val GETTER_PREFIX = "_get_"
 private const val SETTER_PREFIX = "_set_"
@@ -667,14 +668,19 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
      * Unlike GDScript's one-class-per-file model, a Kotlin file may declare zero, one, or several
      * top-level `@Godot` classes. Only files with **exactly one** are addressable as a script: files
      * with zero or 2+ are silently excluded (not an error) since there's no unambiguous class to pick.
+     *
+     * Each file is keyed by its `res://` path ([godotResPath]), the path Godot passes to the loader, never by its
+     * absolute path: that one only matched where the build ran, so a binary built in another directory (a worktree,
+     * CI, another machine) could not load any `.kt` script (issue #217). A file outside a Godot project cannot be a
+     * `res://` script and is excluded too.
      */
     private fun generateScriptRegistryFile(classes: List<ClassInfo>): GeneratedFile {
         val packageName = classes.firstOrNull()?.packageName?.plus(".generated") ?: "io.github.kingg22.godot.generated"
         val className = "ScriptFileRegistry"
 
         val addressable = classes
-            .filter { it.filePath.isNotBlank() }
-            .groupBy { it.filePath }
+            .mapNotNull { classInfo -> godotResPath(classInfo.filePath)?.let { it to classInfo } }
+            .groupBy({ it.first }, { it.second })
             .filterValues { it.size == 1 }
             .mapValues { (_, sameFile) -> sameFile.single() }
             .toSortedMap()
@@ -687,8 +693,8 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
             CodeBlock.builder()
                 .add("mapOf(\n")
                 .withIndent {
-                    addressable.forEach { (filePath, classInfo) ->
-                        addStatement("%S to %T(", filePath, entryType)
+                    addressable.forEach { (resPath, classInfo) ->
+                        addStatement("%S to %T(", resPath, entryType)
                         withIndent {
                             addStatement("%S,", classInfo.shortName)
                             addStatement("%S,", classInfo.getParentClassShortName() ?: "Object")
@@ -707,9 +713,9 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
             .objectBuilder(className)
             .addAnnotation(InternalBindingClassName)
             .addKdoc(
-                "Maps each source file to the single `@Godot` class it declares, for resolving `.kt` " +
-                    "script resources (issue #42). Files with zero or 2+ `@Godot` classes are not " +
-                    "addressable as a script and are excluded.",
+                "Maps each source file, by its `res://` path, to the single `@Godot` class it declares, " +
+                    "for resolving `.kt` script resources (issue #42). Files with zero or 2+ `@Godot` classes, " +
+                    "or outside a Godot project, are not addressable as a script and are excluded.",
             )
             .addProperty(
                 PropertySpec
@@ -823,3 +829,15 @@ private fun CodeBlock.Builder.endGuardedCall(): CodeBlock.Builder = addStatement
         "GDEXTENSION_CALL_ERROR_INVALID_METHOD",
     )
     .endControlFlow()
+
+/**
+ * The `res://` path of the source file [sourcePath]: its path relative to the nearest enclosing directory that holds a
+ * `project.godot`, which is what `res://` means to Godot. `null` for a blank path or a file outside any Godot project.
+ */
+internal fun godotResPath(sourcePath: String): String? {
+    if (sourcePath.isBlank()) return null
+    val file = File(sourcePath).absoluteFile
+    return generateSequence(file.parentFile) { it.parentFile }
+        .firstOrNull { File(it, "project.godot").isFile }
+        ?.let { root -> "res://" + file.relativeTo(root).invariantSeparatorsPath }
+}
