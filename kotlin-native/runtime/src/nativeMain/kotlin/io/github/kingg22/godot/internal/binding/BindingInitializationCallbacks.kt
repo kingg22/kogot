@@ -31,6 +31,9 @@ public open class BindingInitializationCallbacks {
     public open fun onDeInit(level: GDExtensionInitializationLevel) {}
 
     public fun initialize(userdata: COpaquePointer?, level: GDExtensionInitializationLevel) {
+        // Godot runs every initialization level on its main thread. Marking it on each level (idempotent) keeps it
+        // right whatever minimum level the extension declares, before any user code of that level runs.
+        MainThread.markCurrent()
         when (level) {
             GDEXTENSION_INITIALIZATION_CORE -> onInitCore()
             GDEXTENSION_INITIALIZATION_SERVERS -> onInitServers()

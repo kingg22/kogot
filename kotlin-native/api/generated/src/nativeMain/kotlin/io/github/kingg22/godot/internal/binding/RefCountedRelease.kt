@@ -87,7 +87,12 @@ public fun adoptConstructedReference(instance: RefCounted) {
 
 /**
  * Gives back the engine reference that came with a ptrcall `Ref<T>` return when the object's wrapper already
- * owns one of its own (see [materializeOwned]). Main thread, like every call into the engine.
+ * owns one of its own (see [materializeOwned]).
+ *
+ * Runs on whatever thread received the return (a worker during a threaded load, for example), right where the
+ * reference arrived: that is what Godot's own `Ref<T>` destructor does with a surplus reference, and
+ * `RefCounted::unreference()` is atomic. Unlike the cleaner's release it needs no hop to the main thread, because
+ * the receiving thread is already legitimately using the object.
  */
 @InternalBinding
 public fun dropReturnedReference(rawPtr: GDExtensionObjectPtr) {
@@ -113,6 +118,8 @@ private fun takeReference(rawPtr: GDExtensionObjectPtr) {
  */
 @InternalBinding
 public fun releaseAllPendingRefCountedReferences() {
+    // Reported, not refused: skipping the drain would leak every owed reference, which is worse than settling them.
+    val _ = MainThread.check("releaseAllPendingRefCountedReferences")
     for ((ptr, count) in PendingReleases.drain()) {
         for (i in 0 until count) {
             // Destroyed means that was the last reference: any further unreference() would be a use-after-free.
@@ -121,7 +128,13 @@ public fun releaseAllPendingRefCountedReferences() {
     }
 }
 
-/** Main thread only. Returns `true` when that was the last reference and the object was destroyed. */
+/**
+ * Gives back one engine reference, destroying the object if it was the last one. Returns `true` when it was.
+ *
+ * Callers pick the thread: the deferred release and the shutdown drain run it on the main thread, and
+ * [dropReturnedReference] on the thread that just received the surplus reference (see there). It is never called from
+ * the cleaner thread.
+ */
 private fun unreferenceAndDestroyIfLast(rawPtr: GDExtensionObjectPtr): Boolean {
     val shouldFree = RefCounted(rawPtr).unreference()
     if (shouldFree) ObjectBinding.destroyRaw(rawPtr)
