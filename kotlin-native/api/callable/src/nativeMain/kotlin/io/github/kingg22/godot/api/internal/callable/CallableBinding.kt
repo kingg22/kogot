@@ -6,6 +6,7 @@ import io.github.kingg22.godot.internal.binding.CallableBinding
 import io.github.kingg22.godot.internal.binding.InternalBinding
 import io.github.kingg22.godot.internal.binding.VariantBinding
 import io.github.kingg22.godot.internal.binding.getInstance
+import io.github.kingg22.godot.internal.binding.guardCallback
 import io.github.kingg22.godot.internal.ffi.GDExtensionCallError
 import io.github.kingg22.godot.internal.ffi.GDExtensionCallErrorType
 import io.github.kingg22.godot.internal.ffi.GDExtensionCallableCustomCall
@@ -43,6 +44,11 @@ public object CallableBinding {
             objectId,
         )
 
+    /**
+     * The `call_func` of every custom callable. Runs on whatever thread calls the `Callable` (a `WorkerThreadPool`
+     * task, a `Thread`, a signal emitted from a thread), so any failure, including one in the error reporting or the
+     * result conversion, is reported and answered as `INVALID_METHOD` instead of aborting the process (issue #113).
+     */
     public fun createCustomCall(): GDExtensionCallableCustomCall = staticCFunction {
             userdata: COpaquePointer?,
             arguments: CArrayPointer<GDExtensionConstVariantPtrVar>?,
@@ -50,13 +56,27 @@ public object CallableBinding {
             rReturn: GDExtensionVariantPtr?,
             rError: CPointer<GDExtensionCallError>?,
         ->
+        val completed = guardCallback("Callable.call", false) {
+            dispatch(userdata, arguments, argumentCount, rReturn, rError)
+            true
+        }
+        if (!completed) rError?.pointed?.error = GDExtensionCallErrorType.GDEXTENSION_CALL_ERROR_INVALID_METHOD
+    }
+
+    private fun dispatch(
+        userdata: COpaquePointer?,
+        arguments: CArrayPointer<GDExtensionConstVariantPtrVar>?,
+        argumentCount: GDExtensionInt,
+        rReturn: GDExtensionVariantPtr?,
+        rError: CPointer<GDExtensionCallError>?,
+    ) {
         val callable = userdata?.getInstance<KotlinCallable>()
 
         if (callable == null || rReturn == null || rError == null) {
             onError(
                 "Invalid arguments received from Godot to Callable custom call: $arguments, $argumentCount, $rReturn, $rError, $userdata == $callable",
             )
-            return@staticCFunction
+            return
         }
 
         fun fillCallError(
@@ -79,13 +99,13 @@ public object CallableBinding {
                     GDEXTENSION_CALL_ERROR_TOO_MANY_ARGUMENTS
                 },
             )
-            return@staticCFunction
+            return
         }
 
         if (argumentCount != 0L && arguments == null) {
             onError("[kogot]: Error: callable called with null array of arguments, expected $argumentCount")
             fillCallError(GDEXTENSION_CALL_ERROR_INVALID_ARGUMENT)
-            return@staticCFunction
+            return
         }
 
         val arguments = Array(argumentCount.toInt()) { i -> arguments?.get(i) }
@@ -95,7 +115,7 @@ public object CallableBinding {
                 "[kogot]: Error calling callable ${callable.arity()} args, fallback to null: $exception",
             )
             fillCallError(GDEXTENSION_CALL_ERROR_INVALID_METHOD)
-            return@staticCFunction
+            return
         }
 
         // TODO: properly convert return types to Kotlin types
@@ -103,7 +123,7 @@ public object CallableBinding {
         val resultVariant = onToVariant(result) ?: run {
             onError("[kogot]: Error converting callable result ($result) to Variant, fallback to null")
             fillCallError(GDEXTENSION_CALL_ERROR_INVALID_METHOD)
-            return@staticCFunction
+            return
         }
 
         fillCallError(GDEXTENSION_CALL_OK, 0, 0)
