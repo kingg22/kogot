@@ -61,6 +61,8 @@ val cinteropToKStrFromUtf32 = MemberName("kotlinx.cinterop", "toKStringFromUtf32
 val GODOT_VIRTUAL_METHOD = ClassName("io.github.kingg22.godot.api.internal", "GodotVirtualMethod")
 val GODOT_CLASS = ClassName("io.github.kingg22.godot.api.internal", "GodotClass")
 val KOTLIN_NATIVE_CLEANER = ClassName("kotlin.native.ref", "Cleaner")
+val KOTLIN_NATIVE_CREATE_CLEANER = MemberName("kotlin.native.ref", "createCleaner")
+val EXPERIMENTAL_NATIVE_API = ClassName("kotlin.experimental", "ExperimentalNativeApi")
 
 /** Wraps the wrapper built around a `Ref<T>` ptrcall return so it owns (and later gives back) that reference. */
 val ADOPT_RETURNED_REFERENCE = MemberName("io.github.kingg22.godot.internal.binding", "adoptReturnedReference")

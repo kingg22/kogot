@@ -174,6 +174,30 @@ class BuiltinClassImplGen(private val typeResolver: TypeResolver, private val me
             )
         }
 
+        if (!builtinClass.hasDestructor) {
+            // A value type (Vector2, Color, Transform3D, ...) is plain bytes only Kotlin owns: nothing freed the storage
+            // it allocated (#216). A Cleaner frees it once the wrapper is unreachable; `nativeHeap.free` touches no
+            // engine state, so the cleaner thread is fine. Only for storage this instance allocated: a borrowed view
+            // (`rawPtr` given: an argument slot, a return buffer) never frees. The lambda captures nothing, as a Cleaner
+            // requires, and member getters copy into a value of their own, so no view outlives its owner.
+            classBuilder.addProperty(
+                PropertySpec
+                    .builder("storageCleaner", KOTLIN_NATIVE_CLEANER.copy(nullable = true), KModifier.PRIVATE)
+                    .addAnnotation(
+                        AnnotationSpec.builder(ClassName("kotlin", "OptIn"))
+                            .addMember("%T::class", EXPERIMENTAL_NATIVE_API)
+                            .build(),
+                    )
+                    .initializer(
+                        "if (rawPtr == null) %M(%N) { %T.free(it.rawValue) } else null",
+                        KOTLIN_NATIVE_CREATE_CLEANER,
+                        storageProperty,
+                        cinteropNativeHeap,
+                    )
+                    .build(),
+            )
+        }
+
         classBuilder
             .addSuperinterface(ctx.classNameForOrDefault("GodotNative"))
             .addProperty(

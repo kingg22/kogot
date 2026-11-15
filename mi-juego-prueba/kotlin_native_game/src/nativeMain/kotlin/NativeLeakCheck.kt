@@ -8,18 +8,26 @@ import io.github.kingg22.godot.api.builtin.Callable
 import io.github.kingg22.godot.api.builtin.Color
 import io.github.kingg22.godot.api.builtin.GodotArray
 import io.github.kingg22.godot.api.builtin.Signal
+import io.github.kingg22.godot.api.builtin.Transform3D
+import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.builtin.Variant
 import io.github.kingg22.godot.api.builtin.from
 import io.github.kingg22.godot.api.builtin.getValue
 import io.github.kingg22.godot.api.builtin.toGodotString
 import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.Node
+import io.github.kingg22.godot.api.core.node.Node2D
 import io.github.kingg22.godot.api.core.refcounted.Resource
 import io.github.kingg22.godot.api.singleton.Os
 import io.github.kingg22.godot.binding.instantiate
 import io.github.kingg22.godot.internal.binding.ObjectBinding
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
+import platform.posix.usleep
+import kotlin.native.runtime.GC
+import kotlin.native.runtime.NativeRuntimeApi
+import kotlin.time.TimeSource
+import kotlin.time.measureTime
 
 /**
  * Bytes in use in the C heap (`malloc`): where `nativeHeap` puts the storage of every builtin wrapper (a `Variant` is
@@ -50,6 +58,7 @@ internal expect fun cHeapInUse(): Long?
         constructors()
         variantPaths()
         defaultArguments()
+        valueTypes()
         getTree().quit(checks.finish())
     }
 
@@ -112,10 +121,9 @@ internal expect fun cHeapInUse(): Long?
         ObjectBinding.destroyRaw(probe.rawPtr)
         signalName.close()
         ObjectBinding.destroyRaw(emitter.rawPtr)
-        // A Color is a value type whose own storage is never freed yet (#216), so only the engine memory is
-        // measured here: that is where the leaked GodotString of the String constructor shows.
-        noGrowth("Color(code: String) constructor (#219)", cHeap = false) { val _ = Color("#ff8800") }
-        noGrowth("Color(code: String, alpha) constructor (#219)", cHeap = false) { val _ = Color("#ff8800", 0.5) }
+        // A Color is a value type: its own storage is freed by its Cleaner (#216), so the C heap is measured after a GC.
+        noGrowth("Color(code: String) constructor (#219)", collect = true) { val _ = Color("#ff8800") }
+        noGrowth("Color(code: String, alpha) constructor (#219)", collect = true) { val _ = Color("#ff8800", 0.5) }
     }
 
     /** Defaulted arguments of a closeable builtin type: each call used to build one and never close it (#232). */
@@ -139,15 +147,52 @@ internal expect fun cHeapInUse(): Long?
     }
 
     /**
-     * [call] 20,000 times must grow neither the C heap ([cHeap] `false` skips it) nor the engine memory by more than
-     * a small margin.
+     * Value-type builtins (`Vector2`, `Color`, `Transform3D`, ...) allocate their storage in `nativeHeap`, and nothing
+     * freed it (#216). A Cleaner frees it once the wrapper is unreachable, so these are measured after a GC.
      */
-    private fun Checks.noGrowth(name: String, cHeap: Boolean = true, call: () -> Unit) = check("$name does not leak") {
+    private fun valueTypes() = with(checks) {
+        noGrowth("Vector2(x, y) (#216)", collect = true) { val _ = Vector2(1.0, 2.0) }
+        noGrowth("Transform3D() (#216)", collect = true) { val _ = Transform3D() }
+        Variant.from(Vector2(3.0, 4.0)).use { variant ->
+            noGrowth("Variant.getValue<Vector2>() (#216)", collect = true) { val _ = variant.getValue<Vector2>() }
+        }
+        val node = Node2D()
+        noGrowth("a Vector2 property read, Node2D.position (#216)", collect = true) { val _ = node.position }
+        ObjectBinding.destroyRaw(node.rawPtr)
+        // Cost of the Cleaner per value: reported, not asserted (compare runs with and without #216).
+        val timedNode = Node2D()
+        timed("Vector2(x, y)") { val _ = Vector2(1.0, 2.0) }
+        timed("Node2D.position read") { val _ = timedNode.position }
+        ObjectBinding.destroyRaw(timedNode.rawPtr)
+        check("a value type keeps its value until it is unreachable, and a borrowed view is never freed (#216)") {
+            val kept = List(1_000) { Vector2(it.toDouble(), -it.toDouble()) }
+            settleCleaners()
+            kept.forEachIndexed { i, v -> expect(v.x == i.toFloat() && v.y == -i.toFloat()) { "element $i is $v" } }
+            val transform = Transform3D()
+            val origin = transform.origin
+            settleCleaners()
+            expect(origin.x == 0.0f) { "origin=$origin" }
+        }
+    }
+
+    /**
+     * [call] 20,000 times must grow neither the C heap ([cHeap] `false` skips it) nor the engine memory by more than
+     * a small margin. With [collect], the garbage collector runs and the Cleaners settle before each measurement:
+     * memory a Cleaner frees is only given back once the wrapper is collected.
+     */
+    private fun Checks.noGrowth(
+        name: String,
+        cHeap: Boolean = true,
+        collect: Boolean = false,
+        call: () -> Unit,
+    ) = check("$name does not leak") {
         val os = Os.instance
         repeat(100) { call() } // warm up: arenas, lazy method binds
+        if (collect) settleCleaners()
         val heapBefore = cHeapInUse()
         val engineBefore = os.getStaticMemoryUsage().toLong()
         repeat(20_000) { call() }
+        if (collect) settleCleaners()
         val heapAfter = cHeapInUse()
         val heap = if (heapBefore != null && heapAfter != null) heapAfter - heapBefore else null
         val engine = os.getStaticMemoryUsage().toLong() - engineBefore
@@ -158,3 +203,28 @@ internal expect fun cHeapInUse(): Long?
         }
     }
 }
+
+/** Prints the mean time of [call] over 200,000 runs, after a warm-up, including the collections they cause. */
+private fun timed(name: String, call: () -> Unit) {
+    repeat(10_000) { call() }
+    settleCleaners()
+    val runs = 200_000
+    val elapsed = TimeSource.Monotonic.measureTime {
+        repeat(runs) { call() }
+        settleCleaners()
+    }
+    println("[NativeLeakCheck] timing $name: ${elapsed.inWholeNanoseconds / runs} ns/op over $runs (with GC settle)")
+}
+
+/**
+ * Collects garbage until the Cleaners it schedules have run: they run on Kotlin/Native's own cleaner thread, a little
+ * after the collection, so this collects and waits a few times.
+ */
+@OptIn(NativeRuntimeApi::class)
+private fun settleCleaners() {
+    repeat(5) {
+        GC.collect()
+        usleep(20_000u)
+    }
+}
+

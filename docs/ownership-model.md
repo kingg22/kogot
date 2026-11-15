@@ -197,6 +197,37 @@ Verificado en Godot 4.7.2, headless, contra `main`:
 - `[BorrowedCast]` vuelve a medir lo que pretendía: desde #206 `toObject()` construye el wrapper canónico (que posee
   su referencia), así que el cast lo reutilizaba; ahora el puntero prestado se lee con `toObjectRawPtr()`.
 
+### Builtins de tipo valor: el almacenamiento propio lo libera un `Cleaner` (#216)
+
+`Vector2`, `Color`, `Transform3D`, `Rid` y el resto de builtins sin destructor (`has_destructor = false`) guardan sus
+bytes en `nativeHeap`. Hasta #216 nada los liberaba: cada `Vector2(x, y)`, cada lectura de `getValue<Vector2>()` y
+cada getter de una propiedad de ese tipo perdía su almacenamiento (32 bytes de heap C por `Vector2`, 64 por
+`Transform3D`). El reporte de Godot al salir no lo ve, porque solo cuenta objetos del motor.
+
+- **Propio frente a prestado.** El constructor primario ya los distingue: `rawPtr == null` asigna (propio) y
+  `rawPtr != null` envuelve memoria ajena (prestado: un slot de argumento de un virtual, el buffer de un retorno). Solo
+  el propio registra un `Cleaner` (`storageCleaner`) que hace `nativeHeap.free`; un prestado nunca libera.
+- **Por qué un `Cleaner` sirve aquí y no en `RefCounted`.** Liberar es `nativeHeap.free`, sin ninguna llamada al
+  motor, así que corre bien en el thread de cleaners de Kotlin/Native, sin saltar al principal y sin orden respecto
+  al cierre del motor. El motor copia estos valores por valor, nunca comparte su almacenamiento.
+- **Ninguna vista sobrevive a su dueño.** Los getters de miembros (`transform.origin`) copian a un valor propio; no
+  devuelven vistas dentro del almacenamiento de otro objeto.
+- **La lambda del `Cleaner` no captura el objeto**, como exige Kotlin/Native: solo recibe el puntero.
+- No son `AutoCloseable`: un tipo valor que hubiera que cerrar no es ergonómico.
+
+Costo medido (build debug, Godot 4.7.2 headless, `native_leak_check`, 200 000 operaciones con GC al final, 3 corridas):
+
+| Operación | Sin `Cleaner` | Con `Cleaner` |
+|---|---|---|
+| `Vector2(x, y)` | ~2,67 µs | ~3,0 µs (+~0,35 µs) |
+| lectura de `Node2D.position` | ~1,38 µs | ~1,78 µs (+~0,4 µs) |
+
+**Decisión sobre la opción 3 de #220** (guardar el valor del lado de Kotlin y materializarlo en un buffer `memScoped`
+solo al cruzar la FFI): no se hace ahora. Eliminaría la asignación y el `Cleaner`, pero cambia la API pública de estos
+tipos (hoy exponen `rawPtr` y se pasan por puntero a todo el código generado). El `Cleaner` arregla la fuga sin
+cambiar la API; si el costo de arriba pesa en un caso real (miles de valores por frame), la opción 3 es el siguiente
+paso, con estas cifras como línea base.
+
 ### Abierto, no resuelto aquí
 
 Seguimiento en [#228](https://github.com/kingg22/kogot/issues/228): son continuaciones, no parte del modelo de
