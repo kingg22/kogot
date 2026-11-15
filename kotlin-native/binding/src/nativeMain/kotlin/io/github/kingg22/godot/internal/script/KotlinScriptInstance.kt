@@ -118,75 +118,75 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
     val info = nativeHeap.alloc<GDExtensionScriptInstanceInfo3> {
         set_func = staticCFunction { pInstance, pName, pValue ->
             guardCallback("KotlinScriptInstance.set", GDExtensionBool.FALSE) {
-            val s = pInstance.state()
-            val name = pName?.let { StringName(it).toString() }
-            val descriptor = s?.properties?.firstOrNull { it.name == name }
-            val setter = descriptor?.setter
-            if (s == null || setter == null) {
-                GDExtensionBool.FALSE
-            } else {
-                memScoped {
-                    val argsArray = allocArray<COpaquePointerVar>(1)
-                    argsArray[0] = pValue
-                    val errorPtr = alloc<GDExtensionCallError>().ptr
-                    setter.invoke(null, s.targetPtr, argsArray.reinterpret(), 1L, null, errorPtr)
-                    if (errorPtr.pointed.error == GDExtensionCallErrorType.GDEXTENSION_CALL_OK) {
-                        GDExtensionBool.TRUE
-                    } else {
-                        GDExtensionBool.FALSE
+                val s = pInstance.state()
+                val name = pName?.let { StringName(it).toString() }
+                val descriptor = s?.properties?.firstOrNull { it.name == name }
+                val setter = descriptor?.setter
+                if (s == null || setter == null) {
+                    GDExtensionBool.FALSE
+                } else {
+                    memScoped {
+                        val argsArray = allocArray<COpaquePointerVar>(1)
+                        argsArray[0] = pValue
+                        val errorPtr = alloc<GDExtensionCallError>().ptr
+                        setter.invoke(null, s.targetPtr, argsArray.reinterpret(), 1L, null, errorPtr)
+                        if (errorPtr.pointed.error == GDExtensionCallErrorType.GDEXTENSION_CALL_OK) {
+                            GDExtensionBool.TRUE
+                        } else {
+                            GDExtensionBool.FALSE
+                        }
                     }
                 }
-            }
             }
         }
 
         get_func = staticCFunction { pInstance, pName, rRet ->
             guardCallback("KotlinScriptInstance.get", GDExtensionBool.FALSE) {
-            val s = pInstance.state()
-            val name = pName?.let { StringName(it).toString() }
-            val descriptor = s?.properties?.firstOrNull { it.name == name }
-            if (s == null || descriptor == null) {
-                // NOT calling VariantBinding.newNilRaw(rRet) here: Godot's Object::get() (core/object/
-                // object.cpp) always declares `Variant ret;` (already validly constructed) before calling
-                // into script_instance->get(), so this slot is never actually uninitialized — confirmed by
-                // reading the engine source directly.
-                GDExtensionBool.FALSE
-            } else {
-                memScoped {
-                    val errorPtr = alloc<GDExtensionCallError>().ptr
-                    descriptor.getter.invoke(null, s.targetPtr, null, 0L, rRet, errorPtr)
+                val s = pInstance.state()
+                val name = pName?.let { StringName(it).toString() }
+                val descriptor = s?.properties?.firstOrNull { it.name == name }
+                if (s == null || descriptor == null) {
+                    // NOT calling VariantBinding.newNilRaw(rRet) here: Godot's Object::get() (core/object/
+                    // object.cpp) always declares `Variant ret;` (already validly constructed) before calling
+                    // into script_instance->get(), so this slot is never actually uninitialized — confirmed by
+                    // reading the engine source directly.
+                    GDExtensionBool.FALSE
+                } else {
+                    memScoped {
+                        val errorPtr = alloc<GDExtensionCallError>().ptr
+                        descriptor.getter.invoke(null, s.targetPtr, null, 0L, rRet, errorPtr)
+                    }
+                    GDExtensionBool.TRUE
                 }
-                GDExtensionBool.TRUE
-            }
             }
         }
 
         get_property_list_func = staticCFunction { pInstance, rCount ->
             rCount?.pointed?.value = 0u
             guardCallback("KotlinScriptInstance.get_property_list", null) {
-            val s = pInstance.state()
-            if (s == null) {
-                rCount?.pointed?.value = 0u
-                null
-            } else {
-                val properties = s.properties
-                rCount?.pointed?.value = properties.size.toUInt()
-                if (properties.isEmpty()) {
+                val s = pInstance.state()
+                if (s == null) {
+                    rCount?.pointed?.value = 0u
                     null
                 } else {
-                    val classNameStr = internedName(s.entry.className)
-                    val result = nativeHeap.allocArray<GDExtensionPropertyInfo>(properties.size) { index ->
-                        val prop = properties[index]
-                        type = prop.type.toGDE()
-                        name = internedName(prop.name).rawPtr
-                        class_name = classNameStr.rawPtr
-                        hint = PropertyHint.NONE.value.toUInt()
-                        hint_string = emptyHintString.rawPtr
-                        usage = PropertyUsageFlags.DEFAULT.value.toUInt()
+                    val properties = s.properties
+                    rCount?.pointed?.value = properties.size.toUInt()
+                    if (properties.isEmpty()) {
+                        null
+                    } else {
+                        val classNameStr = internedName(s.entry.className)
+                        val result = nativeHeap.allocArray<GDExtensionPropertyInfo>(properties.size) { index ->
+                            val prop = properties[index]
+                            type = prop.type.toGDE()
+                            name = internedName(prop.name).rawPtr
+                            class_name = classNameStr.rawPtr
+                            hint = PropertyHint.NONE.value.toUInt()
+                            hint_string = emptyHintString.rawPtr
+                            usage = PropertyUsageFlags.DEFAULT.value.toUInt()
+                        }
+                        result
                     }
-                    result
                 }
-            }
             }
         }
 
@@ -217,36 +217,36 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
         get_method_list_func = staticCFunction { pInstance, rCount ->
             rCount?.pointed?.value = 0u
             guardCallback("KotlinScriptInstance.get_method_list", null) {
-            val s = pInstance.state()
-            if (s == null) {
-                rCount?.pointed?.value = 0u
-                null
-            } else {
-                val methods = s.methods
-                rCount?.pointed?.value = methods.size.toUInt()
-                if (methods.isEmpty()) {
+                val s = pInstance.state()
+                if (s == null) {
+                    rCount?.pointed?.value = 0u
                     null
                 } else {
-                    val emptyStr = internedName("")
-                    val result = nativeHeap.allocArray<GDExtensionMethodInfo>(methods.size) { index ->
-                        val method = methods[index]
-                        name = internedName(method.name).rawPtr
-                        return_value.type = GDEXTENSION_VARIANT_TYPE_NIL
-                        return_value.name = emptyStr.rawPtr
-                        return_value.class_name = emptyStr.rawPtr
-                        return_value.hint = PropertyHint.NONE.value.toUInt()
-                        return_value.hint_string = emptyHintString.rawPtr
-                        return_value.usage = PropertyUsageFlags.DEFAULT.value.toUInt()
-                        flags = MethodFlags.NORMAL.value.toUInt()
-                        id = 0
-                        argument_count = method.argumentCount.toUInt()
-                        arguments = null
-                        default_argument_count = 0u
-                        default_arguments = null
+                    val methods = s.methods
+                    rCount?.pointed?.value = methods.size.toUInt()
+                    if (methods.isEmpty()) {
+                        null
+                    } else {
+                        val emptyStr = internedName("")
+                        val result = nativeHeap.allocArray<GDExtensionMethodInfo>(methods.size) { index ->
+                            val method = methods[index]
+                            name = internedName(method.name).rawPtr
+                            return_value.type = GDEXTENSION_VARIANT_TYPE_NIL
+                            return_value.name = emptyStr.rawPtr
+                            return_value.class_name = emptyStr.rawPtr
+                            return_value.hint = PropertyHint.NONE.value.toUInt()
+                            return_value.hint_string = emptyHintString.rawPtr
+                            return_value.usage = PropertyUsageFlags.DEFAULT.value.toUInt()
+                            flags = MethodFlags.NORMAL.value.toUInt()
+                            id = 0
+                            argument_count = method.argumentCount.toUInt()
+                            arguments = null
+                            default_argument_count = 0u
+                            default_arguments = null
+                        }
+                        result
                     }
-                    result
                 }
-            }
             }
         }
 
