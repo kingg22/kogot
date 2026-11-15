@@ -1,7 +1,10 @@
 @file:OptIn(ExperimentalForeignApi::class, ExperimentalGodotKotlin::class)
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
+import io.github.kingg22.godot.api.annotations.Export
+import io.github.kingg22.godot.api.annotations.ExportMethod
 import io.github.kingg22.godot.api.annotations.Godot
+import io.github.kingg22.godot.api.annotations.RegisterSignal
 import io.github.kingg22.godot.api.builtin.*
 import io.github.kingg22.godot.api.core.GodotObject
 import io.github.kingg22.godot.api.core.Node
@@ -13,6 +16,7 @@ import io.github.kingg22.godot.api.GodotError
 import io.github.kingg22.godot.api.core.refcounted.PackedScene
 import io.github.kingg22.godot.api.core.refcounted.Resource
 import io.github.kingg22.godot.api.signal.connect
+import io.github.kingg22.godot.api.signal.signal
 import io.github.kingg22.godot.api.singleton.ResourceLoader
 import io.github.kingg22.godot.binding.instantiate
 import io.github.kingg22.godot.castTo
@@ -27,6 +31,7 @@ object DowncastCounters {
     var node = 0
     var resource = 0
     var base = 0
+    var baseEnteredTree = 0
 }
 
 @Godot
@@ -36,11 +41,26 @@ class DowncastNode(nativePtr: COpaquePointer) : Node(nativePtr) {
     }
 }
 
-/** A user class that extends another user class: `Derived : Base : Node`. */
+/**
+ * A user class that extends another user class: `Derived : Base : Node`. Base has one of each member a subclass
+ * inherits (a virtual override, a method, a property, a signal), so the checks see that Derived gets them all.
+ */
 @Godot
 open class DowncastBase(nativePtr: COpaquePointer) : Node(nativePtr) {
     init {
         DowncastCounters.base++
+    }
+
+    @RegisterSignal
+    val baseHint by signal()
+
+    @Export var baseValue: Int = 3
+
+    @ExportMethod
+    fun baseGreeting(): Int = 7
+
+    override fun _enterTree() {
+        DowncastCounters.baseEnteredTree++
     }
 }
 
@@ -189,6 +209,28 @@ class DowncastCheck(nativePtr: COpaquePointer) : Node(nativePtr) {
             expect(DowncastCounters.base == 2) { "reading built more: ${DowncastCounters.base}" }
             derived.queueFree()
             plain.queueFree()
+        }
+        check("a @Godot class inherits the virtuals, methods, properties and signals of its @Godot parent (#212)") {
+            DowncastCounters.baseEnteredTree = 0
+            val derived = instantiate<DowncastDerived>()
+            addChild(node = derived)
+            expect(DowncastCounters.baseEnteredTree == 1) {
+                "Base._enter_tree ran ${DowncastCounters.baseEnteredTree} times for a Derived"
+            }
+            expect(derived.getClass() == "DowncastDerived") { "get_class=${derived.getClass()}" }
+            "DowncastBase".toStringName().use { name ->
+                expect(derived.isClass(name)) { "is_class(DowncastBase) is false" }
+            }
+            "baseGreeting".toStringName().use { name ->
+                derived.call(name).use { expect(it.toString() == "7") { "baseGreeting()=$it" } }
+            }
+            "baseValue".toStringName().use { name ->
+                derived.get(name).use { expect(it.toString() == "3") { "baseValue=$it" } }
+            }
+            "baseHint".toStringName().use { name ->
+                expect(derived.hasSignal(name)) { "has_signal(baseHint) is false" }
+            }
+            derived.queueFree()
         }
         check("a @Godot node instanced from a PackedScene is the user class, built once per instance") {
             DowncastCounters.node = 0
