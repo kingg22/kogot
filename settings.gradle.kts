@@ -104,7 +104,6 @@ include(
     "kotlin-native:api:testing",
     "kotlin-native:api:utils",
     "kotlin-native:binding",
-    "kotlin-native:godot-test",
     "kotlin-native:runtime",
     "kotlin-native:sample",
 )

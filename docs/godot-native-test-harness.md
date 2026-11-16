@@ -1,80 +1,77 @@
 # Godot native test harness
 
-Runs Kotlin/Native tests **inside a headless Godot**, so code that needs the engine (`Node`, `Variant`, `ClassDB`,
-registration, signals, GDScript) can have regression tests. Module: `kotlin-native/godot-test` (issue #260).
+Runs the Kotlin/Native tests of **any module** inside a headless Godot, so code that needs the engine (`Node`, `Variant`,
+`ClassDB`, registration, signals, GDScript) can have regression tests written as plain `kotlin.test` (issue #260).
+It is the Gradle plugin `io.github.kingg22.kogot.test` (`gradle-plugin/plugin`, package `...gradle.test`).
 
 The complementary half is the KSP processor test suite (#183, source in → generated binding out); this one runs the
 generated binding, the registration and the runtime.
 
-## How it works
-
-1. The test source set (`src/nativeTest`) is compiled with the Kotlin/Native test runner (`-generate-test-runner`) and
-   linked as a **shared library** (`libkogot_godot_tests`), not as the usual test executable.
-2. The kogot processor runs on the test source set (`kspMacosArm64Test` / `kspLinuxX64Test`), so every `@Godot` class
-   declared in the tests is registered like in a game. The generated `GeneratedBindings` is wired to the GDExtension
-   entry point `kogot_test_init` (`src/harnessEntry`, compiled in the same fragment as the generated code).
-3. The `godotTest` task copies the library to `host/bin`, writes `host/kogot_tests.gdextension`, runs
-   `godot --headless --import` (Godot only learns about an extension from the import pass) and then
-   `godot --headless --path host`.
-4. `host/main.tscn` has a single `HarnessRunner` node. Its `_ready` starts the Kotlin/Native test runner (TeamCity
-   logger) on the main thread with a live `SceneTree` and quits with the runner's exit code. It is not started at
-   extension initialization: the engine is not fully up there (GDScript cannot compile yet).
-5. The task parses the runner's output and writes JUnit XML to `build/test-results/godotTest/TEST-godotTest.xml`
-   plus the full engine output to `godot-output.log` in the same folder.
-
-## Running
-
-```bash
-./gradlew :kotlin-native:godot-test:godotTest
-```
-
-`godotTest` is part of `check` of the module. The host target is picked from the OS (`macosArm64`, `linuxX64`);
-`mingwX64` is not wired yet.
-
-### Selecting Godot
-
-Resolution order (same idea as `godot-version/track.sh`):
-
-| Option                         | Meaning                                                                                      |
-|--------------------------------|----------------------------------------------------------------------------------------------|
-| `-Pgodot.bin=<path>` / `GODOT_BIN` | Executable, or a macOS `.app` bundle (resolved to `Contents/MacOS/Godot`).               |
-| `-Pgodot.version=4.7.2`        | Looks in `~/Downloads` for `Godot_v4.7.2-stable*` and fails if the binary reports another minor. |
-| none                           | `godot` / `godot4` in `PATH`.                                                                |
-| `-Pgodot.timeout=<seconds>`    | Kills the run after this time (default 120).                                                 |
-
-The task always runs (the engine binary is not a tracked input).
-
-### Failures, crashes and timeouts
-
-The build fails on: a failing test (message and Kotlin stack trace are printed and in the XML), a non-zero engine
-exit before the runner reported its result (a crash; the message names the **last started test** and
-`godot-output.log` has the engine's stderr), a timeout (the process is killed), and a run with no tests.
-Everything else (engine `ERROR:` lines that do not stop the run) is only in the log.
-
-## Writing a test
-
-Plain `kotlin.test` in `kotlin-native/godot-test/src/nativeTest/kotlin`:
+## Using it in a module
 
 ```kotlin
-class MyTest {
-    @Test
-    fun probeTriplesFromGdscript() {
-        val probe = instantiate<HarnessProbe>()      // a @Godot fixture, registered before the tests start
-        // ... assert through the engine
+plugins {
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kogot.test)          // io.github.kingg22.kogot.test
+}
+
+kotlin {
+    macosArm64()
+    linuxX64()
+    sourceSets {
+        commonTest {
+            dependencies { implementation(kotlin("test")) }
+        }
     }
 }
 ```
 
-Fixtures (`@Godot` classes) live in `Fixtures.kt`. Remember:
+Then write tests in `src/nativeTest/kotlin` like any Kotlin test. `@Godot` classes declared there are registered in the
+engine before the tests run (the kogot processor runs on the test compilation). Run them with `macosArm64Test` /
+`linuxX64Test`, or from the IDE (gutter icon, single test, class, `--tests` filters): the plugin keeps the ordinary
+test task, so Gradle and the IDE get real test events.
 
-- Tests run on the main thread, in a single Godot process for the whole suite.
-- `@Ignore` is reported as skipped. `aChildDeclaredBeforeItsParentIsRegistered_issue254` is ignored until the processor
-  registers parent-first; remove the `@Ignore` when #254 is fixed.
-- A class whose registration the engine refuses prints an `ERROR:` in the log but does not stop the run.
-- Engine objects created by a test are not freed automatically; free what you need to keep counters meaningful.
+Only the targets the host OS can run are wired (`macosArm64` on macOS, `linuxX64` on Linux). `mingwX64` is not.
+
+### Options (`kogotTest { }` or `gradle.properties`)
+
+| Option | Property | Meaning |
+|---|---|---|
+| `godotBin` | `kogot.test.godotBin` / `godot.bin` | Executable, or a macOS `.app`. Else `GODOT_BIN`, then `~/Downloads` for `godotVersion`, then `godot`/`godot4` in `PATH`. |
+| `godotVersion` | `kogot.test.godotVersion` / `godot.version` | `X.Y.Z`; the run fails if the binary reports another minor. |
+| `timeoutSeconds` | `kogot.test.timeout` / `godot.timeout` | Per Godot process (default 120). |
+| `isolation` | `kogot.test.isolation` | `PER_TEST` (default) or `NONE`. |
+
+## How it works
+
+1. KSP runs on the test compilation (`ksp<Target>Test`) with the `kogot.generatedBindingsPackage` option, so the
+   `GeneratedBindings` aggregator lives in a package that cannot clash with the main one.
+2. `generateKogotTestHarness<Target>` adds a generated file to the test compilation: a `KogotTestRunner` `@Godot` node and
+   the GDExtension entry point. The test compilation is also linked as a shared library.
+3. `prepareKogotGodotTestHost<Target>` writes a checked-nowhere host project under `build/kogotGodotTest/<target>`
+   (no assets; main scene = `KogotTestRunner`), the `.gdextension`, a `launcher.properties` and a `run-godot-tests` script.
+4. The `<target>Test` task runs that script **instead of the test executable**. The Kotlin Gradle plugin gives it the
+   usual arguments (`--ktest_logger=TEAMCITY`, `--ktest_gradle_filter=...`) and converts the TeamCity messages it prints
+   into Gradle test events. That is what makes the IDE work.
+5. The script starts `GodotTestLauncher` on the Gradle JVM. It lists the tests (`--ktest_list_tests` inside Godot),
+   applies the filters, and runs **each test in its own `godot --headless`**, re-emitting the runner's messages (one suite
+   per class). `KogotTestRunner._ready` runs the Kotlin/Native test runner on the main thread with a live `SceneTree`
+   and quits with its exit code; it does not start at extension initialization because the engine is not fully up there
+   (GDScript cannot compile yet).
+6. A Godot that crashes or hangs becomes a failed test with the engine's last output (and the build fails); the
+   process is killed on timeout.
+
+## Writing tests
+
+- Tests run on the main thread. Engine objects a test creates are not freed for it; each test has a fresh engine.
+- Synchronous only: a test cannot wait for frames or timers (the runner is inside `_ready`).
+- Fixtures (`@Godot` classes) belong to the test source set: the main source set's classes are not registered in the test
+  library.
+- The test module sees the main classes, so give fixtures their own package.
 
 ## Known limits / next steps
 
-- One process for the whole suite (a crash hides the rest of the tests); per-class processes are a possible follow-up.
-- Windows is not wired (`mingwX64` is commented out in the repo).
-- CI matrix over several Godot versions is tracked separately; `-Pgodot.version` / `-Pgodot.bin` are the hooks for it.
+- One Godot start per test (about a second each): `NONE` is available when speed matters more than isolation.
+- Windows is not wired.
+- The launcher is a JVM program started by a small script; the script needs no extra tooling (it uses Gradle's JVM).
+- CI matrix over several Godot versions is tracked separately; `godot.bin` / `godot.version` are the hooks for it.
