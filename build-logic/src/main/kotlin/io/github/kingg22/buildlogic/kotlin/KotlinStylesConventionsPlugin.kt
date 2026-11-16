@@ -11,6 +11,10 @@ class KotlinStylesConventionsPlugin : Plugin<Project> {
         target.plugins.apply("buildlogic.common-styles-conventions")
         target.extensions.configure<SpotlessExtension> {
             kotlin {
+                // Explicit: Spotless' default target only follows the JVM source sets, so in Kotlin Multiplatform
+                // modules (nativeMain, commonMain, ...) it matches no file at all and reports everything up to date.
+                target("src/**/*.kt")
+                targetExclude("**/build/**")
                 // https://github.com/pinterest/ktlint/releases
                 ktlint("1.8.0")
             }
