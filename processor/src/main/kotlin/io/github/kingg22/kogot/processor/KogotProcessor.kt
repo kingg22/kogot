@@ -33,7 +33,18 @@ class KogotProcessor(environment: SymbolProcessorEnvironment) : SymbolProcessor 
 
     private val codeGenerator: CodeGenerator = environment.codeGenerator
     private val logger: KSPLogger = environment.logger
-    private val generator = GodotBindingGenerator()
+    private val generator = GodotBindingGenerator(
+        bindingsPackage = environment.options[GENERATED_BINDINGS_PACKAGE_OPTION],
+    )
+
+    companion object {
+        /**
+         * KSP option (`ksp { arg(...) }`) fixing the package of the generated `GeneratedBindings` aggregator. Without it
+         * the package is derived from the first `@Godot` class, which a build tool that needs to refer to the aggregator
+         * (the kogot Gradle plugins) cannot know.
+         */
+        const val GENERATED_BINDINGS_PACKAGE_OPTION = "kogot.generatedBindingsPackage"
+    }
 
     override fun process(resolver: Resolver): List<KSClassDeclaration> {
         logger.info("KogotProcessor: Starting processing")

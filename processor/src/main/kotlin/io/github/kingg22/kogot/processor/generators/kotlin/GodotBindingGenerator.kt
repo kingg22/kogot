@@ -59,7 +59,11 @@ data class GenerationResult(val files: List<GeneratedFile>, val diagnostics: Lis
 /**
  * Generates Kotlin binding code (`<Class>_Binding` objects) for `@Godot`-annotated classes.
  */
-class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = DefaultVariantTypeResolver()) {
+class GodotBindingGenerator(
+    private val typeResolver: VariantTypeResolver = DefaultVariantTypeResolver(),
+    /** Package of the `GeneratedBindings` aggregator; derived from the first class when null. */
+    private val bindingsPackage: String? = null,
+) {
 
     fun generate(classes: List<ClassInfo>): GenerationResult {
         val files = mutableListOf<GeneratedFile>()
@@ -590,7 +594,7 @@ class GodotBindingGenerator(private val typeResolver: VariantTypeResolver = Defa
     }
 
     private fun generateCallbacksFile(classes: List<ClassInfo>): GeneratedFile {
-        val packageName = classes.first().packageName + ".generated"
+        val packageName = bindingsPackage ?: (classes.first().packageName + ".generated")
         val className = "GeneratedBindings"
 
         val type = TypeSpec
