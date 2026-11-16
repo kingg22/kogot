@@ -15,6 +15,8 @@ class KotlinStylesConventionsPlugin : Plugin<Project> {
                 // modules (nativeMain, commonMain, ...) it matches no file at all and reports everything up to date.
                 target("src/**/*.kt")
                 targetExclude("**/build/**")
+                // Generated sources opt out with `// spotless:off`.
+                toggleOffOn()
                 // https://github.com/pinterest/ktlint/releases
                 ktlint("1.8.0")
             }
