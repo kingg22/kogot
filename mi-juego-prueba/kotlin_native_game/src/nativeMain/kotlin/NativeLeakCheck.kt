@@ -9,8 +9,8 @@ import io.github.kingg22.godot.api.builtin.Color
 import io.github.kingg22.godot.api.builtin.GodotArray
 import io.github.kingg22.godot.api.builtin.Signal
 import io.github.kingg22.godot.api.builtin.Transform3D
-import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.builtin.Variant
+import io.github.kingg22.godot.api.builtin.Vector2
 import io.github.kingg22.godot.api.builtin.from
 import io.github.kingg22.godot.api.builtin.getValue
 import io.github.kingg22.godot.api.builtin.toGodotString
@@ -95,7 +95,7 @@ internal expect fun cHeapInUse(): Long?
         Signal(emitter, signalName).use { signal ->
             noGrowth("Signal.emit(Any?) (#219)") { signal.emit(text) }
         }
-        Callable { -> text }.use { callable ->
+        Callable { text }.use { callable ->
             noGrowth("a Callable lambda's return value (#219)") { callable.call().close() }
         }
         val user = instantiate<DowncastDerived>()
@@ -180,28 +180,24 @@ internal expect fun cHeapInUse(): Long?
      * a small margin. With [collect], the garbage collector runs and the Cleaners settle before each measurement:
      * memory a Cleaner frees is only given back once the wrapper is collected.
      */
-    private fun Checks.noGrowth(
-        name: String,
-        cHeap: Boolean = true,
-        collect: Boolean = false,
-        call: () -> Unit,
-    ) = check("$name does not leak") {
-        val os = Os.instance
-        repeat(100) { call() } // warm up: arenas, lazy method binds
-        if (collect) settleCleaners()
-        val heapBefore = cHeapInUse()
-        val engineBefore = os.getStaticMemoryUsage().toLong()
-        repeat(20_000) { call() }
-        if (collect) settleCleaners()
-        val heapAfter = cHeapInUse()
-        val heap = if (heapBefore != null && heapAfter != null) heapAfter - heapBefore else null
-        val engine = os.getStaticMemoryUsage().toLong() - engineBefore
-        val heapText = heap?.let { "+$it bytes" } ?: "not measured on this platform"
-        println("[NativeLeakCheck] $name: C heap $heapText, engine +$engine bytes over 20000 calls")
-        expect((!cHeap || heap == null || heap < 100_000) && engine < 100_000) {
-            "C heap grew by $heap bytes, engine by $engine bytes"
+    private fun Checks.noGrowth(name: String, cHeap: Boolean = true, collect: Boolean = false, call: () -> Unit) =
+        check("$name does not leak") {
+            val os = Os.instance
+            repeat(100) { call() } // warm up: arenas, lazy method binds
+            if (collect) settleCleaners()
+            val heapBefore = cHeapInUse()
+            val engineBefore = os.getStaticMemoryUsage().toLong()
+            repeat(20_000) { call() }
+            if (collect) settleCleaners()
+            val heapAfter = cHeapInUse()
+            val heap = if (heapBefore != null && heapAfter != null) heapAfter - heapBefore else null
+            val engine = os.getStaticMemoryUsage().toLong() - engineBefore
+            val heapText = heap?.let { "+$it bytes" } ?: "not measured on this platform"
+            println("[NativeLeakCheck] $name: C heap $heapText, engine +$engine bytes over 20000 calls")
+            expect((!cHeap || heap == null || heap < 100_000) && engine < 100_000) {
+                "C heap grew by $heap bytes, engine by $engine bytes"
+            }
         }
-    }
 }
 
 /** Prints the mean time of [call] over 200,000 runs, after a warm-up, including the collections they cause. */
@@ -227,4 +223,3 @@ private fun settleCleaners() {
         usleep(20_000u)
     }
 }
-

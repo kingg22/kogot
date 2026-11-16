@@ -29,10 +29,7 @@ fun godotKotlinInit(
     return GDExtensionBool.TRUE
 }
 
-private fun initialize(
-    userdata: COpaquePointer?,
-    level: GDExtensionInitializationLevel,
-) {
+private fun initialize(userdata: COpaquePointer?, level: GDExtensionInitializationLevel) {
     when (level) {
         GDEXTENSION_INITIALIZATION_CORE -> {
             println("✓ CORE initialized")
@@ -57,7 +54,9 @@ private fun initialize(
                     val kotlinString = godotString.toKStringUtf8()
                     val kotlin2String = godotString.toKStringUtf16()
                     val kotlin3String = godotString.toKStringUtf32()
-                    GD.print("GodotString.toKString() result: utf-8= '$kotlinString', utf-16= '$kotlin2String', utf-32= '$kotlin3String'")
+                    GD.print(
+                        "GodotString.toKString() result: utf-8= '$kotlinString', utf-16= '$kotlin2String', utf-32= '$kotlin3String'",
+                    )
                 }
             } catch (error: Throwable) {
                 GD.pushError("GodotString.toKString() error: $error")
@@ -71,9 +70,6 @@ private fun initialize(
     }
 }
 
-private fun deinitialize(
-    userdata: COpaquePointer?,
-    level: GDExtensionInitializationLevel,
-) {
+private fun deinitialize(userdata: COpaquePointer?, level: GDExtensionInitializationLevel) {
     println("✗ DEINITIALIZE LEVEL = $level, userdata: $userdata")
 }

@@ -85,7 +85,11 @@ public object CallableTrampolines {
             val callable = userdata?.getInstance<KotlinCallable>()
             val arity = callable?.arity() ?: 0L
             if (rIsValid != null) {
-                val validFlag = if (callable != null && callable.isValid()) GDExtensionBool.TRUE else GDExtensionBool.FALSE
+                val validFlag = if (callable != null && callable.isValid()) {
+                    GDExtensionBool.TRUE
+                } else {
+                    GDExtensionBool.FALSE
+                }
                 rIsValid[0] = validFlag
             }
             arity

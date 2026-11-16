@@ -1,4 +1,9 @@
-@file:OptIn(ExperimentalForeignApi::class, ExperimentalGodotKotlin::class, ExperimentalGodotApi::class, InternalBinding::class)
+@file:OptIn(
+    ExperimentalForeignApi::class,
+    ExperimentalGodotKotlin::class,
+    ExperimentalGodotApi::class,
+    InternalBinding::class,
+)
 
 import io.github.kingg22.godot.api.ExperimentalGodotApi
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
@@ -86,7 +91,9 @@ class CoroutinesCheck(nativePtr: COpaquePointer) :
         }
         check("kotlinx Dispatchers.Main is not available on Linux native (needs our own Main)") {
             val outcome = runCatching { Dispatchers.Main.isDispatchNeeded(EmptyCoroutineContext) }
-            println("[CoroutinesCheck] Dispatchers.Main -> ${outcome.exceptionOrNull() ?: "available: ${Dispatchers.Main}"}")
+            println(
+                "[CoroutinesCheck] Dispatchers.Main -> ${outcome.exceptionOrNull() ?: "available: ${Dispatchers.Main}"}",
+            )
             expect(outcome.isFailure) { "Dispatchers.Main = ${Dispatchers.Main}" }
         }
         check("a GodotScope coroutine runs on the main thread") {

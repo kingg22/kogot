@@ -14,8 +14,8 @@ import io.github.kingg22.godot.api.builtin.toVariantOrNull
  * Exercises every generated API with a `@MustBeVariant` contract (Callable factories live in CallableUsage.kt), so
  * the kogot compiler plugin validates each against the real generated declarations. All uses here are valid.
  */
-// The two `as Any` samples go through the runtime slow path on purpose (`anyToVariant*`), so the open type is expected.
 @Suppress("MUST_BE_VARIANT_UNKNOWN_TYPE")
+// The two `as Any` samples go through the runtime slow path on purpose (`anyToVariant*`), so the open type is expected.
 internal fun mustBeVariantSamples(): List<Variant?> = listOf(
     // Sending: Kotlin value -> Variant.
     Variant.from(42L),

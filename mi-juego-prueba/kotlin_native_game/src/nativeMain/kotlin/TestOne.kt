@@ -457,6 +457,7 @@ private const val BORROWED_CAST_CHECK_FRAME = 450
 
             BORROWED_CAST_CHECK_FRAME -> {
                 val owner = borrowedOwner ?: return
+
                 @OptIn(InternalBinding::class)
                 val after = RefCounted(owner.toObjectRawPtr()).getReferenceCount()
                 println(

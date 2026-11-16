@@ -43,7 +43,11 @@ public class KotlinResourceFormatLoader(nativePtr: COpaquePointer) : ResourceFor
     // via a self-built Godot dev binary + lldb: returning "Script" here crashed with EXC_BAD_ACCESS
     // inside Godot's own get_class_icon_path() call, entirely outside this extension's code.
     override fun _getResourceTypeAsGdStr(path: GodotString): GodotString =
-        if (KotlinScriptRegistry.contains(resPath(path.toKString()))) KOTLIN_SCRIPT_CLASS_NAME.toGodotString() else GodotString()
+        if (KotlinScriptRegistry.contains(resPath(path.toKString()))) {
+            KOTLIN_SCRIPT_CLASS_NAME.toGodotString()
+        } else {
+            GodotString()
+        }
 
     override fun _load(path: GodotString, originalPath: GodotString, useSubThreads: Boolean, cacheMode: Int): Variant {
         val normalizedPath = resPath(path.toKString())

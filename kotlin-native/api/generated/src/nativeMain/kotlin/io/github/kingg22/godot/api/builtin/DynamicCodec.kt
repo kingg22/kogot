@@ -3,8 +3,8 @@ package io.github.kingg22.godot.api.builtin
 import io.github.kingg22.godot.api.builtin.internal.NoConversion
 import io.github.kingg22.godot.api.builtin.internal.anyToVariant
 import io.github.kingg22.godot.api.builtin.internal.convertValue
-import io.github.kingg22.godot.api.builtin.internal.valueMismatch
 import io.github.kingg22.godot.api.builtin.internal.value
+import io.github.kingg22.godot.api.builtin.internal.valueMismatch
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 

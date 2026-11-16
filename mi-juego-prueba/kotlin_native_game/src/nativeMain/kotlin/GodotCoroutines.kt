@@ -160,14 +160,15 @@ suspend fun TypedSignal<() -> Unit>.await() {
 }
 
 /** Suspends until [this] one-argument signal is emitted once, and returns the argument. */
-suspend inline fun <reified @MustBeVariant P1> TypedSignal<(P1) -> Unit>.await(): P1 = suspendCancellableCoroutine { continuation ->
-    val holder = arrayOfNulls<SignalConnection>(1)
-    holder[0] = connect(GodotObject.ConnectFlags.ONE_SHOT) { value: P1 ->
-        holder[0]?.close()
-        continuation.resumeIfActive(value)
+suspend inline fun <reified @MustBeVariant P1> TypedSignal<(P1) -> Unit>.await(): P1 =
+    suspendCancellableCoroutine { continuation ->
+        val holder = arrayOfNulls<SignalConnection>(1)
+        holder[0] = connect(GodotObject.ConnectFlags.ONE_SHOT) { value: P1 ->
+            holder[0]?.close()
+            continuation.resumeIfActive(value)
+        }
+        continuation.releaseOnCancel(holder)
     }
-    continuation.releaseOnCancel(holder)
-}
 
 fun <T> CancellableContinuation<T>.resumeIfActive(value: T) {
     if (isActive) resume(value)

@@ -80,7 +80,9 @@ private val SCENARIO_FRAMES = listOf(10, 20, 30, 40, 50, 60, 70)
                 finished++
                 if (finished == workerCount) {
                     val expected = workerCount * incrementsPerWorker
-                    println("[ThreadTest] scenario0: all workers done, counter=$counter (expected $expected) -> ${if (counter == expected) "OK" else "RACE DETECTED"}")
+                    println(
+                        "[ThreadTest] scenario0: all workers done, counter=$counter (expected $expected) -> ${if (counter == expected) "OK" else "RACE DETECTED"}",
+                    )
                 }
                 println("[ThreadTest] scenario0: worker $workerId finished")
             }
@@ -100,7 +102,9 @@ private val SCENARIO_FRAMES = listOf(10, 20, 30, 40, 50, 60, 70)
             try {
                 val size = tex.getSize()
                 val refcount = tex.getReferenceCount()
-                println("[ThreadTest] scenario1: background thread read size=$size refcount=$refcount (ptrcall ran OFF the main thread on purpose)")
+                println(
+                    "[ThreadTest] scenario1: background thread read size=$size refcount=$refcount (ptrcall ran OFF the main thread on purpose)",
+                )
             } catch (e: Throwable) {
                 println("[ThreadTest] scenario1: background thread read THREW: ${e::class.simpleName}: ${e.message}")
             }
@@ -120,7 +124,9 @@ private val SCENARIO_FRAMES = listOf(10, 20, 30, 40, 50, 60, 70)
             CoroutineScope(Dispatchers.Default).launch {
                 mutex.withLock {
                     val tex = GD.load<Texture2D>("res://icon.svg", factory = ::Texture2D)
-                    println("[ThreadTest] scenario2: worker $workerId (guarded) loaded, refcount=${tex.getReferenceCount()}")
+                    println(
+                        "[ThreadTest] scenario2: worker $workerId (guarded) loaded, refcount=${tex.getReferenceCount()}",
+                    )
                 }
             }
         }
@@ -140,9 +146,13 @@ private val SCENARIO_FRAMES = listOf(10, 20, 30, 40, 50, 60, 70)
             CoroutineScope(Dispatchers.Default).launch {
                 try {
                     val tex = GD.load<Texture2D>("res://icon.svg", factory = ::Texture2D)
-                    println("[ThreadTest] scenario3: worker $workerId (unguarded) loaded, refcount=${tex.getReferenceCount()}")
+                    println(
+                        "[ThreadTest] scenario3: worker $workerId (unguarded) loaded, refcount=${tex.getReferenceCount()}",
+                    )
                 } catch (e: Throwable) {
-                    println("[ThreadTest] scenario3: worker $workerId (unguarded) THREW: ${e::class.simpleName}: ${e.message}")
+                    println(
+                        "[ThreadTest] scenario3: worker $workerId (unguarded) THREW: ${e::class.simpleName}: ${e.message}",
+                    )
                 }
             }
         }
@@ -159,7 +169,9 @@ private val SCENARIO_FRAMES = listOf(10, 20, 30, 40, 50, 60, 70)
             val tex = GD.load<Texture2D>("res://icon.svg", factory = ::Texture2D)
             println("[ThreadTest] scenario4: before delay, refcount=${tex.getReferenceCount()}")
             delay(300)
-            println("[ThreadTest] scenario4: after delay (possibly different thread), refcount=${tex.getReferenceCount()}")
+            println(
+                "[ThreadTest] scenario4: after delay (possibly different thread), refcount=${tex.getReferenceCount()}",
+            )
         }
     }
 
@@ -189,9 +201,13 @@ private val SCENARIO_FRAMES = listOf(10, 20, 30, 40, 50, 60, 70)
         CoroutineScope(Dispatchers.Default).launch {
             try {
                 val variant = Json.parseString("""{"name": "orc", "health": 77}""")
-                println("[ThreadTest] scenario6: Godot Json.parseString from background thread succeeded: ${variant.stringify().toKString()}")
+                println(
+                    "[ThreadTest] scenario6: Godot Json.parseString from background thread succeeded: ${variant.stringify().toKString()}",
+                )
             } catch (e: Throwable) {
-                println("[ThreadTest] scenario6: Godot Json.parseString from background thread THREW: ${e::class.simpleName}: ${e.message}")
+                println(
+                    "[ThreadTest] scenario6: Godot Json.parseString from background thread THREW: ${e::class.simpleName}: ${e.message}",
+                )
             }
         }
     }

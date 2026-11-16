@@ -1,5 +1,6 @@
 @file:OptIn(ExperimentalForeignApi::class, ExperimentalGodotKotlin::class, ExperimentalGodotApi::class)
 
+import io.github.kingg22.godot.api.EnumMask
 import io.github.kingg22.godot.api.ExperimentalGodotApi
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.GodotError
@@ -35,7 +36,6 @@ import io.github.kingg22.godot.api.core.refcounted.MultiplayerPeer
 import io.github.kingg22.godot.api.core.refcounted.StreamPeerExtension
 import io.github.kingg22.godot.api.signal.emit
 import io.github.kingg22.godot.api.signal.signal
-import io.github.kingg22.godot.api.EnumMask
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -89,7 +89,10 @@ class InteropTarget(nativePtr: COpaquePointer) :
     fun greet(name: String): String = "Hola, $name, desde Kotlin"
 
     @ExportMethod
-    fun scale(vector: Vector2, factor: Float): Vector2 = Vector2(vector.x * factor.toDouble(), vector.y * factor.toDouble())
+    fun scale(vector: Vector2, factor: Float): Vector2 = Vector2(
+        vector.x * factor.toDouble(),
+        vector.y * factor.toDouble(),
+    )
 
     @ExportMethod
     fun cross(a: Vector3, b: Vector3): Vector3 = a.cross(b)
@@ -101,7 +104,8 @@ class InteropTarget(nativePtr: COpaquePointer) :
     }
 
     @ExportMethod
-    fun sumArray(values: Variant): Long = values.getValue<VariantArray>().use { array -> array.sumOf { it.getValue<Long>() } }
+    fun sumArray(values: Variant): Long =
+        values.getValue<VariantArray>().use { array -> array.sumOf { it.getValue<Long>() } }
 
     @ExportMethod
     fun sumTyped(values: Variant): Long = values.getValue<GodotArray<Long>>().use { it.sum() }
@@ -138,7 +142,9 @@ class InteropTarget(nativePtr: COpaquePointer) :
     @ExportMethod
     fun doubled(values: Variant): PackedInt32Array = values.getValue<PackedInt32Array>().use { source ->
         val result = PackedInt32Array()
-        for (i in 0 until source.size()) { val _ = result.append(source.get(i) * 2) }
+        for (i in 0 until source.size()) {
+            val _ = result.append(source.get(i) * 2)
+        }
         result
     }
 
@@ -247,8 +253,7 @@ class KotlinMultiplayer(nativePtr: COpaquePointer) : MultiplayerAPIExtension(nat
 
     override fun _objectConfigurationAdd(`object`: GodotObject?, configuration: Variant): GodotError = GodotError.OK
 
-    override fun _objectConfigurationRemove(`object`: GodotObject?, configuration: Variant): GodotError =
-        GodotError.OK
+    override fun _objectConfigurationRemove(`object`: GodotObject?, configuration: Variant): GodotError = GodotError.OK
 
     @ExportMethod
     fun lastRpc(): String = lastRpc

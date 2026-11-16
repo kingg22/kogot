@@ -71,7 +71,8 @@ public class KotlinScriptLanguage(nativePtr: COpaquePointer) : ScriptLanguageExt
         // in the compile-time registry (populated from the KSP-generated `ScriptFileRegistry`) is the
         // only validation available.
         val result = VariantDictionary()
-        result["valid".toVariant()] = KotlinScriptRegistry.contains(ProjectSettings.instance.localizePath(path.toKString())).toVariant()
+        result["valid".toVariant()] =
+            KotlinScriptRegistry.contains(ProjectSettings.instance.localizePath(path.toKString())).toVariant()
         return result
     }
 
@@ -80,7 +81,8 @@ public class KotlinScriptLanguage(nativePtr: COpaquePointer) : ScriptLanguageExt
     override fun _createScript(): GodotObject = newEmptyKotlinScript()
 
     // Matches Kotlin's own file-naming convention (PascalCase classes live in PascalCase-or-related files).
-    override fun _preferredFileNameCasing(): ScriptLanguage.ScriptNameCasing = ScriptLanguage.ScriptNameCasing.PASCAL_CASE
+    override fun _preferredFileNameCasing(): ScriptLanguage.ScriptNameCasing =
+        ScriptLanguage.ScriptNameCasing.PASCAL_CASE
 
     // ── Remaining required virtuals (issue #42) ────────────────────────────
     // Kotlin/Native is AOT-compiled: there is no in-editor parser, debugger, profiler, or code-generation
@@ -186,9 +188,13 @@ public class KotlinScriptLanguage(nativePtr: COpaquePointer) : ScriptLanguageExt
 
     // Required (GDVIRTUAL2R_REQUIRED, unlike the rest of this block): 0 means "no profiling data
     // available", the same answer `_profilingStart`/`_profilingStop` being no-ops already implies.
-    override fun _profilingGetAccumulatedData(infoArray: CPointer<ScriptLanguageExtensionProfilingInfo>, infoMax: Int): Int = 0
+    override fun _profilingGetAccumulatedData(
+        infoArray: CPointer<ScriptLanguageExtensionProfilingInfo>,
+        infoMax: Int,
+    ): Int = 0
 
-    override fun _profilingGetFrameData(infoArray: CPointer<ScriptLanguageExtensionProfilingInfo>, infoMax: Int): Int = 0
+    override fun _profilingGetFrameData(infoArray: CPointer<ScriptLanguageExtensionProfilingInfo>, infoMax: Int): Int =
+        0
 
     override fun _frame() {}
 

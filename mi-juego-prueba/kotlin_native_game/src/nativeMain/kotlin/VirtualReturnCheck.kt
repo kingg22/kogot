@@ -9,8 +9,8 @@ import io.github.kingg22.godot.api.builtin.toGodotString
 import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.Node
 import io.github.kingg22.godot.api.core.refcounted.Mesh
-import io.github.kingg22.godot.api.singleton.ResourceLoader
 import io.github.kingg22.godot.api.singleton.Os
+import io.github.kingg22.godot.api.singleton.ResourceLoader
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
 
@@ -72,7 +72,9 @@ import kotlinx.cinterop.ExperimentalForeignApi
             check("script lists: $name of $file has $expected entries and does not leak") {
                 val script = ResourceLoader.instance.load("$dir/$file".toGodotString())
                 val method = name.toStringName()
-                script.call(method).use { list -> list.toArray().use { expect(it.size == expected) { "size=${it.size}" } } }
+                script.call(method).use { list ->
+                    list.toArray().use { expect(it.size == expected) { "size=${it.size}" } }
+                }
                 val os = Os.instance
                 val before = os.getStaticMemoryUsage().toLong()
                 repeat(5_000) { script.call(method).close() }

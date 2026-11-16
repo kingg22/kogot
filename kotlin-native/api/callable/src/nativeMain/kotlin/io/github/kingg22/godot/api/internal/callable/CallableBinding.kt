@@ -36,13 +36,12 @@ public object CallableBinding {
     public fun createCustomInfo2(
         callable: KotlinCallable,
         objectId: ULong = 0uL,
-    ): CValue<GDExtensionCallableCustomInfo2> =
-        createCustomInfo2(
-            // Store the KotlinCallable in a StableRef on userdata
-            StableRef.create(callable).asCPointer(),
-            createCustomCall(),
-            objectId,
-        )
+    ): CValue<GDExtensionCallableCustomInfo2> = createCustomInfo2(
+        // Store the KotlinCallable in a StableRef on userdata
+        StableRef.create(callable).asCPointer(),
+        createCustomCall(),
+        objectId,
+    )
 
     /**
      * The `call_func` of every custom callable. Runs on whatever thread calls the `Callable` (a `WorkerThreadPool`

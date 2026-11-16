@@ -216,38 +216,70 @@ public object KotlinScriptRegistration {
                 resolveVirtualCall(funcNamePtr) { funcName ->
                     when (funcName) {
                         "_can_instantiate" as Any -> ScriptExtensionVirtualCalls.canInstantiate
+
                         "_get_source_code" as Any -> ScriptExtensionVirtualCalls.getSourceCode
+
                         "_set_source_code" as Any -> ScriptExtensionVirtualCalls.setSourceCode
+
                         "_has_source_code" as Any -> ScriptExtensionVirtualCalls.hasSourceCode
+
                         "_is_valid" as Any -> ScriptExtensionVirtualCalls.isValid
+
                         "_is_tool" as Any -> ScriptExtensionVirtualCalls.isTool
+
                         "_get_instance_base_type" as Any -> ScriptExtensionVirtualCalls.getInstanceBaseType
+
                         "_get_language" as Any -> ScriptExtensionVirtualCalls.getLanguage
+
                         "_reload" as Any -> ScriptExtensionVirtualCalls.reload
+
                         "_instance_create" as Any -> ScriptExtensionVirtualCalls.instanceCreate
+
                         "_editor_can_reload_from_file" as Any -> ScriptExtensionVirtualCalls.editorCanReloadFromFile
+
                         "_get_base_script" as Any -> ScriptExtensionVirtualCalls.getBaseScript
+
                         "_get_global_name" as Any -> ScriptExtensionVirtualCalls.getGlobalName
+
                         "_inherits_script" as Any -> ScriptExtensionVirtualCalls.inheritsScript
+
                         "_placeholder_instance_create" as Any -> ScriptExtensionVirtualCalls.placeholderInstanceCreate
+
                         "_get_doc_class_name" as Any -> ScriptExtensionVirtualCalls.getDocClassName
+
                         "_has_method" as Any -> ScriptExtensionVirtualCalls.hasMethod
+
                         "_has_static_method" as Any -> ScriptExtensionVirtualCalls.hasStaticMethod
+
                         "_get_method_info" as Any -> ScriptExtensionVirtualCalls.getMethodInfo
+
                         "_has_script_signal" as Any -> ScriptExtensionVirtualCalls.hasScriptSignal
+
                         "_has_property_default_value" as Any -> ScriptExtensionVirtualCalls.hasPropertyDefaultValue
+
                         "_get_property_default_value" as Any -> ScriptExtensionVirtualCalls.getPropertyDefaultValue
+
                         "_update_exports" as Any -> ScriptExtensionVirtualCalls.updateExports
+
                         "_get_member_line" as Any -> ScriptExtensionVirtualCalls.getMemberLine
+
                         "_get_constants" as Any -> ScriptExtensionVirtualCalls.getConstants
+
                         "_is_placeholder_fallback_enabled" as Any ->
                             ScriptExtensionVirtualCalls.isPlaceholderFallbackEnabled
+
                         "_get_rpc_config" as Any -> ScriptExtensionVirtualCalls.getRpcConfig
+
                         "_get_documentation" as Any -> ScriptExtensionVirtualCalls.getDocumentation
+
                         "_get_script_signal_list" as Any -> ScriptExtensionVirtualCalls.getScriptSignalList
+
                         "_get_script_method_list" as Any -> ScriptExtensionVirtualCalls.getScriptMethodList
+
                         "_get_script_property_list" as Any -> ScriptExtensionVirtualCalls.getScriptPropertyList
+
                         "_get_members" as Any -> ScriptExtensionVirtualCalls.getMembers
+
                         else -> null
                     }
                 }
@@ -311,12 +343,14 @@ public object KotlinScriptRegistration {
             Engine.instance.registerScriptLanguage(language),
         )
 
-        loader = createInstanceFromKotlin("ResourceFormatLoader", "KotlinResourceFormatLoader", ::KotlinResourceFormatLoader)
-            ?: error("Failed to create the KotlinResourceFormatLoader singleton")
+        loader =
+            createInstanceFromKotlin("ResourceFormatLoader", "KotlinResourceFormatLoader", ::KotlinResourceFormatLoader)
+                ?: error("Failed to create the KotlinResourceFormatLoader singleton")
         ResourceLoader.instance.addResourceFormatLoader(loader)
 
-        saver = createInstanceFromKotlin("ResourceFormatSaver", "KotlinResourceFormatSaver", ::KotlinResourceFormatSaver)
-            ?: error("Failed to create the KotlinResourceFormatSaver singleton")
+        saver =
+            createInstanceFromKotlin("ResourceFormatSaver", "KotlinResourceFormatSaver", ::KotlinResourceFormatSaver)
+                ?: error("Failed to create the KotlinResourceFormatSaver singleton")
         ResourceSaver.instance.addResourceFormatSaver(saver)
     }
 

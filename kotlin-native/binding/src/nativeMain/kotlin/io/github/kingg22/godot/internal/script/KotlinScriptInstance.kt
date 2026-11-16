@@ -349,12 +349,14 @@ public fun createKotlinScriptInstance(script: KotlinScript, forObject: GodotObje
         }
 
         free_func = staticCFunction { pInstance ->
-            if (pInstance != null) guardCallback("KotlinScriptInstance.free") {
-                val ref = pInstance.asStableRef<ScriptInstanceState>()
-                val freedState = ref.get()
-                freedState.targetPtr?.asStableRef<Any>()?.dispose()
-                nativeHeap.free(freedState.info)
-                ref.dispose()
+            if (pInstance != null) {
+                guardCallback("KotlinScriptInstance.free") {
+                    val ref = pInstance.asStableRef<ScriptInstanceState>()
+                    val freedState = ref.get()
+                    freedState.targetPtr?.asStableRef<Any>()?.dispose()
+                    nativeHeap.free(freedState.info)
+                    ref.dispose()
+                }
             }
         }
     }

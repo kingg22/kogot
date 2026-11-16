@@ -1,6 +1,7 @@
 @file:OptIn(ExperimentalForeignApi::class, ExperimentalGodotKotlin::class)
 
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
+import io.github.kingg22.godot.api.GodotError
 import io.github.kingg22.godot.api.annotations.Export
 import io.github.kingg22.godot.api.annotations.ExportMethod
 import io.github.kingg22.godot.api.annotations.Godot
@@ -12,7 +13,6 @@ import io.github.kingg22.godot.api.core.node.Area2D
 import io.github.kingg22.godot.api.core.node.Button
 import io.github.kingg22.godot.api.core.node.Node2D
 import io.github.kingg22.godot.api.core.node.Sprite2D
-import io.github.kingg22.godot.api.GodotError
 import io.github.kingg22.godot.api.core.refcounted.PackedScene
 import io.github.kingg22.godot.api.core.refcounted.Resource
 import io.github.kingg22.godot.api.signal.connect
