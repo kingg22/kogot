@@ -17,7 +17,13 @@ class KspMappingTest {
         """,
     ) {
         hasNoKogotDiagnostics()
-        generatedSourceFileWithPath("game/Player_Binding.kt").contains("Player_Binding")
+        generatedSourceFileWithPath("game/Player_Binding.kt").apply {
+            // Real binding code, not just a comment that mentions the name.
+            contains("public object Player_Binding")
+            contains("public fun register()")
+            contains("registerClass<Player>(")
+            contains("public fun unregister()")
+        }
     }
 
     @Test
@@ -113,8 +119,12 @@ class KspMappingTest {
     ) {
         hasNoKogotDiagnostics()
         generatedSourceFileWithPath("game/Player_Binding.kt").apply {
-            contains("\"Sprite\"")
-            contains("\"Enemy\"")
+            // Each parameter keeps its own name and gets the className of its nearest registered class.
+            contains("""RegisterSignal.Param(Variant.Type.OBJECT, "sprite", className = "Sprite")""")
+            contains("""RegisterSignal.Param(Variant.Type.OBJECT, "enemy", className = "Enemy")""")
+            // Boss is not registered: it is exposed as its closest registered ancestor, not under its own name.
+            contains("""RegisterSignal.Param(Variant.Type.OBJECT, "boss", className = "Sprite")""")
+            doesNotContain("\"Boss\"")
         }
     }
 }
