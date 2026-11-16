@@ -5,7 +5,9 @@ plugins {
     alias(libs.plugins.kotlin.styles.conventions)
     alias(libs.plugins.ksp)
     // kogot K2 compiler plugin (proof of concept): validates @MustBeVariant contracts at call sites.
-    id("io.github.kingg22.kogot.compiler")
+    alias(libs.plugins.kogot.compiler)
+    // Runs the nativeTest sources (`macosArm64Test`, `linuxX64Test`) inside a headless Godot, also from the IDE.
+    alias(libs.plugins.kogot.test)
 }
 
 kotlin {
@@ -15,6 +17,21 @@ kotlin {
         implementation(projects.kotlinNative.binding)
         implementation(libs.kotlinx.coroutines.core)
         implementation(libs.kotlinx.serialization.json)
+    }
+
+    sourceSets {
+        commonTest {
+            // The tests use the Godot API like the game code does.
+            languageSettings {
+                optIn("kotlinx.cinterop.ExperimentalForeignApi")
+                optIn("kotlin.experimental.ExperimentalNativeApi")
+                optIn("io.github.kingg22.godot.api.ExperimentalGodotApi")
+                optIn("io.github.kingg22.godot.api.ExperimentalGodotKotlin")
+            }
+            dependencies {
+                implementation(libs.kotlin.test)
+            }
+        }
     }
 
     applyDefaultHierarchyTemplate()
@@ -32,10 +49,11 @@ dependencies {
     // put KSP on nativeMain source set when have more than one target
 }
 
-// The kogot compiler Gradle plugin requests the published io.github.kingg22.kogot:kogot-compiler-plugin
-// artifact; inside this repo, build it from source instead.
+// The kogot Gradle plugins request the published io.github.kingg22.kogot:kogot-compiler-plugin and kogot-processor
+// artifacts; inside this repo, build them from source instead.
 configurations.configureEach {
     resolutionStrategy.dependencySubstitution {
         substitute(module("io.github.kingg22.kogot:kogot-compiler-plugin")).using(project(":compiler-plugin"))
+        substitute(module("io.github.kingg22.kogot:kogot-processor")).using(project(":processor"))
     }
 }
