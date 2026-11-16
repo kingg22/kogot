@@ -3,7 +3,7 @@
 
 [versions]
 # https://mvnrepository.com/artifact/androidx.room/room-compiler-processing-testing
-androidx-room-compiler = "2.8.5"
+androidx-room-compiler = "3.0.3"
 
 # https://github.com/apache/commons-compress/tags
 apache-commons-compress = "1.28.0"
@@ -120,9 +120,9 @@ slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
 ksp-api = { group = "com.google.devtools.ksp", name = "symbol-processing-api", version.ref = "ksp-api" }
 # Applied on a consumer's behalf by gradle-plugin, must be on that plugin's own classpath.
 ksp-gradle-plugin = { group = "com.google.devtools.ksp", name = "symbol-processing-gradle-plugin", version.ref = "ksp-plugin" }
-androidx-room-compiler = { group = "androidx.room", name = "room-compiler-processing", version.ref = "androidx-room-compiler" }
+androidx-room-compiler = { group = "androidx.room3", name = "room3-compiler-processing", version.ref = "androidx-room-compiler" }
 # Processor test
-androidx-room-compiler-testing = { group = "androidx.room", name = "room-compiler-processing-testing", version.ref = "androidx-room-compiler" }
+androidx-room-compiler-testing = { group = "androidx.room3", name = "room3-compiler-processing-testing", version.ref = "androidx-room-compiler" }
 google-truth = { group = "com.google.truth", name = "truth", version.ref = "google-truth" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }

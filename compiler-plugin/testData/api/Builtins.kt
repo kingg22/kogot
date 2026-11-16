@@ -13,7 +13,11 @@ abstract class Builtin : GodotNative, AutoCloseable {
     override fun close() {}
 }
 
-class Variant : Builtin() { companion object }
+class Variant : Builtin() {
+    enum class Type { NIL, BOOL, INT, FLOAT, STRING, OBJECT }
+
+    companion object
+}
 class GodotString : Builtin()
 class StringName : Builtin()
 class NodePath : Builtin()

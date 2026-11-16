@@ -3,3 +3,7 @@
 package io.github.kingg22.godot.api
 
 interface GodotNative
+
+enum class PropertyHint { NONE }
+
+enum class PropertyUsageFlags { DEFAULT }
