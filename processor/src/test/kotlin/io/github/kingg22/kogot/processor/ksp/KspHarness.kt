@@ -22,7 +22,6 @@ fun runKogotProcessor(vararg sources: String, assertions: CompilationResultSubje
     }
     runKspProcessorTest(
         sources = godotApiStubs + files,
-        kotlincArguments = listOf("-Xskip-metadata-version-check"),
         symbolProcessorProviders = listOf(KogotProcessor.Provider()),
         onCompilationResult = { subject -> subject.compilationDidFail().assertions() },
     )
