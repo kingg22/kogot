@@ -1,0 +1,8 @@
+; Minimal host project of the Godot native test harness. It has no assets: it only loads the generated test extension.
+config_version=5
+
+[application]
+
+config/name="kogot-godot-tests"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.6")
