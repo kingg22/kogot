@@ -110,13 +110,21 @@ include(
 // Sample game for SpriteBench
 include("mi-juego-prueba:kotlin_native_game")
 
+// The export companion project links the shared libraries (`assemble` of `:export`), which is too slow for CI's
+// time budget and is not what CI verifies. CI sets `CI=true`, so the export is not registered there at all (no
+// `:export` project, no `kogotExport` task). Force it with `-Pkogot.export=true`, or skip it locally with `=false`.
+val registerKogotExport = providers.gradleProperty("kogot.export").map(String::toBoolean)
+    .orElse(providers.environmentVariable("CI").map { false }.orElse(true))
+
 kogot {
-    export(":mi-juego-prueba:kotlin_native_game") {
-        // The main module also declares mingwX64 for local dev; only Linux/macOS are exported here.
-        targets = listOf(NativeTargetPreset.LINUX_X64, NativeTargetPreset.MACOS_ARM64)
-        godotProjectDir = file("mi-juego-prueba")
-        libraryBaseName = "godot_kotlin_sample"
-        entrySymbol = "godot_kotlin_init"
+    if (registerKogotExport.get()) {
+        export(":mi-juego-prueba:kotlin_native_game") {
+            // The main module also declares mingwX64 for local dev; only Linux/macOS are exported here.
+            targets = listOf(NativeTargetPreset.LINUX_X64, NativeTargetPreset.MACOS_ARM64)
+            godotProjectDir = file("mi-juego-prueba")
+            libraryBaseName = "godot_kotlin_sample"
+            entrySymbol = "godot_kotlin_init"
+        }
     }
 }
 
