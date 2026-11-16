@@ -165,6 +165,10 @@ nullaway = { id = "net.ltgt.nullaway", version.ref = "nullaway-gradle" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 pluginPublish = { id = "com.gradle.plugin-publish", version.ref = "gradle-plugin-publish" }
 
+# kogot's own Gradle plugins (included build `gradle-plugin`, resolved without a version)
+kogot-compiler = { id = "io.github.kingg22.kogot.compiler" }
+kogot-test = { id = "io.github.kingg22.kogot.test" }
+
 # buildlogic convention plugins
 kotlin-jvm-common-conventions = { id = "buildlogic.kotlin-jvm-common-conventions" }
 kotlin-library-conventions = { id = "buildlogic.kotlin-library-conventions" }

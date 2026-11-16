@@ -87,6 +87,14 @@ gradlePlugin {
             displayName = property("DISPLAY_NAME").toString()
             tags.set(listOf("godot", "gdextension", "kotlin-native", "kogot"))
         }
+        create("kogotTest") {
+            id = "io.github.kingg22.kogot.test"
+            implementationClass = "io.github.kingg22.kogot.gradle.test.KogotTestPlugin"
+            version = property("VERSION").toString()
+            description = "Runs the Kotlin/Native tests of a module inside a headless Godot, from Gradle and the IDE"
+            displayName = "Kogot Godot Test Plugin"
+            tags.set(listOf("godot", "kotlin-native", "kogot", "testing"))
+        }
         create("kogotCompiler") {
             id = "io.github.kingg22.kogot.compiler"
             implementationClass = "io.github.kingg22.kogot.gradle.compiler.KogotCompilerGradlePlugin"
