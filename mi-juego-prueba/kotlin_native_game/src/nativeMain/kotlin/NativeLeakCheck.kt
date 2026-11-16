@@ -17,15 +17,16 @@ import io.github.kingg22.godot.binding.instantiate
 import io.github.kingg22.godot.internal.binding.ObjectBinding
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.useContents
-import platform.linux.mallinfo
 
 /**
  * Bytes in use in the C heap (`malloc`): where `nativeHeap` puts the storage of every builtin wrapper (a `Variant` is
  * 24 bytes there) and where the engine allocates too. `OS.get_static_memory_usage()` only sees the engine's own
  * allocations, so a leaked wrapper whose engine value owns nothing (a `Variant` holding a `Node`) shows only here.
+ *
+ * `null` where the platform has no cheap query for it (only glibc's `mallinfo` is used, in `linuxMain`): the check
+ * then measures the engine memory only.
  */
-private fun cHeapInUse(): Long = mallinfo().useContents { uordblks.toLong() + hblkhd.toLong() }
+internal expect fun cHeapInUse(): Long?
 
 /**
  * Live checks of the native leaks of #214 (generated constructors) and #219 (Variant paths)
@@ -102,10 +103,12 @@ private fun cHeapInUse(): Long = mallinfo().useContents { uordblks.toLong() + hb
         val heapBefore = cHeapInUse()
         val engineBefore = os.getStaticMemoryUsage().toLong()
         repeat(20_000) { call() }
-        val heap = cHeapInUse() - heapBefore
+        val heapAfter = cHeapInUse()
+        val heap = if (heapBefore != null && heapAfter != null) heapAfter - heapBefore else null
         val engine = os.getStaticMemoryUsage().toLong() - engineBefore
-        println("[NativeLeakCheck] $name: C heap +$heap bytes, engine +$engine bytes over 20000 calls")
-        expect((!cHeap || heap < 100_000) && engine < 100_000) {
+        val heapText = heap?.let { "+$it bytes" } ?: "not measured on this platform"
+        println("[NativeLeakCheck] $name: C heap $heapText, engine +$engine bytes over 20000 calls")
+        expect((!cHeap || heap == null || heap < 100_000) && engine < 100_000) {
             "C heap grew by $heap bytes, engine by $engine bytes"
         }
     }
