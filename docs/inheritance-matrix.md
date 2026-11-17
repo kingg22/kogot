@@ -5,8 +5,9 @@ Dos preguntas distintas:
 
 1. **¿Qué permite Godot?** Una extensión mínima en C, sin kogot ([`research/inheritance-matrix/matrix.c`](research/inheritance-matrix/matrix.c)),
    registra una clase `KX_<Padre>` por cada clase del motor y la instancia.
-2. **¿Qué permite kogot?** Una clase `@Godot class KK_<Padre>(nativePtr) : <Padre>(nativePtr)` por cada clase que la API
-   generada deja extender, compilada con KSP y comprobada en vivo por `inheritance_check.tscn`.
+2. **¿Qué permite kogot?** Una clase `@Godot class Matrix<Padre>(nativePtr) : <Padre>(nativePtr)` por cada clase que la API
+   generada deja extender (`InheritanceMatrix.kt`, generado por `mi-juego-prueba/tools/generate_inheritance_matrix.py`
+   en el source set de tests), compilada con KSP y comprobada dentro de Godot por `InheritanceTest`.
 
 ## Resultado
 
@@ -17,18 +18,19 @@ Dos preguntas distintas:
 | `final` | 37 | solo las 7 de `Tween` / `*Tweener` | Sí: esas solo se crean con `Node.createTween()` |
 | singletons | 41 | 26 (`OS`, `Engine`, `ClassDB`, ...) | Sí: heredar un singleton no tiene sentido; las extensiones usan las `*Extension` (`PhysicsServer2DExtension`, ...) |
 
-Con kogot, `inheritance_check.tscn` da hoy (3 de 3 corridas iguales):
+Con kogot, `./gradlew :mi-juego-prueba:kotlin_native_game:macosArm64Test --tests '*InheritanceTest'` da hoy:
 
-```
-[InheritanceCheck] PASS 802 @Godot subclasses are registered with their engine parent
-[InheritanceCheck] PASS 799 @Godot subclasses are instantiated through the KSP factory
-[InheritanceCheck] FAIL a @Godot subclass of JSON (renamed in Kotlin) is registered (#239)    × 6 (JSON, JSONRPC, Object, Range, UPNP, XRVRS)
-[InheritanceCheck] FAIL a @Godot subclass of the editor class EditorPlugin is registered (#241)
-[InheritanceCheck] DONE passed=2 failed=7
-```
+| Test | Resultado |
+|---|---|
+| `subclassesAreRegisteredWithTheirEngineParent` | pasa: las 802 clases soportadas están registradas con su padre |
+| `subclassesAreInstantiatedThroughTheKspFactory` | pasa: 799 se instancian por la fábrica de KSP (3 extensiones de servidor no se instancian, ver el test) |
+| `subclassesOfClassesRenamedInKotlinAreRegistered_239` | **falla a propósito**: JSON, JSONRPC, Object, Range, UPNP y XRVRS |
+| `subclassesOfEditorClassesAreRegistered_241` | **falla a propósito**: EditorPlugin |
 
-Instanciar una clase quiere decir que `ClassDB.instantiate("KK_X")` pasa por la fábrica que genera KSP, que el objeto es la
-instancia Kotlin `KK_X` y que el motor lo sigue viendo como un `X` (`is_class`).
+Instanciar una clase quiere decir que `ClassDB.instantiate("MatrixX")` pasa por la fábrica que genera KSP, que el objeto es la
+instancia Kotlin `MatrixX` y que el motor lo sigue viendo como un `X` (`is_class`). Las clases de los dos tests rojos no se
+registran, y Godot lo avisa al arrancar y al salir de cada proceso de test; el lanzador no lo muestra porque ocurre fuera del
+runner.
 
 ## Bugs encontrados
 
