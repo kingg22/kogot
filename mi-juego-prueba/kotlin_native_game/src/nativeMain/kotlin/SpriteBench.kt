@@ -46,10 +46,10 @@ private const val SPRITE_COUNT = 20_000
                 try {
                     // Prefer the top-level factory function, this is a fallback way!!
                     val sprite: Sprite = instantiate()
-                    sprite.halfSize = halfSize
-                    sprite.windowSize = windowSize
-                    sprite.pos = windowSize / 2.0
-                    sprite.position = sprite.pos
+                    sprite.halfSize = V2.from(halfSize)
+                    sprite.windowSize = V2.from(windowSize)
+                    sprite.pos = V2.from(windowSize / 2.0)
+                    sprite.position = windowSize / 2.0
                     sprite.texture = icon
                     addChild(node = sprite)
                 } catch (e: Throwable) {
