@@ -49,6 +49,7 @@ internal object GodotBinaryResolver {
         if (version == null) return null
         val tag = versionTag(version)
         return File(System.getProperty("user.home"), "Downloads").listFiles().orEmpty()
+            .asSequence()
             .filter { it.name.contains("godot", ignoreCase = true) && it.name.contains(tag, ignoreCase = true) }
             .filterNot { it.name.endsWith(".zip") }
             .map(::resolveBundle)

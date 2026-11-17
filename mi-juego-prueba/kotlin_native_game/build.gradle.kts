@@ -15,8 +15,6 @@ kotlin {
     dependencies {
         api(projects.kotlinNative.api)
         implementation(projects.kotlinNative.binding)
-        implementation(libs.kotlinx.coroutines.core)
-        implementation(libs.kotlinx.serialization.json)
     }
 
     sourceSets {
@@ -30,6 +28,9 @@ kotlin {
             }
             dependencies {
                 implementation(libs.kotlin.test)
+                // Only the coroutine and threading tests use them.
+                implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.kotlinx.serialization.json)
             }
         }
     }

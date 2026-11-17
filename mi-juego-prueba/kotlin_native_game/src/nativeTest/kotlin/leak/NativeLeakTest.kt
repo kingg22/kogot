@@ -53,7 +53,7 @@ class LeakTestBase(nativePtr: COpaquePointer) : Node(nativePtr) {
 /**
  * Native leaks of #214 (generated constructors) and #219 (Variant paths), #232 (default arguments) and #216 (value
  * types): each case runs 20,000 times and must not grow the C heap or the engine memory.
- * Ported from `NativeLeakCheck` (`native_leak_check.tscn`).
+ * Ported from the former `NativeLeakCheck` scene.
  */
 class NativeLeakTest {
     // region #214 constructors

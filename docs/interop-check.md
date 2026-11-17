@@ -1,8 +1,9 @@
 # Interoperabilidad Kotlin ↔ GDScript y clases `*Extension` del motor
 
-Medido en Godot 4.7.2 oficial (headless, Linux x86_64) con `mi-juego-prueba/interop_check.tscn`. La escena la conduce
-GDScript (`interop_check.gd`): llama a las clases Kotlin de `InteropCheck.kt` y comprueba, desde GDScript, cada valor que
-cruza la frontera en las dos direcciones.
+Medido en Godot 4.7.2 oficial (headless, Linux x86_64) con `InteropTest`
+(`mi-juego-prueba/kotlin_native_game/src/nativeTest/kotlin/interop/`). El GDScript va dentro del test: llama a las
+clases Kotlin de `InteropFixtures.kt` y comprueba, desde GDScript, cada valor que cruza la frontera en las dos
+direcciones.
 
 Resultado actual, igual en 3 de 3 corridas: **45 PASS y 3 FAIL a propósito** (#246 ×2 y #249). No hay crash.
 

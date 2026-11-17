@@ -18,7 +18,7 @@ private const val TAG = "StringLeakTest"
  * The `String` conveniences over `GodotString` (issue #211): the generated `String` overloads and `Variant.toString()`
  * convert through a `GodotString` they own, and must close it. Each case picks a call whose engine string is a fresh
  * allocation (a shared copy would not show in the engine memory), and runs it 20,000 times: before #211 every call
- * leaked one or two engine strings. Ported from `StringLeakCheck` (`string_leak_check.tscn`).
+ * leaked one or two engine strings. Ported from the former `StringLeakCheck` scene.
  */
 class StringLeakTest {
     /** #211: the String overloads still convert both ways. */

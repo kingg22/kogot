@@ -237,7 +237,7 @@ contando y el vaciado del cierre hacía `unreference()` sobre memoria liberada: 
 
 Ahora el callback `free` del instance binding (`identityFreeCallback`), que Godot llama al destruir cualquier objeto
 que Kotlin rastrea, hace `PendingReleases.forget(ptr)`: lo adeudado a un objeto que ya no existe se olvida, y ni el
-vaciado ni una liberación diferida lo tocan. Lo verifica `forced_free_check.tscn`.
+vaciado ni una liberación diferida lo tocan. Lo verifica `ForcedFreeTest`.
 
 Aparte, Godot 4.7.2 crashea al cerrar el editor cuando una extensión que se carga en caliente durante el primer escaneo
 (sin `.godot/extension_list.cfg`) registra cualquier clase; se reproduce con una extensión mínima en C, no es de kogot.

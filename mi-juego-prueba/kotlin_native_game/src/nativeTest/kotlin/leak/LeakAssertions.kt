@@ -2,7 +2,6 @@
 
 package io.github.kingg22.godot.test.leak
 
-import cHeapInUse
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.singleton.Os
 import kotlinx.cinterop.ExperimentalForeignApi

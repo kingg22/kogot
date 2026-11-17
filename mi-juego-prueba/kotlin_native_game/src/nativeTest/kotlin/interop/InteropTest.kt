@@ -1,8 +1,7 @@
-@file:OptIn(ExperimentalForeignApi::class, ExperimentalGodotKotlin::class, ExperimentalGodotApi::class)
+@file:OptIn(ExperimentalForeignApi::class, ExperimentalGodotKotlin::class)
 
 package io.github.kingg22.godot.test.interop
 
-import io.github.kingg22.godot.api.ExperimentalGodotApi
 import io.github.kingg22.godot.api.ExperimentalGodotKotlin
 import io.github.kingg22.godot.api.GodotError
 import io.github.kingg22.godot.api.builtin.toGodotString
@@ -17,8 +16,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * Every value that crosses the Kotlin/GDScript boundary, checked from the GDScript side (ported from `InteropCheck`
- * and `interop_check.gd`). The GDScript source below is compiled at runtime and attached to a node in the live
+ * Every value that crosses the Kotlin/GDScript boundary, checked from the GDScript side (ported from the former
+ * `InteropCheck` scene). The GDScript source below is compiled at runtime and attached to a node in the live
  * SceneTree; each `t_*` function is one check and returns `""` when it passed, or the failure detail.
  *
  * Not ported (they need frames): the `await get_tree().process_frame` clean-up after the calls, and the check
@@ -178,8 +177,8 @@ class InteropTest {
     }
 
     private companion object {
-        /** GDScript side of the checks: ported from `interop_check.gd`, one `t_*` function per check. */
-        val GDSCRIPT = """
+        /** GDScript side of the checks, one `t_*` function per check. */
+        const val GDSCRIPT = """
 extends Node
 
 var pings := []

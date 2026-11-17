@@ -36,7 +36,7 @@ class VirtualReturnProbeMesh(nativePtr: COpaquePointer) : Mesh(nativePtr) {
  * The live check loads `res://probe_mesh.tres`; the test host has no assets, so the probe is instantiated directly.
  *
  * Not ported: the "script lists" checks (`Script.get_script_property_list` / `get_script_method_list` of the
- * `SpriteBench.kt` and `TestOne.kt` scripts), which load `.kt` scripts from the game project through `res://`.
+ * `SpriteBench.kt` and former `TestOne.kt` scripts), which load `.kt` scripts from the game project through `res://`.
  */
 class VirtualReturnTest {
     @Test

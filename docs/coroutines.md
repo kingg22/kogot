@@ -1,7 +1,8 @@
 # Corrutinas: dispatcher del hilo principal de Godot y adaptadores `suspend`
 
-Prototipo en el proyecto de prueba (`mi-juego-prueba/kotlin_native_game/src/nativeMain/kotlin/GodotCoroutines.kt`),
-comprobado en vivo por `coroutines_check.tscn`. Todavía no es API del binding.
+Prototipo en el proyecto de prueba
+(`mi-juego-prueba/kotlin_native_game/src/nativeTest/kotlin/coroutines/GodotCoroutines.kt`), comprobado dentro de Godot
+por `GodotCoroutinesTest` (el test vacía el dispatcher a mano, sin frames). Todavía no es API del binding.
 
 ## Qué hace el binding de Go (graphics.gd), como referencia
 

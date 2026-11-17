@@ -66,8 +66,11 @@ abstract class PrepareGodotTestHostTask : DefaultTask() {
     @TaskAction
     fun prepare() {
         val root = hostDir.get().asFile.apply { mkdirs() }
+
         val host = File(root, "host").apply { mkdirs() }
+
         val lib = library.get().asFile
+
         val bin = File(host, "bin").apply { mkdirs() }
         lib.copyTo(File(bin, lib.name), overwrite = true)
 
@@ -83,11 +86,19 @@ abstract class PrepareGodotTestHostTask : DefaultTask() {
             config/features=PackedStringArray("${godotMinVersion.get()}")
             """.trimIndent() + "\n",
         )
+
         File(host, "main.tscn").writeText(
             "[gd_scene format=3]\n\n[node name=\"Main\" type=\"${GenerateTestHarnessTask.RUNNER_CLASS}\"]\n",
         )
-        val feature = if (lib.extension == "dylib") "macos" else if (lib.extension == "dll") "windows" else "linux"
+
+        val feature = when {
+            lib.extension == "dylib" -> "macos"
+            lib.extension == "dll" -> "windows"
+            else -> "linux"
+        }
+
         val arch = if (feature == "macos") "" else ".x86_64"
+
         File(host, "kogot_tests.gdextension").writeText(
             """
             [configuration]
@@ -100,6 +111,7 @@ abstract class PrepareGodotTestHostTask : DefaultTask() {
         )
 
         val config = File(root, "launcher.properties")
+
         Properties().apply {
             setProperty("host", host.absolutePath)
             godotBin.orNull?.let { setProperty("godot.bin", it) }
@@ -111,10 +123,15 @@ abstract class PrepareGodotTestHostTask : DefaultTask() {
         val java = javaExecutable.get()
         val main = GodotTestLauncher::class.java.name
         val launcher = script
+
         if (launcher.name.endsWith(".cmd")) {
-            launcher.writeText("@echo off\r\n\"$java\" -cp \"${launcherClasspath.get()}\" $main \"${config.absolutePath}\" %*\r\n")
+            launcher.writeText(
+                "@echo off\r\n\"$java\" -cp \"${launcherClasspath.get()}\" $main \"${config.absolutePath}\" %*\r\n",
+            )
         } else {
-            launcher.writeText("#!/bin/sh\nexec \"$java\" -cp \"${launcherClasspath.get()}\" $main \"${config.absolutePath}\" \"$@\"\n")
+            launcher.writeText(
+                "#!/bin/sh\nexec \"$java\" -cp \"${launcherClasspath.get()}\" $main \"${config.absolutePath}\" \"$@\"\n",
+            )
             launcher.setExecutable(true)
         }
     }

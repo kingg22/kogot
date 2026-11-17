@@ -9,7 +9,7 @@ import io.github.kingg22.godot.api.singleton.ClassDB
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlin.test.Test
-import kotlin.test.assertTrue
+import kotlin.test.assertNull
 
 /*
  * Registration order of @Godot hierarchies. The generated `GeneratedBindings` registers classes in the order KSP
@@ -56,7 +56,7 @@ class RegistrationOrderTest {
 
     private fun assertRegistered(className: String, parent: String) {
         val problem = registrationProblem(className, parent)
-        assertTrue(problem == null, problem ?: "")
+        assertNull(problem, problem ?: "Unknown")
     }
 
     private fun registrationProblem(className: String, parent: String): String? {

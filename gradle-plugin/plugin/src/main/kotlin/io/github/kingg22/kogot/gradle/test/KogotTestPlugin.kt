@@ -22,6 +22,7 @@ import java.io.File
  *    as a shared library;
  * 3. `<target>Test` runs [GodotTestLauncher] instead of the test executable (see [PrepareGodotTestHostTask]).
  */
+@Suppress("unused")
 abstract class KogotTestPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val extension = project.extensions.create("kogotTest", KogotTestExtension::class.java, project)
@@ -47,7 +48,9 @@ abstract class KogotTestPlugin : Plugin<Project> {
                 project.dependencies.addProvider(kspConfiguration, extension.processorCoordinate)
             }
         }
-        project.tasks.withType(KspAATask::class.java).matching { it.name == "kspTestKotlin$capitalized" }.configureEach {
+        project.tasks.withType(KspAATask::class.java).matching {
+            it.name == "kspTestKotlin$capitalized"
+        }.configureEach {
             it.commandLineArgumentProviders.add(
                 CommandLineArgumentProvider {
                     listOf("kogot.generatedBindingsPackage=${GenerateTestHarnessTask.GENERATED_BINDINGS_PACKAGE}")
@@ -64,7 +67,9 @@ abstract class KogotTestPlugin : Plugin<Project> {
             GenerateTestHarnessTask::class.java,
         ) { it.outputDir.set(harnessDir) }
         compilation.defaultSourceSet.kotlin.srcDir(generateHarness.map { it.outputDir })
-        compilation.defaultSourceSet.kotlin.srcDir(buildDir.dir("generated/ksp/${target.name}/${target.name}Test/kotlin"))
+        compilation.defaultSourceSet.kotlin.srcDir(
+            buildDir.dir("generated/ksp/${target.name}/${target.name}Test/kotlin"),
+        )
         compilation.compileTaskProvider.configure { it.compilerOptions.freeCompilerArgs.add("-generate-test-runner") }
 
         target.binaries.sharedLib("kogotGodotTests", listOf(NativeBuildType.DEBUG)) {
@@ -81,7 +86,9 @@ abstract class KogotTestPlugin : Plugin<Project> {
             task.dependsOn(link)
             task.library.set(
                 project.layout.file(
-                    project.provider { (link.get() as org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink).outputFile.get() },
+                    project.provider {
+                        (link.get() as org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink).outputFile.get()
+                    },
                 ),
             )
             task.godotMinVersion.set("4.6")
@@ -93,7 +100,9 @@ abstract class KogotTestPlugin : Plugin<Project> {
             task.javaExecutable.set(File(System.getProperty("java.home"), "bin/java").absolutePath)
             task.hostDir.set(buildDir.dir("kogotGodotTest/${target.name}"))
         }
-        project.tasks.withType(KotlinNativeTest::class.java).matching { it.name == "${target.name}Test" }.configureEach { test ->
+        project.tasks.withType(KotlinNativeTest::class.java).matching {
+            it.name == "${target.name}Test"
+        }.configureEach { test ->
             test.dependsOn(prepare)
             test.executableProperty.set(project.files(prepare.map { it.script }).builtBy(prepare))
         }
