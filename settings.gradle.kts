@@ -10,6 +10,7 @@
 // Its primary purpose is to define the subprojects.
 // It is also used for some aspects of project-wide configuration, like managing plugins, dependencies, etc.
 // https://docs.gradle.org/current/userguide/settings_file_basics.html
+import io.github.kingg22.kogot.gradle.settings.KogotBuildType
 import io.github.kingg22.kogot.gradle.settings.NativeTargetPreset
 
 pluginManagement {
@@ -110,21 +111,28 @@ include(
 // Sample game for SpriteBench
 include("mi-juego-prueba:kotlin_native_game")
 
-// The export companion project links the shared libraries (`assemble` of `:export`), which is too slow for CI's
-// time budget and is not what CI verifies. CI sets `CI=true`, so the export is not registered there at all (no
-// `:export` project, no `kogotExport` task). Force it with `-Pkogot.export=true`, or skip it locally with `=false`.
-val registerKogotExport = providers.gradleProperty("kogot.export").map(String::toBoolean)
+// Linking the exported shared libraries is too slow for CI's time budget and is not what CI verifies. CI sets
+// `CI=true`, so there the export project declares no build types: nothing is linked (neither debug nor release),
+// only compiled. Override with `-Pkogot.exportLink=true|false`. Release builds are opt-in, as they are much slower to
+// link than debug: `-Pkogot.exportRelease=true` adds them next to debug (it has no effect while linking is off).
+val linkKogotExport = providers.gradleProperty("kogot.exportLink").map(String::toBoolean)
     .orElse(providers.environmentVariable("CI").map { false }.orElse(true))
+val exportKogotRelease = providers.gradleProperty("kogot.exportRelease").map(String::toBoolean).orElse(false)
+val kogotExportBuildTypes = buildList {
+    if (linkKogotExport.get()) {
+        add(KogotBuildType.DEBUG)
+        if (exportKogotRelease.get()) add(KogotBuildType.RELEASE)
+    }
+}
 
 kogot {
-    if (registerKogotExport.get()) {
-        export(":mi-juego-prueba:kotlin_native_game") {
-            // The main module also declares mingwX64 for local dev; only Linux/macOS are exported here.
-            targets = listOf(NativeTargetPreset.LINUX_X64, NativeTargetPreset.MACOS_ARM64)
-            godotProjectDir = file("mi-juego-prueba")
-            libraryBaseName = "godot_kotlin_sample"
-            entrySymbol = "godot_kotlin_init"
-        }
+    export(":mi-juego-prueba:kotlin_native_game") {
+        // The main module also declares mingwX64 for local dev; only Linux/macOS are exported here.
+        targets = listOf(NativeTargetPreset.LINUX_X64, NativeTargetPreset.MACOS_ARM64)
+        buildTypes = kogotExportBuildTypes
+        godotProjectDir = file("mi-juego-prueba")
+        libraryBaseName = "godot_kotlin_sample"
+        entrySymbol = "godot_kotlin_init"
     }
 }
 
