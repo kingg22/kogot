@@ -16,7 +16,9 @@ import org.gradle.process.CommandLineArgumentProvider
 import org.gradle.work.DisableCachingByDefault
 
 /** Common base for tasks that shell out to the `godot` CLI. Every input is a typed, overridable property. */
-@DisableCachingByDefault(because = "Launches an external process (the Godot editor/CLI); side effects aren't cacheable outputs")
+@DisableCachingByDefault(
+    because = "Launches an external process (the Godot editor/CLI); side effects aren't cacheable outputs",
+)
 abstract class GodotExecTask : Exec() {
     @get:InputFile
     @get:PathSensitive(PathSensitivity.ABSOLUTE)
@@ -61,7 +63,9 @@ abstract class GodotExecTask : Exec() {
 }
 
 /** Launches the configured Godot project (editor or headless, per [GodotExecTask.headless]). */
-@DisableCachingByDefault(because = "Launches an external process (the Godot editor/CLI); side effects aren't cacheable outputs")
+@DisableCachingByDefault(
+    because = "Launches an external process (the Godot editor/CLI); side effects aren't cacheable outputs",
+)
 abstract class RunGodotTask : GodotExecTask() {
     init {
         description = "Runs the Godot project via the CLI"
@@ -73,7 +77,9 @@ abstract class RunGodotTask : GodotExecTask() {
  * Runs the Godot project headless with a test-runner flag, for exercising Kotlin/Native code
  * registered through the GDExtension (e.g. a GUT/GdUnit runner scene, or `--script` invocation).
  */
-@DisableCachingByDefault(because = "Launches an external process (the Godot editor/CLI); side effects aren't cacheable outputs")
+@DisableCachingByDefault(
+    because = "Launches an external process (the Godot editor/CLI); side effects aren't cacheable outputs",
+)
 abstract class TestGodotTask : GodotExecTask() {
     @get:Input
     @get:Optional

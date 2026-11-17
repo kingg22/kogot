@@ -1,5 +1,6 @@
 package io.github.kingg22.kogot.gradle.test
 
+import io.github.kingg22.kogot.gradle.KogotConventions
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.ProviderFactory
@@ -12,22 +13,24 @@ import javax.inject.Inject
 abstract class KogotTestExtension @Inject constructor(providers: ProviderFactory, objects: ObjectFactory) {
 
     /**
-     * Godot executable (or, on macOS, the `.app` bundle). Without it the launcher looks at `GODOT_BIN`, then `godot` /
-     * `godot4` on `PATH`, then `~/Downloads` (matching [godotVersion] when set).
+     * Godot executable, found like the rest of the kogot plugin does (see [io.github.kingg22.kogot.gradle.GodotExecutableLocator]):
+     * `kogot.godotExecutable`, then `GODOT_BIN`, then `godot4` / `godot` on `PATH`; on macOS it may be the `.app` bundle.
      */
-    val godotBin: Property<String> = objects.property(String::class.java).convention(
-        providers.gradleProperty("kogot.test.godotBin").orElse(providers.gradleProperty("godot.bin")),
+    val godotExecutable: Property<String> = objects.property(String::class.java).convention(
+        providers.gradleProperty(KogotConventions.PROP_GODOT_EXECUTABLE),
     )
 
-    /** Godot version (`X.Y.Z`) the tests must run against; the launcher fails when the binary reports another minor. */
+    /**
+     * Godot version (`X.Y.Z`) the tests must run against, the same `kogot.godotVersion` property of the plugin; the
+     * launcher fails when the executable reports another minor. Unset, any version is accepted.
+     */
     val godotVersion: Property<String> = objects.property(String::class.java).convention(
-        providers.gradleProperty("kogot.test.godotVersion").orElse(providers.gradleProperty("godot.version")),
+        providers.gradleProperty(KogotConventions.PROP_GODOT_VERSION),
     )
 
     /** Seconds a single Godot process may run before it is killed and its test fails. */
     val timeoutSeconds: Property<Long> = objects.property(Long::class.java).convention(
-        providers.gradleProperty("kogot.test.timeout").orElse(providers.gradleProperty("godot.timeout"))
-            .map(String::toLong).orElse(120L),
+        providers.gradleProperty("kogot.test.timeout").map(String::toLong).orElse(120L),
     )
 
     val isolation: Property<GodotTestIsolation> = objects.property(GodotTestIsolation::class.java).convention(

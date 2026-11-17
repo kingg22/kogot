@@ -36,7 +36,7 @@ abstract class PrepareGodotTestHostTask : DefaultTask() {
 
     @get:Input
     @get:Optional
-    abstract val godotBin: Property<String>
+    abstract val godotExecutable: Property<String>
 
     @get:Input
     @get:Optional
@@ -114,7 +114,7 @@ abstract class PrepareGodotTestHostTask : DefaultTask() {
 
         Properties().apply {
             setProperty("host", host.absolutePath)
-            godotBin.orNull?.let { setProperty("godot.bin", it) }
+            godotExecutable.orNull?.let { setProperty("godot.executable", it) }
             godotVersion.orNull?.let { setProperty("godot.version", it) }
             setProperty("timeout.seconds", timeoutSeconds.get().toString())
             setProperty("isolation", isolation.get().name)

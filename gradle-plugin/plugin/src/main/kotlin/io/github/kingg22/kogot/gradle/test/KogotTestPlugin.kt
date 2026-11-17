@@ -25,7 +25,7 @@ import java.io.File
 @Suppress("unused")
 abstract class KogotTestPlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        val extension = project.extensions.create("kogotTest", KogotTestExtension::class.java, project)
+        val extension = project.extensions.create("kogotTest", KogotTestExtension::class.java)
         project.pluginManager.apply("com.google.devtools.ksp")
 
         project.plugins.withType(KotlinMultiplatformPluginWrapper::class.java) {
@@ -92,7 +92,7 @@ abstract class KogotTestPlugin : Plugin<Project> {
                 ),
             )
             task.godotMinVersion.set("4.6")
-            task.godotBin.set(extension.godotBin)
+            task.godotExecutable.set(extension.godotExecutable)
             task.godotVersion.set(extension.godotVersion)
             task.timeoutSeconds.set(extension.timeoutSeconds)
             task.isolation.set(extension.isolation)

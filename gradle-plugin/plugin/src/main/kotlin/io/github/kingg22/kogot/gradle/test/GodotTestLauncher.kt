@@ -1,5 +1,6 @@
 package io.github.kingg22.kogot.gradle.test
 
+import io.github.kingg22.kogot.gradle.GodotExecutableLocator
 import java.io.File
 import java.util.Properties
 import java.util.concurrent.TimeUnit
@@ -27,13 +28,19 @@ object GodotTestLauncher {
         val timeout = config.getProperty("timeout.seconds").toLong()
         val isolation = GodotTestIsolation.valueOf(config.getProperty("isolation"))
         val binary = try {
-            GodotBinaryResolver.resolve(config.getProperty("godot.bin"), config.getProperty("godot.version"))
+            GodotExecutableLocator.locate(config.getProperty("godot.executable"))
         } catch (e: IllegalStateException) {
             System.err.println("kogot: ${e.message}")
             exitProcess(1)
+        } ?: run {
+            System.err.println(
+                "kogot: Godot executable not found. Set kogot.godotExecutable (gradle.properties), GODOT_BIN, " +
+                    "or put 'godot' on PATH",
+            )
+            exitProcess(1)
         }
         config.getProperty("godot.version")?.let { wanted ->
-            val reported = GodotBinaryResolver.reportedVersion(binary)
+            val reported = GodotExecutableLocator.reportedVersion(binary)
             if (reported?.startsWith(wanted.substringBeforeLast('.')) != true) {
                 System.err.println("kogot: Godot $wanted was requested but $binary reports '$reported'")
                 exitProcess(1)

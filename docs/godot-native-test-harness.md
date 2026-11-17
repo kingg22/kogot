@@ -37,9 +37,9 @@ Only the targets the host OS can run are wired (`macosArm64` on macOS, `linuxX64
 
 | Option | Property | Meaning |
 |---|---|---|
-| `godotBin` | `kogot.test.godotBin` / `godot.bin` | Executable, or a macOS `.app`. Else `GODOT_BIN`, then `~/Downloads` for `godotVersion`, then `godot`/`godot4` in `PATH`. |
-| `godotVersion` | `kogot.test.godotVersion` / `godot.version` | `X.Y.Z`; the run fails if the binary reports another minor. |
-| `timeoutSeconds` | `kogot.test.timeout` / `godot.timeout` | Per Godot process (default 120). |
+| `godotExecutable` | `kogot.godotExecutable` | Executable, or a macOS `.app`. Else `GODOT_BIN`, then `godot4`/`godot` in `PATH`. The same lookup and property as `runGodot` / `testGodot` of the `io.github.kingg22.kogot` plugin. |
+| `godotVersion` | `kogot.godotVersion` | `X.Y.Z`; when set, the run fails if the executable reports another minor. |
+| `timeoutSeconds` | `kogot.test.timeout` | Per Godot process (default 120). |
 | `isolation` | `kogot.test.isolation` | `PER_TEST` (default) or `NONE`. |
 
 ## How it works

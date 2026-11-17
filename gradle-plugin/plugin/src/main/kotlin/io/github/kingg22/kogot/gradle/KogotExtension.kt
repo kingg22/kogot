@@ -6,22 +6,9 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
-import java.io.File
 import javax.inject.Inject
 
 const val EXTENSION_NAME = "kogot"
-
-/** Looks for `godot4`/`godot` on PATH, mirroring `godot-version/track.sh`'s resolution strategy. */
-private fun findGodotOnPath(): File? {
-    val pathDirs = System.getenv("PATH")?.split(File.pathSeparator).orEmpty()
-    for (dir in pathDirs) {
-        for (name in KogotConventions.GODOT_EXECUTABLE_CANDIDATES) {
-            val candidate = File(dir, name)
-            if (candidate.isFile && candidate.canExecute()) return candidate
-        }
-    }
-    return null
-}
 
 /**
  * Public DSL surface for the kogot Gradle plugin. Every value has a `gradle.properties` fallback
@@ -63,8 +50,7 @@ constructor(project: Project) {
     /** Absolute path to the Godot editor/CLI executable. Auto-detected from PATH when unset. */
     val godotExecutable: RegularFileProperty = objects.fileProperty().apply {
         val explicit = gradleProp(KogotConventions.PROP_GODOT_EXECUTABLE).orNull
-        val resolved = explicit ?: findGodotOnPath()?.absolutePath
-        resolved?.let { set(project.file(it)) }
+        GodotExecutableLocator.locate(explicit)?.let { set(it) }
     }
 
     /** Directory of the Godot project that consumes the compiled GDExtension (for copy/run/test tasks). */
