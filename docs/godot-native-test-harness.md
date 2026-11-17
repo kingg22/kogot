@@ -72,6 +72,10 @@ the other kogot plugin, which create it whichever is applied first.
 - Fixtures (`@Godot` classes) belong to the test source set: the main source set's classes are not registered in the test
   library.
 - The test module sees the main classes, so give fixtures their own package.
+- **Open bugs are pinned, not left red.** Wrap the assertion the fixed code must satisfy in `assertKnownBug("#123") { ... }`:
+  the test passes while the bug exists and fails the day it is fixed, saying to remove the wrapper and keep the body as
+  the regular assertion. Only an `AssertionError` counts as "still broken", so a crash or a script that does not compile
+  is never mistaken for the bug. Name such tests after the buggy behaviour (`..._254`), and keep the issue number.
 
 ## CI
 
@@ -86,8 +90,9 @@ the other kogot plugin, which create it whichever is applied first.
 - Compile/link and run are **separate steps with separate Gradle processes**, so the memory of the JVM and the
   Kotlin/Native compiler is released before the tests start. The tests themselves are light because each one runs in
   its own Godot process, one after another (`testIsolation = PER_TEST`, the default).
-- The job is `continue-on-error` for now: the suite has red tests that document open bugs, and the harness has only
-  been run on macOS arm64 so far. Reports are uploaded as an artifact.
+- The job has a 30 minute timeout (the first Linux run took about 14, two of them running the tests) and uploads its
+  reports as an artifact. It is blocking: the suite is green, because open bugs are pinned with `assertKnownBug` (below)
+  instead of being left red.
 
 ## Known limits / next steps
 

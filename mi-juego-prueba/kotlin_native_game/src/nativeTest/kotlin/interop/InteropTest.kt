@@ -11,6 +11,7 @@ import io.github.kingg22.godot.api.core.SceneTree
 import io.github.kingg22.godot.api.core.refcounted.GDScript
 import io.github.kingg22.godot.api.singleton.Engine
 import io.github.kingg22.godot.castTo
+import io.github.kingg22.godot.test.assertKnownBug
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -26,11 +27,17 @@ import kotlin.test.assertEquals
 class InteropTest {
     // region metadata (#246)
 
-    /** #246: a Variant parameter is registered as Variant (NIL + NIL_IS_VARIANT). */
-    @Test fun variantParameterIsRegisteredAsVariant() = gd("t_variant_param_metadata")
+    /**
+     * #246 is open: a Variant parameter is registered as OBJECT with the owner class, not as Variant
+     * (NIL + NIL_IS_VARIANT). Passes while that holds; see [assertKnownBug].
+     */
+    @Test fun variantParameterIsNotRegisteredAsVariant_246() = assertKnownBug("#246") { gd("t_variant_param_metadata") }
 
-    /** #246: an int parameter has no class_name. */
-    @Test fun intParameterHasNoClassName() = gd("t_int_param_metadata")
+    /**
+     * #246 is open: an int parameter gets the owner class as `class_name` instead of none. Passes while that holds; see
+     * [assertKnownBug].
+     */
+    @Test fun intParameterHasTheOwnerClassName_246() = assertKnownBug("#246") { gd("t_int_param_metadata") }
 
     // endregion
 
@@ -154,10 +161,10 @@ class InteropTest {
     @Test fun streamPeerGetAvailableBytes() = gd("t_stream_available")
 
     /**
-     * Known red: the raw-pointer `_get_data` virtual is never dispatched to Kotlin, so `getDataCount()` stays 0 (#249).
-     * Must keep failing until #249 is fixed.
+     * #249 is open: the raw-pointer `_get_data` virtual is never dispatched to Kotlin, so `getDataCount()` stays 0.
+     * Passes while that holds; see [assertKnownBug].
      */
-    @Test fun streamPeerGetDataReachesTheKotlinOverride() = gd("t_stream_get_data")
+    @Test fun streamPeerGetDataDoesNotReachTheKotlinOverride_249() = assertKnownBug("#249") { gd("t_stream_get_data") }
 
     // endregion
 
@@ -168,7 +175,8 @@ class InteropTest {
     private fun gd(function: String) {
         val script = GDScript()
         script.sourceCode = GDSCRIPT.toGodotString()
-        assertEquals(GodotError.OK, script.reload(), "the GDScript did not compile")
+        // Not an assertion: a script that does not compile must not be mistaken for a known bug (see assertKnownBug).
+        check(script.reload() == GodotError.OK) { "the GDScript did not compile" }
         val node = Node()
         node.setScript(script)
         Engine.instance.getMainLoop().castTo<SceneTree>().root.addChild(node = node)

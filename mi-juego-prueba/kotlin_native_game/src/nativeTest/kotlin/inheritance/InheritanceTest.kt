@@ -6,6 +6,7 @@ import io.github.kingg22.godot.api.builtin.toStringName
 import io.github.kingg22.godot.api.core.RefCounted
 import io.github.kingg22.godot.api.singleton.ClassDB
 import io.github.kingg22.godot.internal.binding.ObjectBinding
+import io.github.kingg22.godot.test.assertKnownBug
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -17,7 +18,8 @@ import kotlin.test.assertTrue
  * parent, and that `ClassDB.instantiate` builds it through the KSP factory: the object is the Kotlin `Matrix<Parent>`
  * instance and is still a `<Parent>` for the engine.
  *
- * The known failures are separate tests, red on purpose until fixed:
+ * The known failures are separate tests that pin the open bug with [assertKnownBug] (they pass while it exists and fail
+ * once it is fixed, as a reminder to turn them into the regular assertion):
  * - the classes the generator renames in Kotlin (`Object` -> `GodotObject`, `Range` -> `GodotRange`, ...) are
  *   registered with the Kotlin name as parent, which Godot does not know (#239);
  * - editor classes do not exist yet when kogot registers its classes (#241).
@@ -38,18 +40,28 @@ class InheritanceTest {
         assertTrue(wrong.isEmpty(), "${wrong.size} wrong: ${wrong.take(MAX_LISTED)}")
     }
 
-    /** Red until #239: the parent is registered with the Kotlin name, not the engine name. */
+    /**
+     * #239 is open: the parent is registered with the Kotlin name, not the engine name, so these are not registered.
+     * Passes while that holds; see [assertKnownBug].
+     */
     @Test
-    fun subclassesOfClassesRenamedInKotlinAreRegistered_239() {
-        val wrong = INHERITANCE_MATRIX_RENAMED.mapNotNull(::registrationProblem)
-        assertTrue(wrong.isEmpty(), "${wrong.size} wrong: $wrong")
+    fun subclassesOfClassesRenamedInKotlinAreNotRegistered_239() {
+        assertKnownBug("#239") {
+            val wrong = INHERITANCE_MATRIX_RENAMED.mapNotNull(::registrationProblem)
+            assertTrue(wrong.isEmpty(), "${wrong.size} wrong: $wrong")
+        }
     }
 
-    /** Red until #241: editor classes are registered by Godot after kogot registers its own. */
+    /**
+     * #241 is open: editor classes are registered by Godot after kogot registers its own, so these are not
+     * registered. Passes while that holds; see [assertKnownBug].
+     */
     @Test
-    fun subclassesOfEditorClassesAreRegistered_241() {
-        val wrong = INHERITANCE_MATRIX_EDITOR.mapNotNull(::registrationProblem)
-        assertTrue(wrong.isEmpty(), "${wrong.size} wrong: $wrong")
+    fun subclassesOfEditorClassesAreNotRegistered_241() {
+        assertKnownBug("#241") {
+            val wrong = INHERITANCE_MATRIX_EDITOR.mapNotNull(::registrationProblem)
+            assertTrue(wrong.isEmpty(), "${wrong.size} wrong: $wrong")
+        }
     }
 
     private fun registrationProblem(parent: String): String? {

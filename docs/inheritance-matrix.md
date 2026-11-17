@@ -24,11 +24,14 @@ Con kogot, `./gradlew :mi-juego-prueba:kotlin_native_game:macosArm64Test --tests
 |---|---|
 | `subclassesAreRegisteredWithTheirEngineParent` | pasa: las 802 clases soportadas están registradas con su padre |
 | `subclassesAreInstantiatedThroughTheKspFactory` | pasa: 799 se instancian por la fábrica de KSP (3 extensiones de servidor no se instancian, ver el test) |
-| `subclassesOfClassesRenamedInKotlinAreRegistered_239` | **falla a propósito**: JSON, JSONRPC, Object, Range, UPNP y XRVRS |
-| `subclassesOfEditorClassesAreRegistered_241` | **falla a propósito**: EditorPlugin |
+| `subclassesOfClassesRenamedInKotlinAreNotRegistered_239` | pasa **mientras el bug exista** (`assertKnownBug`): JSON, JSONRPC, Object, Range, UPNP y XRVRS no se registran |
+| `subclassesOfEditorClassesAreNotRegistered_241` | pasa mientras el bug exista: EditorPlugin no se registra |
+
+Los dos últimos fijan un bug abierto con `assertKnownBug`: el cuerpo es la aserción correcta y el test pasa porque hoy falla.
+El día que se corrija, el cuerpo pasará y el test fallará avisando de quitar el envoltorio y dejar la aserción normal.
 
 Instanciar una clase quiere decir que `ClassDB.instantiate("MatrixX")` pasa por la fábrica que genera KSP, que el objeto es la
-instancia Kotlin `MatrixX` y que el motor lo sigue viendo como un `X` (`is_class`). Las clases de los dos tests rojos no se
+instancia Kotlin `MatrixX` y que el motor lo sigue viendo como un `X` (`is_class`). Las clases de esos dos tests no se
 registran, y Godot lo avisa al arrancar y al salir de cada proceso de test; el lanzador no lo muestra porque ocurre fuera del
 runner.
 
