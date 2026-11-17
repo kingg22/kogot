@@ -25,13 +25,7 @@ private const val GROWTH_LIMIT_BYTES = 100_000L
  * [cHeapInUse] is `null` where the platform has no cheap query for it (everywhere but Linux): the C heap is then not
  * measured and only the engine memory is asserted.
  */
-fun assertNoGrowth(
-    name: String,
-    tag: String,
-    cHeap: Boolean = true,
-    collect: Boolean = false,
-    call: () -> Unit,
-) {
+fun assertNoGrowth(name: String, tag: String, cHeap: Boolean = true, collect: Boolean = false, call: () -> Unit) {
     val os = Os.instance
     repeat(WARM_UP_CALLS) { call() } // warm up: arenas, lazy method binds
     if (collect) settleCleaners()
