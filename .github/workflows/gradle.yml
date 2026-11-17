@@ -187,11 +187,9 @@ jobs:
       github.actor != 'dependabot[bot]' &&
       github.event.pull_request.user.login != 'renovate[bot]' &&
       github.event.pull_request.user.login != 'dependabot[bot]'
-    timeout-minutes: 60
+    # The last run took ~14 minutes (about 2 of them running the tests); 30 leaves room without letting a hang eat an hour.
+    timeout-minutes: 30
     runs-on: ubuntu-latest
-    # Not blocking yet: the suite has known red tests that document open bugs (#239, #241, #246, #249, #254), and the
-    # harness has only been run on macOS arm64 so far. The job still shows red and uploads its reports.
-    continue-on-error: true
     permissions:
       contents: read
     env:
