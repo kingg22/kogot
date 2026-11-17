@@ -141,7 +141,13 @@ internal fun registerGdextensionTask(project: Project, extension: KogotExtension
 }
 
 internal fun registerGodotCliTasks(project: Project, extension: KogotExtension) {
+    // Godot loads the extension from the project, so the binaries and the (generated, git-ignored) .gdextension manifest
+    // must be there before it starts; without them it reports "GDExtension dynamic library not found".
+    val prerequisites = listOf(KogotConventions.COPY_ALL_TASK_NAME, KogotConventions.GDEXTENSION_TASK_NAME)
+        .filter { it in project.tasks.names }
+
     project.tasks.register(KogotConventions.RUN_GODOT_TASK_NAME, RunGodotTask::class.java) { task ->
+        task.dependsOn(prerequisites)
         task.godotExecutable.set(extension.godotExecutable)
         task.godotProjectDir.set(extension.godotProjectDir)
         task.headless.set(false)
@@ -149,6 +155,7 @@ internal fun registerGodotCliTasks(project: Project, extension: KogotExtension) 
     }
 
     project.tasks.register(KogotConventions.TEST_GODOT_TASK_NAME, TestGodotTask::class.java) { task ->
+        task.dependsOn(prerequisites)
         task.godotExecutable.set(extension.godotExecutable)
         task.godotProjectDir.set(extension.godotProjectDir)
         task.headless.set(true)
