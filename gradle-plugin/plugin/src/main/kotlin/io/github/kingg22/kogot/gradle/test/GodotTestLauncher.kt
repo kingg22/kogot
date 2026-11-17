@@ -75,14 +75,15 @@ object GodotTestLauncher {
             .flatMap { it.substringAfter('=').split(',') }
             .filter(String::isNotBlank)
             .map(::wildcard)
+
         val positive = patterns("--ktest_gradle_filter=")
         val negative = patterns("--ktest_negative_gradle_filter=")
-        val tests = parseListing(listing.output).filter { (suite, test) ->
+        val tests = parseListing(listing.output).filter { [suite, test] ->
             fun matches(patterns: List<Regex>) = patterns.any { it.matches("$suite.$test") || it.matches(suite) }
             (positive.isEmpty() || matches(positive)) && !matches(negative)
         }
         var openSuite: String? = null
-        for ((suite, test) in tests) {
+        for ([suite, test] in tests) {
             if (suite != openSuite) {
                 openSuite?.let { println("##teamcity[testSuiteFinished name='${escape(it)}']") }
                 println("##teamcity[testSuiteStarted name='${escape(suite)}' locationHint='ktest:suite://${escape(suite)}']")
@@ -99,7 +100,8 @@ object GodotTestLauncher {
         for (line in run.output) {
             when {
                 line.startsWith("##teamcity[testStarted") -> started = attr(line, "name")
-                line.startsWith("##teamcity[testFinished") || line.startsWith("##teamcity[testIgnored") -> started = null
+                line.startsWith("##teamcity[testFinished") || line.startsWith("##teamcity[testIgnored") -> started =
+                    null
             }
             // The suite is opened once per class by the launcher, not once per process.
             if (!isHarnessLine(line) && !line.startsWith("##teamcity[testSuite")) println(line)
@@ -113,7 +115,13 @@ object GodotTestLauncher {
             else -> "Godot exited with code ${run.exitCode} before the test finished (crash or abort)"
         }
         val details = run.output.takeLast(40).joinToString("\n")
-        if (!startedAlready) println("##teamcity[testStarted name='${escape(test)}' locationHint='ktest:test://$suite.${escape(test)}']")
+        if (!startedAlready) println(
+            "##teamcity[testStarted name='${escape(test)}' locationHint='ktest:test://$suite.${
+                escape(
+                    test
+                )
+            }']"
+        )
         println("##teamcity[testFailed name='${escape(test)}' message='${escape(why)}' details='${escape(details)}']")
         println("##teamcity[testFinished name='${escape(test)}' duration='0']")
     }
@@ -182,16 +190,19 @@ object GodotTestLauncher {
             }
             val process = ProcessBuilder(command).redirectErrorStream(true).start()
             val lines = mutableListOf<String>()
-            val reader = Thread { process.inputStream.bufferedReader().forEachLine { synchronized(lines) { lines += it } } }
-                .apply { isDaemon = true; start() }
+            val reader =
+                Thread { process.inputStream.bufferedReader().forEachLine { synchronized(lines) { lines += it } } }
+                    .apply { isDaemon = true; start() }
             val finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS)
             if (!finished) process.destroyForcibly().waitFor()
             reader.join(5_000)
             val output = synchronized(lines) { lines.toList() }
             val begin = output.indexOf(BEGIN_MARKER)
+            val end = output.indexOfFirst { it.startsWith(RESULT_MARKER) }
             return Run(
-                // Drop the engine banner and registration noise that precedes the runner.
-                output = if (withUserArgs && begin >= 0) output.drop(begin) else output,
+                // Keep what the runner printed: the engine banner and registration messages before it, and the
+                // shutdown messages after it, are not test output. A run that died keeps everything for diagnosis.
+                output = if (withUserArgs && begin >= 0 && end >= begin) output.subList(begin, end + 1) else output,
                 exitCode = if (finished) process.exitValue() else null,
                 timedOut = !finished,
                 timeoutSeconds = timeoutSeconds,
