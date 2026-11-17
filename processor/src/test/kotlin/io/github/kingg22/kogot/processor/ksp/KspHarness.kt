@@ -2,9 +2,12 @@ package io.github.kingg22.kogot.processor.ksp
 
 import androidx.room3.compiler.processing.util.CompilationResultSubject
 import androidx.room3.compiler.processing.util.Source
+import androidx.room3.compiler.processing.util.compiler.TestCompilationArguments
+import androidx.room3.compiler.processing.util.compiler.compile
 import androidx.room3.compiler.processing.util.runKspProcessorTest
 import io.github.kingg22.kogot.processor.KogotProcessor
 import java.io.File
+import java.nio.file.Files
 
 /**
  * Runs the real [KogotProcessor] through KSP over inline Kotlin [sources], on the JVM.
@@ -17,14 +20,43 @@ import java.io.File
  * Use [hasNoKogotDiagnostics] where a source must be accepted.
  */
 fun runKogotProcessor(vararg sources: String, assertions: CompilationResultSubject.() -> Unit) {
-    val files = sources.mapIndexed { index, content ->
-        Source.kotlin("Test$index.kt", content.trimIndent())
-    }
     runKspProcessorTest(
-        sources = godotApiStubs + files,
+        sources = godotApiStubs + kotlinSources(sources, "Test"),
         symbolProcessorProviders = listOf(KogotProcessor.Provider()),
         onCompilationResult = { subject -> subject.compilationDidFail().assertions() },
     )
+}
+
+/**
+ * Like [runKogotProcessor], but the [dependency] sources are compiled first (with the Godot API stand-ins) and only
+ * their class files reach the processor's classpath, the way a library or another module would. Declarations from
+ * [dependency] are then read from compiled metadata and annotations, not from source.
+ */
+fun runKogotProcessorWithDependency(
+    dependency: String,
+    vararg sources: String,
+    assertions: CompilationResultSubject.() -> Unit,
+) {
+    val workingDir = Files.createTempDirectory("kogot-ksp-dependency").toFile()
+    try {
+        val compiled = compile(
+            workingDir,
+            TestCompilationArguments(sources = godotApiStubs + kotlinSources(arrayOf(dependency), "Dependency")),
+        )
+        check(compiled.success) { "the dependency sources must compile: ${compiled.diagnostics}" }
+        runKspProcessorTest(
+            sources = kotlinSources(sources, "Test"),
+            classpath = compiled.outputClasspath,
+            symbolProcessorProviders = listOf(KogotProcessor.Provider()),
+            onCompilationResult = { subject -> subject.compilationDidFail().assertions() },
+        )
+    } finally {
+        workingDir.deleteRecursively()
+    }
+}
+
+private fun kotlinSources(contents: Array<out String>, prefix: String) = contents.mapIndexed { index, content ->
+    Source.kotlin("$prefix$index.kt", content.trimIndent())
 }
 
 private val godotApiStubs: List<Source> by lazy {

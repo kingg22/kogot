@@ -127,4 +127,50 @@ class KspMappingTest {
             doesNotContain("\"Boss\"")
         }
     }
+
+    @Test
+    fun `a signal object parameter from a compiled dependency is registered under its nearest registered class`() =
+        runKogotProcessorWithDependency(
+            dependency = """
+            package lib
+
+            import io.github.kingg22.godot.api.annotations.Godot
+            import io.github.kingg22.godot.api.core.Node
+            import io.github.kingg22.godot.api.internal.GodotClass
+
+            @GodotClass("Sprite")
+            open class LibSprite : Node()
+
+            @Godot
+            class LibEnemy : Node()
+
+            // Not registered: its closest registered ancestor is the engine class.
+            open class LibBoss : LibSprite()
+            """,
+            """
+            package game
+
+            import io.github.kingg22.godot.api.annotations.Godot
+            import io.github.kingg22.godot.api.annotations.RegisterSignal
+            import io.github.kingg22.godot.api.core.Node
+            import io.github.kingg22.godot.api.signal.signal
+            import lib.LibBoss
+            import lib.LibEnemy
+            import lib.LibSprite
+
+            @Godot
+            class Player : Node() {
+                @RegisterSignal val engine by signal<(sprite: LibSprite) -> Unit>()
+                @RegisterSignal val user by signal<(enemy: LibEnemy) -> Unit>()
+                @RegisterSignal val unregistered by signal<(boss: LibBoss) -> Unit>()
+            }
+            """,
+        ) {
+            hasNoKogotDiagnostics()
+            generatedSourceFileWithPath("game/Player_Binding.kt").apply {
+                contains("""RegisterSignal.Param(Variant.Type.OBJECT, "sprite", className = "Sprite")""")
+                contains("""RegisterSignal.Param(Variant.Type.OBJECT, "enemy", className = "LibEnemy")""")
+                contains("""RegisterSignal.Param(Variant.Type.OBJECT, "boss", className = "Sprite")""")
+            }
+        }
 }

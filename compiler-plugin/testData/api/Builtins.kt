@@ -78,7 +78,11 @@ inline fun <reified T> Variant.Companion.from(element: @MustBeVariant T): Varian
 
 fun <@MustBeVariant T> variantOf(): Variant = Variant()
 
-/** Return position only: reading a value declares no call-site contract. */
+/**
+ * Return position only: reading a value declares no call-site contract. The JVM name avoids a platform clash with
+ * [getValue], which only matters to the tests that compile these stand-ins to bytecode.
+ */
+@get:JvmName("variantValue")
 val Variant.value: @MustBeVariant Any? get() = null
 
 inline fun <@MustBeVariant reified T> T?.toVariant(): Variant = Variant()
