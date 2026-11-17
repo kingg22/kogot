@@ -73,9 +73,27 @@ the other kogot plugin, which create it whichever is applied first.
   library.
 - The test module sees the main classes, so give fixtures their own package.
 
+## CI
+
+`.github/workflows/gradle.yml` keeps the Godot tests out of the regular `build` job and runs them in their own job,
+`godot-tests`:
+
+- `build` excludes the test tasks of `mi-juego-prueba:kotlin_native_game` (`allTests`, the per-target `*Test`, and the
+  test shared library link). Without that it would compile and link the whole test source set and then fail for lack of a
+  Godot executable. Excluding those tasks also removes everything only they need (test compilation, KSP on tests).
+- `godot-tests` downloads the official Godot Linux build (version pinned in the job, SHA-512 checked against the
+  release's `SHA512-SUMS.txt`) and exports it as `GODOT_BIN`, the variable `GodotExecutableLocator` reads.
+- Compile/link and run are **separate steps with separate Gradle processes**, so the memory of the JVM and the
+  Kotlin/Native compiler is released before the tests start. The tests themselves are light because each one runs in
+  its own Godot process, one after another (`testIsolation = PER_TEST`, the default).
+- The job is `continue-on-error` for now: the suite has red tests that document open bugs, and the harness has only
+  been run on macOS arm64 so far. Reports are uploaded as an artifact.
+
 ## Known limits / next steps
 
 - One Godot start per test (about a second each): `NONE` is available when speed matters more than isolation.
 - Windows is not wired.
 - The launcher is a JVM program started by a small script; the script needs no extra tooling (it uses Gradle's JVM).
-- CI matrix over several Godot versions is tracked separately; `godot.bin` / `godot.version` are the hooks for it.
+- CI matrix over several Godot versions is tracked separately; `kogot.godotExecutable` / `GODOT_BIN` are the hooks for it.
+- Sharding the CI job by test class (several runners, each one a filtered `--tests` run) is possible with the same
+  filters the IDE uses; not done because a single runner is enough for the current ~260 tests.

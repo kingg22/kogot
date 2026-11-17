@@ -128,8 +128,17 @@ jobs:
           validate-wrappers: true
 
     - name: Build with Gradle Wrapper
-      # Run without a daemon when only run one task
-      run: ./gradlew build --no-daemon --stacktrace
+      # Run without a daemon when only run one task.
+      # The tests of the sample game run inside a real Godot and compile and link a lot of native code, so they live in
+      # the `godot-tests` job below (separate steps, more memory and time). Excluding the test tasks of that module also
+      # drops what only they need (test compilation, KSP on tests, the test shared library).
+      run: >-
+        ./gradlew build --no-daemon --stacktrace
+        -x :mi-juego-prueba:kotlin_native_game:allTests
+        -x :mi-juego-prueba:kotlin_native_game:linuxX64Test
+        -x :mi-juego-prueba:kotlin_native_game:macosArm64Test
+        -x :mi-juego-prueba:kotlin_native_game:mingwX64Test
+        -x :mi-juego-prueba:kotlin_native_game:linkKogotGodotTestsDebugSharedLinuxX64
 
 #    # With configuration cache parallel, the KMP plugin fails with ConcurrentModificationException
 #    - name: Sonar analyze
@@ -164,6 +173,92 @@ jobs:
     #
     # - name: Build with Gradle 8.9
     #   run: gradle build
+
+  # Kotlin/Native tests of the sample game, run inside a headless Godot (plugin io.github.kingg22.kogot.test).
+  # The expensive part is compiling and linking the tests, so it is its own step with its own Gradle process: the JVM
+  # and the Kotlin/Native compiler release their memory before the tests start. The tests themselves are light: the
+  # plugin starts one Godot process per test (testIsolation = PER_TEST, the default), one after another.
+  godot-tests:
+    needs: pre_job
+    if: >-
+      !cancelled() &&
+      needs.pre_job.outputs.should_skip != 'true' &&
+      github.actor != 'renovate[bot]' &&
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.user.login != 'renovate[bot]' &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    # Not blocking yet: the suite has known red tests that document open bugs (#239, #241, #246, #249, #254), and the
+    # harness has only been run on macOS arm64 so far. The job still shows red and uploads its reports.
+    continue-on-error: true
+    permissions:
+      contents: read
+    env:
+      GODOT_VERSION: 4.7.2-stable
+
+    steps:
+    - name: Maximize Build Space
+      uses: jlumbroso/free-disk-space@v2.0.0
+      with:
+        tool-cache: false
+        large-packages: false
+
+    - uses: actions/checkout@v7
+
+    - name: Set up JDK
+      uses: actions/setup-java@v6
+      with:
+        java-version: '24'
+        distribution: 'temurin'
+        cache: 'gradle'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Cache konan
+      uses: actions/cache@v6
+      with:
+        path: |
+          ~/.konan
+        key: ${{ runner.os }}-konan
+        restore-keys: ${{ runner.os }}-konan
+
+    - name: Change wrapper permissions
+      run: chmod +x ./gradlew
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      with:
+          # The build job owns the Gradle cache.
+          cache-read-only: true
+          validate-wrappers: true
+
+    - name: Install Godot ${{ env.GODOT_VERSION }}
+      run: |
+        base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}"
+        file="Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+        curl -fsSL -o "$file" "$base/$file"
+        curl -fsSL -o SHA512-SUMS.txt "$base/SHA512-SUMS.txt"
+        grep -E "  ${file}\$" SHA512-SUMS.txt | sha512sum -c -
+        unzip -q "$file" -d "$RUNNER_TEMP/godot"
+        chmod +x "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
+        # The kogot Gradle plugins look for the executable in GODOT_BIN (see GodotExecutableLocator).
+        echo "GODOT_BIN=$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}_linux.x86_64" >> "$GITHUB_ENV"
+
+    - name: Compile and link the Godot tests
+      run: ./gradlew :mi-juego-prueba:kotlin_native_game:prepareKogotGodotTestHostLinuxX64 --no-daemon --stacktrace
+
+    - name: Run the Godot tests (one Godot process per test)
+      run: ./gradlew :mi-juego-prueba:kotlin_native_game:linuxX64Test --no-daemon --continue --stacktrace
+
+    - name: Upload test reports
+      uses: actions/upload-artifact@v7
+      if: always()
+      with:
+        name: godot-test-reports
+        path: |
+          mi-juego-prueba/kotlin_native_game/build/reports/tests/
+          mi-juego-prueba/kotlin_native_game/build/test-results/
 
   dependency-submission:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
