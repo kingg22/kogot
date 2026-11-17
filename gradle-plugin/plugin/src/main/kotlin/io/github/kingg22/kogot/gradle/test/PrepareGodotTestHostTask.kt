@@ -1,8 +1,10 @@
 package io.github.kingg22.kogot.gradle.test
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
@@ -38,9 +40,9 @@ abstract class PrepareGodotTestHostTask : DefaultTask() {
     @get:Optional
     abstract val godotExecutable: Property<String>
 
+    /** Extra arguments of every Godot process: `kogot { godotCliArgs }`, the same ones `runGodot` gets. */
     @get:Input
-    @get:Optional
-    abstract val godotVersion: Property<String>
+    abstract val godotCliArgs: ListProperty<String>
 
     @get:Input
     abstract val timeoutSeconds: Property<Long>
@@ -83,7 +85,7 @@ abstract class PrepareGodotTestHostTask : DefaultTask() {
 
             config/name="kogot-godot-tests"
             run/main_scene="res://main.tscn"
-            config/features=PackedStringArray("${godotMinVersion.get()}")
+            config/features=PackedStringArray("${godotMinVersion.get().substringBeforeLast('.')}")
             """.trimIndent() + "\n",
         )
 
@@ -114,8 +116,14 @@ abstract class PrepareGodotTestHostTask : DefaultTask() {
 
         Properties().apply {
             setProperty("host", host.absolutePath)
-            godotExecutable.orNull?.let { setProperty("godot.executable", it) }
-            godotVersion.orNull?.let { setProperty("godot.version", it) }
+            setProperty(
+                "godot.executable",
+                godotExecutable.orNull ?: throw GradleException(
+                    "Godot executable not found. Set kogot.godotExecutable (gradle.properties), GODOT_BIN, " +
+                        "or put 'godot' on PATH",
+                ),
+            )
+            setProperty("godot.args", godotCliArgs.get().joinToString("\n"))
             setProperty("timeout.seconds", timeoutSeconds.get().toString())
             setProperty("isolation", isolation.get().name)
         }.also { props -> config.outputStream().use { props.store(it, "kogot test launcher") } }

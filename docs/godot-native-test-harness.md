@@ -33,14 +33,18 @@ test task, so Gradle and the IDE get real test events.
 
 Only the targets the host OS can run are wired (`macosArm64` on macOS, `linuxX64` on Linux). `mingwX64` is not.
 
-### Options (`kogotTest { }` or `gradle.properties`)
+### Options
 
-| Option | Property | Meaning |
+There is no extension of its own: the plugin reads the `kogot { }` extension (and the `gradle.properties` fallbacks) of
+the other kogot plugin, which create it whichever is applied first.
+
+| Option (`kogot { }`) | Property | Meaning |
 |---|---|---|
-| `godotExecutable` | `kogot.godotExecutable` | Executable, or a macOS `.app`. Else `GODOT_BIN`, then `godot4`/`godot` in `PATH`. The same lookup and property as `runGodot` / `testGodot` of the `io.github.kingg22.kogot` plugin. |
-| `godotVersion` | `kogot.godotVersion` | `X.Y.Z`; when set, the run fails if the executable reports another minor. |
-| `timeoutSeconds` | `kogot.test.timeout` | Per Godot process (default 120). |
-| `isolation` | `kogot.test.isolation` | `PER_TEST` (default) or `NONE`. |
+| `godotExecutable` | `kogot.godotExecutable` | Executable, or a macOS `.app`. Else `GODOT_BIN`, then `godot4`/`godot` in `PATH`. The same lookup (`GodotExecutableLocator`) as `runGodot` / `testGodot`. |
+| `godotVersion` | `kogot.godotVersion` | Written as `compatibility_minimum` of the test `.gdextension`; Godot refuses to load it on an older engine. |
+| `godotCliArgs` | | Extra arguments of every Godot process, the same ones `runGodot` gets. |
+| `testTimeoutSeconds` | `kogot.testTimeoutSeconds` | Per Godot process (default 120). |
+| `testIsolation` | `kogot.testIsolation` | `PER_TEST` (default) or `NONE`. |
 
 ## How it works
 

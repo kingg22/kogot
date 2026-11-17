@@ -1,6 +1,5 @@
 package io.github.kingg22.kogot.gradle.test
 
-import io.github.kingg22.kogot.gradle.GodotExecutableLocator
 import java.io.File
 import java.util.Properties
 import java.util.concurrent.TimeUnit
@@ -27,27 +26,11 @@ object GodotTestLauncher {
         val host = File(config.getProperty("host"))
         val timeout = config.getProperty("timeout.seconds").toLong()
         val isolation = GodotTestIsolation.valueOf(config.getProperty("isolation"))
-        val binary = try {
-            GodotExecutableLocator.locate(config.getProperty("godot.executable"))
-        } catch (e: IllegalStateException) {
-            System.err.println("kogot: ${e.message}")
-            exitProcess(1)
-        } ?: run {
-            System.err.println(
-                "kogot: Godot executable not found. Set kogot.godotExecutable (gradle.properties), GODOT_BIN, " +
-                    "or put 'godot' on PATH",
-            )
-            exitProcess(1)
-        }
-        config.getProperty("godot.version")?.let { wanted ->
-            val reported = GodotExecutableLocator.reportedVersion(binary)
-            if (reported?.startsWith(wanted.substringBeforeLast('.')) != true) {
-                System.err.println("kogot: Godot $wanted was requested but $binary reports '$reported'")
-                exitProcess(1)
-            }
-        }
+        // Resolved by the Gradle build with the same GodotExecutableLocator and `kogot { }` values as runGodot.
+        val binary = File(config.getProperty("godot.executable"))
+        val cliArgs = config.getProperty("godot.args").orEmpty().lines().filter(String::isNotBlank)
 
-        val godot = Godot(binary, host, timeout)
+        val godot = Godot(binary, cliArgs, host, timeout)
         godot.importProject()
         when (isolation) {
             GodotTestIsolation.NONE -> runAll(godot, gradleArgs)
@@ -169,7 +152,7 @@ object GodotTestLauncher {
     }
 
     /** One headless Godot process on the host project; stdout and stderr are merged and kept line by line. */
-    private class Godot(val binary: File, val host: File, val timeoutSeconds: Long) {
+    private class Godot(val binary: File, val cliArgs: List<String>, val host: File, val timeoutSeconds: Long) {
         class Run(val output: List<String>, val exitCode: Int?, val timedOut: Boolean, val timeoutSeconds: Long) {
             /** The runner reached its end: the result marker was printed. */
             val completed: Boolean = output.any { it.startsWith(RESULT_MARKER) } && !timedOut
@@ -189,6 +172,7 @@ object GodotTestLauncher {
         private fun execute(args: List<String>, withUserArgs: Boolean): Run {
             val command = buildList {
                 add(binary.absolutePath)
+                addAll(cliArgs)
                 add("--headless")
                 add("--path")
                 add(host.absolutePath)

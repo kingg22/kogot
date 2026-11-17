@@ -1,6 +1,9 @@
 package io.github.kingg22.kogot.gradle.test
 
 import com.google.devtools.ksp.gradle.KspAATask
+import io.github.kingg22.kogot.gradle.KogotConventions
+import io.github.kingg22.kogot.gradle.KogotExtension
+import io.github.kingg22.kogot.gradle.kogotExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.process.CommandLineArgumentProvider
@@ -25,8 +28,9 @@ import java.io.File
 @Suppress("unused")
 abstract class KogotTestPlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        val extension = project.extensions.create("kogotTest", KogotTestExtension::class.java)
-        project.pluginManager.apply("com.google.devtools.ksp")
+        // The same `kogot { }` extension as the rest of the kogot plugins: Godot executable, version and arguments.
+        val extension = project.kogotExtension()
+        project.pluginManager.apply(KogotConventions.KSP_PLUGIN_ID)
 
         project.plugins.withType(KotlinMultiplatformPluginWrapper::class.java) {
             val kotlin = project.extensions.getByType(KotlinMultiplatformExtension::class.java)
@@ -36,7 +40,7 @@ abstract class KogotTestPlugin : Plugin<Project> {
         }
     }
 
-    private fun configureTarget(project: Project, extension: KogotTestExtension, target: KotlinNativeTarget) {
+    private fun configureTarget(project: Project, extension: KogotExtension, target: KotlinNativeTarget) {
         val capitalized = target.name.replaceFirstChar(Char::uppercase)
         val compilation = target.compilations.getByName("test")
         val buildDir = project.layout.buildDirectory
@@ -45,7 +49,12 @@ abstract class KogotTestPlugin : Plugin<Project> {
         val kspConfiguration = "ksp${capitalized}Test"
         project.configurations.configureEach { configuration ->
             if (configuration.name == kspConfiguration) {
-                project.dependencies.addProvider(kspConfiguration, extension.processorCoordinate)
+                project.dependencies.addProvider(
+                    kspConfiguration,
+                    extension.kogotGroup.zip(extension.kogotVersion) { group, version ->
+                        "$group:${KogotConventions.ARTIFACT_PROCESSOR}:$version"
+                    },
+                )
             }
         }
         project.tasks.withType(KspAATask::class.java).matching {
@@ -91,11 +100,11 @@ abstract class KogotTestPlugin : Plugin<Project> {
                     },
                 ),
             )
-            task.godotMinVersion.set("4.6")
-            task.godotExecutable.set(extension.godotExecutable)
-            task.godotVersion.set(extension.godotVersion)
-            task.timeoutSeconds.set(extension.timeoutSeconds)
-            task.isolation.set(extension.isolation)
+            task.godotMinVersion.set(extension.godotVersion)
+            task.godotExecutable.set(extension.godotExecutable.map { it.asFile.absolutePath })
+            task.godotCliArgs.set(extension.godotCliArgs)
+            task.timeoutSeconds.set(extension.testTimeoutSeconds)
+            task.isolation.set(extension.testIsolation)
             task.launcherClasspath.set(launcherClasspath())
             task.javaExecutable.set(File(System.getProperty("java.home"), "bin/java").absolutePath)
             task.hostDir.set(buildDir.dir("kogotGodotTest/${target.name}"))

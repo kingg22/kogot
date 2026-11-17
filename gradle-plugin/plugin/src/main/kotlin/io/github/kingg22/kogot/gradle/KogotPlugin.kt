@@ -8,7 +8,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 abstract class KogotPlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        val extension = project.extensions.create(EXTENSION_NAME, KogotExtension::class.java, project)
+        val extension = project.kogotExtension()
 
         project.plugins.withType(KotlinMultiplatformPluginWrapper::class.java) {
             // Everything below reads user-configured `kogot { ... }` values, which are only final

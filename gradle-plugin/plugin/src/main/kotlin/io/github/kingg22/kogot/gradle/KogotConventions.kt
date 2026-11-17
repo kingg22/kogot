@@ -14,6 +14,8 @@ object KogotConventions {
     const val PROP_GODOT_VERSION = "kogot.godotVersion"
     const val PROP_GODOT_EXECUTABLE = "kogot.godotExecutable"
     const val PROP_GODOT_PROJECT_DIR = "kogot.godotProjectDir"
+    const val PROP_TEST_TIMEOUT_SECONDS = "kogot.testTimeoutSeconds"
+    const val PROP_TEST_ISOLATION = "kogot.testIsolation"
     const val PROP_ENTRY_SYMBOL = "kogot.entrySymbol"
     const val PROP_ENTRY_POINT_PACKAGE = "kogot.entryPointPackage"
     const val PROP_GENERATE_ENTRY_POINT = "kogot.generateEntryPoint"
@@ -33,6 +35,7 @@ object KogotConventions {
     const val DEFAULT_KOGOT_GROUP = "io.github.kingg22.kogot"
     const val DEFAULT_GODOT_VERSION = "4.7.1"
     const val DEFAULT_ENTRY_SYMBOL = "godot_kotlin_init"
+    const val DEFAULT_TEST_TIMEOUT_SECONDS = 120L
     const val DEFAULT_ENTRY_POINT_PACKAGE = "generated"
 
     /** Base package of kogot's own Kotlin/Native runtime, used to qualify imports in generated code. */

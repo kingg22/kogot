@@ -23,14 +23,6 @@ object GodotExecutableLocator {
             .firstOrNull { it.isFile && it.canExecute() }
     }
 
-    /** `godot --version`, e.g. `4.7.2.stable.official.abc123`, or null when it cannot be run. */
-    fun reportedVersion(executable: File): String? = runCatching {
-        val process = ProcessBuilder(executable.absolutePath, "--version").redirectErrorStream(true).start()
-        val out = process.inputStream.bufferedReader().readText().trim()
-        process.waitFor()
-        out.ifBlank { null }
-    }.getOrNull()
-
     private fun resolveBundle(file: File): File {
         if (!file.isDirectory || !file.name.endsWith(".app")) return file
         val macos = File(file, "Contents/MacOS")

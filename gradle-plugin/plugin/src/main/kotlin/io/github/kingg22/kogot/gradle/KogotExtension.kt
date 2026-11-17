@@ -6,9 +6,18 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
+import io.github.kingg22.kogot.gradle.test.GodotTestIsolation
 import javax.inject.Inject
 
 const val EXTENSION_NAME = "kogot"
+
+/** The `kogot { }` extension of this project: shared by every kogot plugin, whichever is applied first creates it. */
+internal fun Project.kogotExtension(): KogotExtension =
+    extensions.findByType(KogotExtension::class.java) ?: extensions.create(
+        EXTENSION_NAME,
+        KogotExtension::class.java,
+        this,
+    )
 
 /**
  * Public DSL surface for the kogot Gradle plugin. Every value has a `gradle.properties` fallback
@@ -85,6 +94,18 @@ constructor(project: Project) {
 
     /** Extra raw CLI arguments forwarded to every `godot` invocation (run + test tasks). */
     val godotCliArgs: ListProperty<String> = objects.listProperty(String::class.java).convention(emptyList())
+
+    /** Seconds one Godot process of the native tests (`<target>Test`) may run before it is killed and its test fails. */
+    val testTimeoutSeconds: Property<Long> = objects.property(Long::class.java).convention(
+        gradleProp(KogotConventions.PROP_TEST_TIMEOUT_SECONDS).map(String::toLong)
+            .orElse(KogotConventions.DEFAULT_TEST_TIMEOUT_SECONDS),
+    )
+
+    /** How the native tests are spread over Godot processes: one per test (default) or a single one. */
+    val testIsolation: Property<GodotTestIsolation> = objects.property(GodotTestIsolation::class.java).convention(
+        gradleProp(KogotConventions.PROP_TEST_ISOLATION).map { GodotTestIsolation.valueOf(it.uppercase()) }
+            .orElse(GodotTestIsolation.PER_TEST),
+    )
 
     /** Base package of kogot's runtime (`internal.binding`/`internal.ffi`), used to qualify imports in generated code. */
     val runtimePackage: Property<String> = objects.property(String::class.java).convention(

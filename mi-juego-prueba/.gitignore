@@ -1,3 +1,6 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Godot writes a .uid next to every script it scans (including the Kotlin sources); they are generated, not committed
+*.uid
